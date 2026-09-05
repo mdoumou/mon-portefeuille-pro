@@ -1,0 +1,17 @@
+{
+  "name": "Mon Portefeuille Pro",
+  "short_name": "Portefeuille",
+  "description": "Gestion financiere personnelle SYSCOHADA - comptabilite, tresorerie, tontines, projets",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
+  "lang": "fr",
+  "dir": "ltr",
+  "icons": [
+    { "src": "icons/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
