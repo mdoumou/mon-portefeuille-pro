@@ -1113,6 +1113,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         </div>
       </div>
       <div class="card">
+        <div class="card-hd">Diagnostic PWA</div>
+        <div class="info-box" style="margin-bottom:10px">Ce que le navigateur decide reellement sur cet appareil, en clair - a consulter (et capturer en photo si besoin) plutot que de deviner.</div>
+        <div id="pwa-diag-body" style="font-size:calc(13px*var(--fscale));line-height:1.9"></div>
+        <button class="btn-s" style="margin-top:10px" onclick="renderPwaDiag()">Actualiser</button>
+      </div>
+      <div class="card">
         <div class="card-hd">Securite de l'appareil</div>
         <div class="info-box" style="margin-bottom:10px">Raccourci pratique par-dessus votre mot de passe : la biometrie ne remplace pas le chiffrement, elle deverrouille plus vite sur cet appareil precis (a reactiver separement sur chaque appareil).</div>
         <div id="bio-status" style="font-size:calc(13px*var(--fscale));opacity:.8;margin-bottom:10px">Non activee</div>
@@ -10908,6 +10914,25 @@ function renderRegsHistorique(){
   });
   el.innerHTML=html;
 }
+function renderPwaDiag(){
+  var el=G('pwa-diag-body');if(!el)return;
+  var lignes=[];
+  lignes.push('<b>HTTPS</b> : '+(location.protocol==='https:'?'Oui':'NON ('+location.protocol+')'));
+  lignes.push('<b>Manifest lie</b> : '+(document.querySelector('link[rel="manifest"]')?'Oui':'NON TROUVE'));
+  lignes.push('<b>Mode d\'affichage</b> : '+((window._pwaDiag&&window._pwaDiag.displayMode)||'inconnu'));
+  var swApi='serviceWorker' in navigator;
+  lignes.push('<b>API Service Worker</b> : '+(swApi?'Disponible':'INDISPONIBLE sur ce navigateur/contexte'));
+  var swEnreg=(window._pwaDiag&&window._pwaDiag.sw)||'Non teste';
+  lignes.push('<b>Enregistrement SW (cette visite)</b> : '+swEnreg+(window._pwaDiag&&window._pwaDiag.swDetail?' - '+window._pwaDiag.swDetail:''));
+  try{var swp=localStorage.getItem('mp_diag_sw');if(swp)lignes.push('<span style="color:var(--text2)">(lors d\'une visite anterieure : '+swp+')</span>');}catch(e){}
+  var actif=false;
+  try{actif=!!navigator.serviceWorker.controller;}catch(e){}
+  lignes.push('<b>SW actif sur cette page</b> : '+(actif?'Oui (le SW controle cette page)':'Non (normal au tout premier chargement - rechargez pour verifier)'));
+  var installEvt=(window._pwaDiag&&window._pwaDiag.installable)||'Non recu pour le moment';
+  lignes.push('<b>Evenement "installable" recu</b> : '+installEvt);
+  try{var ip=localStorage.getItem('mp_diag_installable');if(ip)lignes.push('<span style="color:var(--text2)">(deja recu lors d\'une visite anterieure)</span>');}catch(e){}
+  el.innerHTML=lignes.map(function(l){return '<div>'+l+'</div>';}).join('');
+}
 function renderRapport(){
   var y=new Date().getFullYear();
   var ry=G('rap-yr'),rn=G('rap-net'),rr=G('rap-rev'),rd=G('rap-dep'),re=G('rap-ep'),rdet=G('rap-det');
@@ -10918,6 +10943,7 @@ function renderRapport(){
   if(re)re.textContent=fmt((D.projets||[]).reduce(function(a,p){return a+Number(p.actuel);},0));
   if(rdet)rdet.textContent=fmt(dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts());
   renderRapportClotures();
+  try{renderPwaDiag();}catch(e){}
   var rc=G('regs-cpt');
   if(rc&&!rc.options.length){rc.innerHTML=COMPTES_TRES.map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');majRegsSoldeActuel();}
   var rgd=G('regs-date');if(rgd&&!rgd.value)rgd.value=today();
@@ -12820,11 +12846,38 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 // ============ PWA ============
+// Diagnostic visible (au lieu d'avaler les erreurs en silence) : permet de voir exactement ce que le
+// navigateur decide reellement, via une capture d'ecran, sans avoir besoin d'un outil de developpeur.
+window._pwaDiag={sw:'Non tente',swDetail:'',installable:'Non recu pour le moment',displayMode:'inconnu'};
+try{
+  window._pwaDiag.displayMode=window.matchMedia('(display-mode: standalone)').matches?'standalone (deja installee)':'navigateur (onglet normal)';
+}catch(e){}
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){/* pas grave si indisponible (ex: ouverture en fichier local) */});
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      window._pwaDiag.sw='Enregistre avec succes';
+      window._pwaDiag.swDetail='scope: '+reg.scope;
+      try{localStorage.setItem('mp_diag_sw','ok');}catch(e){}
+      try{renderPwaDiag();}catch(e){}
+    }).catch(function(err){
+      window._pwaDiag.sw='ECHEC';
+      window._pwaDiag.swDetail=(err&&(err.message||err.name))||String(err);
+      try{localStorage.setItem('mp_diag_sw','echec: '+window._pwaDiag.swDetail);}catch(e){}
+      try{notif('Service Worker : echec d\'enregistrement - '+window._pwaDiag.swDetail,true);}catch(e){}
+      try{renderPwaDiag();}catch(e){}
+    });
   });
+}else{
+  window._pwaDiag.sw='API absente sur ce navigateur';
 }
+window.addEventListener('beforeinstallprompt',function(e){
+  window._pwaDiag.installable='OUI - le navigateur propose l\'installation';
+  try{localStorage.setItem('mp_diag_installable','oui');}catch(e2){}
+  try{renderPwaDiag();}catch(e2){}
+});
+window.addEventListener('appinstalled',function(){
+  try{notif('Application installee avec succes');}catch(e){}
+});
 </script>
 
 <div class="ov" id="ov-extourne"><div class="modal" onclick="event.stopPropagation()">

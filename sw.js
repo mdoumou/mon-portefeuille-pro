@@ -1,7 +1,7 @@
 // Service Worker - Mon Portefeuille Pro
 // Strategie : "stale-while-revalidate" -> reponse immediate depuis le cache (rapide + hors ligne),
 // mise a jour silencieuse en arriere-plan des que le reseau est disponible.
-const CACHE_NAME = 'mpp-cache-v92';
+const CACHE_NAME = 'mpp-cache-v93';
 const APP_SHELL = [
   './',
   './index.html',
