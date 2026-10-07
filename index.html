@@ -789,7 +789,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     <div id="pg-tresorerie" style="display:none">
       <div class="sec" style="display:flex;justify-content:space-between;align-items:center">
         <span>Comptes de tresorerie</span>
-        <button class="hdr-btn" style="width:28px;height:28px;font-size:calc(12px*var(--fscale))" title="Parametres de securisation" onclick="ouvrirParamTresorerie()">&#x2699;</button>
+        <div style="display:flex;gap:6px">
+          <button class="hdr-btn" id="tres-vue-btn" style="width:28px;height:28px;font-size:calc(12px*var(--fscale))" title="Changer l'affichage (grille / liste)" onclick="basculerVueTres()"></button>
+          <button class="hdr-btn" id="tres-reorder-btn" style="width:28px;height:28px;font-size:calc(12px*var(--fscale))" title="Reorganiser l'ordre des comptes" onclick="toggleTresReorderMode()">&#x2195;</button>
+          <button class="hdr-btn" style="width:28px;height:28px;font-size:calc(12px*var(--fscale))" title="Parametres de securisation" onclick="ouvrirParamTresorerie()">&#x2699;</button>
+        </div>
       </div>
       <div id="t-comptes"></div>
       <div class="card" id="t-fonds-tiers-card">
@@ -811,6 +815,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div class="chip" data-cpt="Frais Transfert" onclick="filtTx('Frais Transfert',this)">Frais</div>
       </div>
       <div class="card"><div id="t-tx"></div></div>
+      <div class="acc" id="acc-pertesCaisse">
+        <div class="acc-hd" onclick="toggleAcc('pertesCaisse')">
+          <span class="acc-ico">&#x1F4B8;</span><span class="acc-ttl">Perte / argent retrouve<span id="pertes-badge" style="display:none;margin-left:6px;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px"></span></span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
+      <div class="card">
+        <div class="card-hd">Declarer une perte</div>
+        <div class="info-box" style="margin-bottom:10px">Pour de l'argent egare (retrouve ou non) : une ecriture au compte 479 (Ecarts de regularisation) - le meme deja utilise pour la regularisation des soldes - trace la perte sans toucher aux autres comptes.</div>
+        <div class="fg"><label class="fl">Compte</label><select class="fc" id="perte-cpt"></select></div>
+        <div class="fr">
+          <div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="perte-montant"></div>
+          <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="perte-date"></div>
+        </div>
+        <div class="fg"><label class="fl">Motif</label><input class="fc" type="text" id="perte-motif" placeholder="ex: Egare dans un sac"></div>
+        <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px" onclick="declarerPerteCaisse()">Enregistrer la perte</button>
+      </div>
+      <div id="pertes-liste" style="margin-top:10px"></div>
+        </div>
+      </div>
     </div>
 
     <!-- OPERATIONS SYSCOHADA -->
@@ -983,6 +1006,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       </div>
       <div id="fam-list"></div>
       <div class="card" style="margin-top:4px"><div class="card-hd">Depenses foyer</div><div id="foyer-list"></div></div>
+      <div class="card" style="margin-top:4px">
+        <div class="card-hd">Depenses occasionnelles</div>
+        <div class="info-box" style="margin-bottom:10px">Pour une depense familiale ponctuelle (pas un montant fixe chaque mois) : urgence medicale, frais de scolarite, imprevu... Enregistree directement, sans creer de charge recurrente.</div>
+        <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px;margin-bottom:10px" onclick="ouvrirDepenseOccasionnelleFamille()">+ Nouvelle depense occasionnelle</button>
+        <div id="fam-occ-list"></div>
+      </div>
     </div>
 
     <!-- PROJETS -->
@@ -1087,8 +1116,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div class="st" data-ico="&#x1F3AF;"><div class="st-lbl">Epargne</div><div class="st-val cb" id="rap-ep">0</div></div>
         <div class="st" data-ico="&#x1F4B3;"><div class="st-lbl">Dettes</div><div class="st-val cr" id="rap-det">0</div></div>
       </div>
+      <div class="acc" id="acc-rapEvolution">
+        <div class="acc-hd" onclick="toggleAcc('rapEvolution')">
+          <span class="acc-ico">&#x1F4C8;</span><span class="acc-ttl">Evolution 12 mois</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card"><div class="card-hd">Evolution 12 mois</div><div class="ch"><canvas id="ch-rap"></canvas></div></div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapClotures">
+        <div class="acc-hd" onclick="toggleAcc('rapClotures')">
+          <span class="acc-ico">&#x1F4C1;</span><span class="acc-ttl">Dettes &amp; Creances - Clotures</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card"><div class="card-hd">Dettes &amp; Creances - Clotures (historique complet)</div><div id="rap-clotures"></div></div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapExport">
+        <div class="acc-hd" onclick="toggleAcc('rapExport')">
+          <span class="acc-ico">&#x1F4BE;</span><span class="acc-ttl">Exporter / Importer</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Exporter / Importer</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1098,6 +1146,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         </div>
         <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapDrive">
+        <div class="acc-hd" onclick="toggleAcc('rapDrive')">
+          <span class="acc-ico">&#x2601;&#xFE0F;</span><span class="acc-ttl">Synchronisation Google Drive</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Synchronisation Google Drive</div>
         <div class="info-box" style="margin-bottom:10px">Vos donnees restent chiffrees de bout en bout : Google Drive ne stocke qu'une copie chiffree, illisible sans votre mot de passe.</div>
@@ -1112,12 +1167,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
           <button class="btn-s" id="gsync-disc-btn" style="display:none;font-size:calc(14px*var(--fscale));padding:11px" onclick="disconnectGoogleDrive()">Se deconnecter</button>
         </div>
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapPwaDiag">
+        <div class="acc-hd" onclick="toggleAcc('rapPwaDiag')">
+          <span class="acc-ico">&#x1F527;</span><span class="acc-ttl">Diagnostic PWA</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Diagnostic PWA</div>
         <div class="info-box" style="margin-bottom:10px">Ce que le navigateur decide reellement sur cet appareil, en clair - a consulter (et capturer en photo si besoin) plutot que de deviner.</div>
         <div id="pwa-diag-body" style="font-size:calc(13px*var(--fscale));line-height:1.9"></div>
-        <button class="btn-s" style="margin-top:10px" onclick="renderPwaDiag()">Actualiser</button>
+        <button class="btn-s" style="margin-top:10px" onclick="actualiserPwaDiag()">Actualiser</button>
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapSecurite">
+        <div class="acc-hd" onclick="toggleAcc('rapSecurite')">
+          <span class="acc-ico">&#x1F510;</span><span class="acc-ttl">Securite de l'appareil</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Securite de l'appareil</div>
         <div class="info-box" style="margin-bottom:10px">Raccourci pratique par-dessus votre mot de passe : la biometrie ne remplace pas le chiffrement, elle deverrouille plus vite sur cet appareil precis (a reactiver separement sur chaque appareil).</div>
@@ -1127,6 +1196,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
           <button class="btn-s" id="bio-off-btn" style="display:none;font-size:calc(14px*var(--fscale));padding:11px" onclick="desactiverBiometrie()">Desactiver</button>
         </div>
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapApparence">
+        <div class="acc-hd" onclick="toggleAcc('rapApparence')">
+          <span class="acc-ico">&#x1F3A8;</span><span class="acc-ttl">Apparence</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Apparence</div>
         <div class="info-box" style="margin-bottom:10px">Police et taille appliquees a l'ensemble de l'application et aux rapports (PDF et impression).</div>
@@ -1152,6 +1228,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
           </div>
         </div>
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapRegularisation">
+        <div class="acc-hd" onclick="toggleAcc('rapRegularisation')">
+          <span class="acc-ico">&#x2696;&#xFE0F;</span><span class="acc-ttl">Regularisation des soldes</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card">
         <div class="card-hd">Regularisation des soldes</div>
         <div class="info-box" style="margin-bottom:10px">Corrige un compte de tresorerie pour qu'il corresponde au solde reellement constate (releve, appli mobile money...) via une ecriture de regularisation tracee dans le Journal - jamais une simple modification silencieuse du solde affiche.</div>
@@ -1166,10 +1249,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px;margin-top:6px" onclick="ouvrirConfirmRegularisationSolde()">Verifier et confirmer</button>
         <div id="regs-historique" style="margin-top:14px"></div>
       </div>
+        </div>
+      </div>
+      <div class="acc" id="acc-rapDanger">
+        <div class="acc-hd" onclick="toggleAcc('rapDanger')">
+          <span class="acc-ico">&#x26A0;&#xFE0F;</span><span class="acc-ttl" style="color:var(--red)">Zone dangereuse</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
       <div class="card" style="border-color:rgba(239,68,68,.35)">
         <div class="card-hd" style="color:var(--red)">Zone dangereuse</div>
         <div class="info-box" style="margin-bottom:10px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#FCA5A5">Efface definitivement toutes vos donnees financieres (ecritures, comptes, dettes, prets, tiers, projets, tontines...) et repart d'une base vide. Votre mot de passe/PIN, la biometrie, votre cle API et votre connexion Google Drive restent inchanges. Cette action est irreversible : exportez d'abord une sauvegarde JSON si vous n'etes pas sur.</div>
         <button class="btn-p btn-red" style="font-size:calc(14px*var(--fscale));padding:11px" onclick="ouvrirConfirmReset()">Reinitialiser toutes les donnees</button>
+      </div>
+        </div>
       </div>
     </div>
 
@@ -2216,6 +2308,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div id="regs-confirm-body" style="font-size:calc(13px*var(--fscale));color:var(--text2);line-height:1.7;margin:12px 0 18px"></div>
   <button class="btn-p btn-gold" onclick="confirmerRegularisationSolde()">Confirmer</button>
   <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-regs')">Annuler</button>
+</div></div>
+
+<div class="ov" id="ov-argent-retrouve"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Argent retrouve</div>
+  <div id="ar-info" style="font-size:calc(13px*var(--fscale));color:var(--text2);margin-bottom:12px"></div>
+  <div class="fg"><label class="fl">Montant retrouve (FCFA)</label><input class="fc" type="number" id="ar-montant"></div>
+  <div class="fg"><label class="fl">Compte ou l'argent est retrouve</label><select class="fc" id="ar-cpt"></select></div>
+  <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="ar-date"></div>
+  <button class="btn-p btn-gold" onclick="confirmerArgentRetrouve()">Confirmer</button>
+  <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-argent-retrouve')">Annuler</button>
 </div></div>
 
 <!-- MODAL API KEY -->
@@ -10041,6 +10143,25 @@ function renderFamille(){
       });
     }
   }
+  renderDepensesOccasionnellesFamille();
+}
+// Depense familiale ponctuelle : pas de montant fixe a repeter chaque mois (contrairement a
+// Famille/Foyer), donc pas de "charge" a creer - juste un raccourci pour ouvrir Nouvelle Depense
+// pre-remplie sur la categorie 69 (Charges familiales), sans chargeLinkId (rien a relier).
+function ouvrirDepenseOccasionnelleFamille(){
+  ouvrirNouvelleDep();
+  var cs=G('dep-cat');if(cs)cs.value='69|Charges familiales';
+}
+function renderDepensesOccasionnellesFamille(){
+  var el=G('fam-occ-list');if(!el)return;
+  var liste=(D.depenses||[]).filter(function(d){return d.categorie==='Charges familiales'&&!d.chargeLinkId;})
+    .sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  if(!liste.length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucune depense occasionnelle</div></div>';return;}
+  el.innerHTML=liste.slice(0,20).map(function(d){
+    return '<div class="tx"><div class="tx-ico idb">O</div>'+
+      '<div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(impNomTiers(d.tiers)):'')+'</div></div>'+
+      '<div class="tx-amt adb">'+fmt(d.montant)+' F</div></div>';
+  }).join('');
 }
 
 // ============ FISCAL & SOCIAL ============
@@ -10117,19 +10238,204 @@ function renderCal(){
 }
 
 // ============ TRESORERIE ============
+var _tresReorderMode=false;
+function ordreComptesTresActuel(){
+  var ordre=(D.parametres&&D.parametres.ordreComptesTres)||[];
+  var valides=ordre.filter(function(n){return COMPTES_TRES.indexOf(n)>-1;});
+  COMPTES_TRES.forEach(function(n){if(valides.indexOf(n)===-1)valides.push(n);});
+  return valides;
+}
+function toggleTresReorderMode(){
+  _tresReorderMode=!_tresReorderMode;
+  var btn=G('tres-reorder-btn');if(btn)btn.classList.toggle('on',_tresReorderMode);
+  renderTres();
+}
+function deplacerCompteTres(nom,direction){
+  var ordre=ordreComptesTresActuel();
+  var i=ordre.indexOf(nom),j=i+direction;
+  if(i===-1||j<0||j>=ordre.length)return;
+  var tmp=ordre[i];ordre[i]=ordre[j];ordre[j]=tmp;
+  if(!D.parametres)D.parametres={};
+  D.parametres.ordreComptesTres=ordre;
+  save();renderTres();
+}
+function reinitialiserOrdreComptesTres(){
+  if(!D.parametres)D.parametres={};
+  D.parametres.ordreComptesTres=null;
+  save();renderTres();notif('Ordre des comptes reinitialise');
+}
+// Emmene directement vers Regularisation des soldes (Rapport) avec ce compte deja selectionne,
+// sans repasser par Rapport > deplier la section manuellement.
+function ouvrirRegularisationDepuisTresorerie(nom){
+  curPage='rapport';
+  document.querySelectorAll('[id^="pg-"]').forEach(function(el){el.style.display='none';});
+  var pg=G('pg-rapport');if(pg)pg.style.display='';
+  document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
+  var nb=G('nb-rapport');if(nb)nb.classList.add('on');
+  renderRapport();
+  var acc=G('acc-rapRegularisation');
+  if(acc&&!acc.classList.contains('open'))toggleAcc('rapRegularisation');
+  var sel=G('regs-cpt');if(sel)sel.value=nom;
+  majRegsSoldeActuel();
+  var champ=G('regs-solde-reel');if(champ)champ.focus();
+}
+var SVG_VUE_GRILLE='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>';
+var SVG_VUE_LISTE='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1.5"/><rect x="3" y="10" width="18" height="4" rx="1.5"/><rect x="3" y="16" width="18" height="4" rx="1.5"/></svg>';
+function vueTresActuelle(){
+  return (D.parametres&&D.parametres.vueComptesTres)==='liste'?'liste':'grille';
+}
+// Le bouton affiche l'icone de la vue VERS laquelle on bascule (liste -> icone grille, et inversement).
+function majBoutonVueTres(){
+  var b=G('tres-vue-btn');if(!b)return;
+  var liste=vueTresActuelle()==='liste';
+  b.innerHTML=liste?SVG_VUE_GRILLE:SVG_VUE_LISTE;
+  b.title=liste?'Passer en affichage grille':'Passer en affichage liste (vertical)';
+}
+function basculerVueTres(){
+  if(!D.parametres)D.parametres={};
+  D.parametres.vueComptesTres=vueTresActuelle()==='liste'?'grille':'liste';
+  save();renderTres();
+  notif(vueTresActuelle()==='liste'?'Affichage : liste verticale':'Affichage : grille');
+}
 function renderTres(){
+  initDashAccordions();
   var el=G('t-comptes');if(!el)return;
-  el.innerHTML=COMPTES_TRES.map(function(n){
+  var ordre=ordreComptesTresActuel();
+  var liste=vueTresActuelle()==='liste';
+  majBoutonVueTres();
+  el.style.display='grid';el.style.gridTemplateColumns=liste?'1fr':'1fr 1fr';el.style.gap='10px';
+  var html='';
+  if(_tresReorderMode){
+    html+='<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);border-radius:10px;padding:9px 12px;margin-bottom:2px;font-size:calc(12px*var(--fscale))">'+
+      '<span>Mode reorganisation</span><span style="color:var(--gold2);cursor:pointer;font-weight:700" onclick="reinitialiserOrdreComptesTres()">Reinitialiser l\'ordre</span></div>';
+  }
+  html+=ordre.map(function(n,i){
     var s=D.comptes[n]||0;
-    return '<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="ouvrirOperationsCompteMoisCourant(\''+n+'\')"><div style="display:flex;align-items:center;gap:13px">'+
-      '<div class="cpt-logo '+(CPT_LOGO[n]||'cCash')+'" style="width:44px;height:44px">'+(CPT_EMJ[n]||n.slice(0,2))+'</div>'+
-      '<div style="flex:1"><div style="font-size:calc(15px*var(--fscale));font-weight:700">'+n+'</div></div>'+
-      '<div style="font-size:calc(18px*var(--fscale));font-weight:700;color:'+(s>=0?'var(--green)':'var(--red)')+'">'+fmt(s)+' F</div>'+
-    '</div></div>';
+    var clic=_tresReorderMode?'':' onclick="ouvrirOperationsCompteMoisCourant(\''+n+'\')"';
+    var curseur=_tresReorderMode?'':';cursor:pointer';
+    var logo='<div class="cpt-logo '+(CPT_LOGO[n]||'cCash')+'" style="width:36px;height:36px;font-size:calc(10px*var(--fscale));'+(liste?'':'margin-bottom:8px')+'">'+(CPT_EMJ[n]||n.slice(0,2))+'</div>';
+    var nom='<div style="font-size:calc(12.5px*var(--fscale));font-weight:700">'+n+'</div>';
+    var montant='<div style="font-size:calc(13.5px*var(--fscale));font-weight:700;color:'+(s>=0?'var(--green)':'var(--red)')+';margin-top:2px">'+fmt(s)+' F</div>';
+    var btnHaut='<button class="btn-s" style="'+(liste?'width:34px;':'flex:1;')+'padding:6px;font-size:11px"'+(i===0?' disabled':'')+' onclick="deplacerCompteTres(\''+n+'\',-1)">&#x25B2;</button>';
+    var btnBas='<button class="btn-s" style="'+(liste?'width:34px;':'flex:1;')+'padding:6px;font-size:11px"'+(i===ordre.length-1?' disabled':'')+' onclick="deplacerCompteTres(\''+n+'\',1)">&#x25BC;</button>';
+    var btnRegul=function(abs){return '<button style="'+(abs?'position:absolute;top:8px;right:8px;':'flex-shrink:0;')+'width:24px;height:24px;border-radius:6px;background:rgba(212,160,23,.15);border:none;color:var(--gold2);font-size:12px;line-height:1" title="Mettre a jour le solde" onclick="event.stopPropagation();ouvrirRegularisationDepuisTresorerie(\''+n+'\')">&#x2696;</button>';};
+    if(liste){
+      // Liste verticale : 1 compte par ligne (logo | nom + solde | action), meme ordre que la grille.
+      return '<div class="card" style="padding:10px 12px;margin-bottom:0;display:flex;align-items:center;gap:12px'+curseur+'"'+clic+'>'+logo+
+        '<div style="flex:1;min-width:0">'+nom+montant+'</div>'+
+        (_tresReorderMode?'<div style="display:flex;gap:5px">'+btnHaut+btnBas+'</div>':btnRegul(false))+
+      '</div>';
+    }
+    var fleches=_tresReorderMode?('<div style="display:flex;gap:5px;margin-top:8px">'+btnHaut+btnBas+'</div>'):'';
+    return '<div class="card" style="padding:12px;position:relative'+curseur+'"'+clic+'>'+(_tresReorderMode?'':btnRegul(true))+
+      logo+nom+montant+fleches+
+    '</div>';
   }).join('');
+  el.innerHTML=html;
   renderFondsTiers();
   renderTxList('tous');
   setTimeout(buildTresChart,100);
+  renderPertesCaisse();
+}
+// Perte de caisse / argent retrouve : reutilise le compte 479 (Ecarts de regularisation), deja utilise
+// pour Regularisation des soldes - meme logique de "ecart inexplique" qui peut se resorber plus tard.
+function declarerPerteCaisse(){
+  var cpt=(G('perte-cpt')||{}).value||'';
+  var montant=Number((G('perte-montant')||{}).value||0);
+  var motif=((G('perte-motif')||{}).value||'').trim();
+  var date=(G('perte-date')||{}).value||today();
+  if(!cpt){notif('Choisissez un compte',true);return;}
+  if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
+  if(!motif){notif('Motif obligatoire',true);return;}
+  var code=cptCode(cpt);
+  var ref=passerEcriture('OD',date,'Perte de caisse - '+motif,[
+    {compte:'479',lib:'Ecarts de regularisation',sens:'D',montant:montant,tiers:''},
+    {compte:code,lib:cpt,sens:'C',montant:montant,tiers:''}
+  ],'');
+  if(!ref){notif('Perte annulee - l\'ecriture correspondante a echoue',true);return;}
+  D.comptes[cpt]=(D.comptes[cpt]||0)-montant;
+  if(!D.pertesCaisse)D.pertesCaisse=[];
+  var id='PERTE'+Date.now()+Math.floor(Math.random()*1000);
+  D.pertesCaisse.push({id:id,compte:cpt,montantPerdu:montant,montantRetrouve:0,motif:motif,date:date,statut:'ouverte'});
+  auditLog('Perte de caisse declaree','Tresorerie',cpt+' : -'+fmt(montant)+' F',motif,'');
+  save();notif('Perte enregistree');
+  clr('perte-montant','perte-motif');
+  renderPertesCaisse();
+  try{renderTres();}catch(e){}
+}
+var _arCourantId='';
+function ouvrirArgentRetrouve(id){
+  var p=(D.pertesCaisse||[]).find(function(x){return x.id===id;});
+  if(!p)return;
+  _arCourantId=id;
+  var reste=p.montantPerdu-p.montantRetrouve;
+  var info=G('ar-info');
+  if(info)info.innerHTML=escHtml(p.compte)+' - '+escHtml(p.motif)+'<br>Reste a retrouver : <b style="color:var(--red)">'+fmt(reste)+' F</b>';
+  var m=G('ar-montant');if(m)m.value=reste;
+  var sel=G('ar-cpt');if(sel)sel.value=p.compte;
+  var d=G('ar-date');if(d)d.value=today();
+  openOv('ov-argent-retrouve');
+}
+function confirmerArgentRetrouve(){
+  var p=(D.pertesCaisse||[]).find(function(x){return x.id===_arCourantId;});
+  if(!p)return;
+  var montant=Number((G('ar-montant')||{}).value||0);
+  var cpt=(G('ar-cpt')||{}).value||p.compte;
+  var date=(G('ar-date')||{}).value||today();
+  if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
+  var code=cptCode(cpt);
+  var ref=passerEcriture('OD',date,'Argent retrouve - '+p.motif,[
+    {compte:code,lib:cpt,sens:'D',montant:montant,tiers:''},
+    {compte:'479',lib:'Ecarts de regularisation',sens:'C',montant:montant,tiers:''}
+  ],'');
+  if(!ref){notif('Enregistrement annule - l\'ecriture correspondante a echoue',true);return;}
+  D.comptes[cpt]=(D.comptes[cpt]||0)+montant;
+  p.montantRetrouve=(p.montantRetrouve||0)+montant;
+  p.statut=p.montantRetrouve>=p.montantPerdu?'soldee':'partielle';
+  auditLog('Argent retrouve','Tresorerie',cpt+' : +'+fmt(montant)+' F',p.motif,'');
+  save();closeOv('ov-argent-retrouve');notif('Argent retrouve enregistre');
+  renderPertesCaisse();
+  try{renderTres();}catch(e){}
+}
+function renderPertesCaisse(){
+  var el=G('pertes-liste');if(!el)return;
+  var selP=G('perte-cpt');
+  if(selP&&!selP.options.length)selP.innerHTML=COMPTES_TRES.map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');
+  var selAr=G('ar-cpt');
+  if(selAr&&!selAr.options.length)selAr.innerHTML=COMPTES_TRES.map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');
+  var pd=G('perte-date');if(pd&&!pd.value)pd.value=today();
+  var liste=(D.pertesCaisse||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var ouvertes=liste.filter(function(p){return p.statut!=='soldee';});
+  var badge=G('pertes-badge');
+  if(badge){
+    if(ouvertes.length){badge.style.display='';badge.textContent=String(ouvertes.length);}
+    else badge.style.display='none';
+  }
+  if(!liste.length){el.innerHTML='';return;}
+  var html='';
+  if(ouvertes.length){
+    html+='<div style="font-size:calc(11px*var(--fscale));color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px">En cours</div>';
+    ouvertes.forEach(function(p){
+      var reste=p.montantPerdu-p.montantRetrouve;
+      html+='<div class="card" style="border-left:3px solid var(--red);margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(p.compte)+' - '+escHtml(p.motif)+'</div>'+
+        '<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+fmtD(p.date)+(p.montantRetrouve>0?' - '+fmt(p.montantRetrouve)+' F deja retrouves':'')+'</div></div>'+
+        '<div style="font-family:var(--font-mono);font-weight:700;color:var(--red)">-'+fmt(reste)+' F</div></div>'+
+        '<button class="btn-s" style="width:100%;margin-top:8px;color:var(--green)" onclick="ouvrirArgentRetrouve(\''+p.id+'\')">Argent retrouve</button>'+
+        '</div>';
+    });
+  }
+  var soldees=liste.filter(function(p){return p.statut==='soldee';});
+  if(soldees.length){
+    html+='<div style="font-size:calc(11px*var(--fscale));color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px">Cloturees</div>';
+    soldees.slice(0,10).forEach(function(p){
+      html+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'+
+        '<div style="font-size:calc(12px*var(--fscale))">'+escHtml(p.compte)+' - '+escHtml(p.motif)+'</div>'+
+        '<div style="font-size:calc(12px*var(--fscale));color:var(--text2)">'+fmt(p.montantPerdu)+' F</div></div>';
+    });
+  }
+  el.innerHTML=html;
 }
 // Ouvre la liste des mouvements d'un compte precis, filtree sur le mois en cours (declenche par un tap sur la carte du compte)
 function ouvrirOperationsCompteMoisCourant(compte){
@@ -10345,7 +10651,7 @@ function calculerEpargneReellePeriode(debut,fin){
 function couleurTaux(t){return t>=15?'var(--green)':(t>=5?'var(--orange)':'var(--red)');}
 
 // ---- Rubriques repliables du tableau de bord (accordeons) ----
-var DASH_ACC_DEFAULT={pilotage:true,revdep:false,alertes:false,echeances:false};
+var DASH_ACC_DEFAULT={pilotage:true,revdep:false,alertes:false,echeances:false,rapEvolution:true,rapClotures:false,rapExport:false,rapDrive:false,rapPwaDiag:false,rapSecurite:false,rapApparence:false,rapRegularisation:false,rapDanger:false,pertesCaisse:false};
 function loadDashAccState(){try{return JSON.parse(localStorage.getItem('mp_dash_acc')||'{}');}catch(e){return {};}}
 function saveDashAccState(st){try{localStorage.setItem('mp_dash_acc',JSON.stringify(st));}catch(e){}}
 function initDashAccordions(){
@@ -10931,9 +11237,38 @@ function renderPwaDiag(){
   var installEvt=(window._pwaDiag&&window._pwaDiag.installable)||'Non recu pour le moment';
   lignes.push('<b>Evenement "installable" recu</b> : '+installEvt);
   try{var ip=localStorage.getItem('mp_diag_installable');if(ip)lignes.push('<span style="color:var(--text2)">(deja recu lors d\'une visite anterieure)</span>');}catch(e){}
+  if(window._pwaDiag&&window._pwaDiag.reg)lignes.push('<b>Etat actuel de l\'enregistrement</b> : '+window._pwaDiag.reg);
+  if(window._pwaDiag&&window._pwaDiag.derniere)lignes.push('<span style="color:var(--text2)">Derniere verification : '+window._pwaDiag.derniere+'</span>');
   el.innerHTML=lignes.map(function(l){return '<div>'+l+'</div>';}).join('');
 }
+// Bouton "Actualiser" : re-interroge reellement le navigateur (avant, il ne faisait que rafraichir
+// l'affichage avec les memes donnees, donc rien ne semblait se passer) et confirme visiblement.
+function actualiserPwaDiag(){
+  var el=G('pwa-diag-body');
+  if(el)el.style.opacity='.4';
+  var fin=function(){
+    window._pwaDiag.derniere=new Date().toLocaleTimeString('fr-FR');
+    try{window._pwaDiag.displayMode=window.matchMedia('(display-mode: standalone)').matches?'standalone (deja installee)':'navigateur (onglet normal)';}catch(e){}
+    try{renderPwaDiag();}catch(e){}
+    if(el)el.style.opacity='';
+    try{notif('Diagnostic actualise ('+window._pwaDiag.derniere+')');}catch(e){}
+  };
+  if(!('serviceWorker' in navigator)){window._pwaDiag.reg='API Service Worker indisponible';fin();return;}
+  navigator.serviceWorker.getRegistration().then(function(reg){
+    if(reg){
+      window._pwaDiag.reg='present - scope '+reg.scope+' ('+(reg.active?'actif':(reg.installing?'en installation':(reg.waiting?'en attente':'inconnu')))+')';
+      try{var pu=reg.update();if(pu&&pu.catch)pu.catch(function(){});}catch(e){}
+    }else{
+      window._pwaDiag.reg='aucun service worker enregistre pour cette page';
+    }
+    fin();
+  }).catch(function(err){
+    window._pwaDiag.reg='verification impossible : '+((err&&(err.message||err.name))||String(err));
+    fin();
+  });
+}
 function renderRapport(){
+  initDashAccordions();
   var y=new Date().getFullYear();
   var ry=G('rap-yr'),rn=G('rap-net'),rr=G('rap-rev'),rd=G('rap-dep'),re=G('rap-ep'),rdet=G('rap-det');
   if(ry)ry.textContent='Annee '+y;
