@@ -124,7 +124,31 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .mi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
 .mi-grid-item{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--glass);border:1px solid var(--border2);border-radius:16px;padding:16px 6px;cursor:pointer;text-align:center;}
 .mi-grid-item .mgi-ico{width:44px;height:44px;border-radius:12px;background:rgba(212,160,23,.12);display:flex;align-items:center;justify-content:center;font-size:calc(20px*var(--fscale));color:var(--gold2);}
-.mi-grid-item .mgi-lbl{font-size:calc(11.5px*var(--fscale));font-weight:600;color:var(--text2);}
+.mi-grid-item{position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+.mi-x,.mi-badge,.mi-add,.mq-bar,.mq-reset,.mq-done{display:none;}
+.mi-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#DC2626;color:#fff;font-size:14px;line-height:1;align-items:center;justify-content:center;font-weight:700;border:2px solid #0F1E35;}
+.mi-badge{position:absolute;top:6px;left:8px;min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#0A1628;font-size:11px;font-weight:700;align-items:center;justify-content:center;padding:0 4px;}
+.mi-grp-badge{display:flex;}
+.mi-add{flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--border2);border-radius:16px;padding:16px 6px;color:var(--gold2);font-size:calc(11.5px*var(--fscale));font-weight:600;cursor:pointer;text-align:center;}
+.mi-add .mgi-plus{font-size:26px;line-height:1;}
+.mq-edit .mi-x{display:flex;}
+.mq-edit .mi-add{display:flex;}
+.mq-edit .mq-bar{display:flex;}
+.mq-edit .mq-reset{display:block;}
+.mq-edit .mq-edit-btn{display:none;}
+.mq-edit .mi-grid-item[data-id]{touch-action:none;animation:mqwig .28s ease-in-out infinite;}
+.mq-edit .mi-grid-item.dragging{animation:none;transform:scale(1.08);opacity:.65;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:5;}
+@keyframes mqwig{0%,100%{transform:rotate(-1.2deg);}50%{transform:rotate(1.2deg);}}
+@media (prefers-reduced-motion:reduce){.mq-edit .mi-grid-item[data-id]{animation:none;}}
+.mq-bar{align-items:center;justify-content:space-between;gap:10px;background:rgba(212,160,23,.1);border:1px solid var(--border2);border-radius:12px;padding:8px 10px;margin-bottom:10px;font-size:calc(11.5px*var(--fscale));color:var(--text2);}
+.mq-done{background:var(--gold);color:#0A1628;border:0;border-radius:10px;padding:7px 12px;font-weight:700;cursor:pointer;display:block;}
+.mq-edit-btn{background:transparent;border:1px solid var(--border2);color:var(--gold2);border-radius:10px;padding:5px 10px;font-size:12px;cursor:pointer;}
+.mq-reset{width:100%;margin-top:18px;background:transparent;border:1px dashed var(--border2);color:var(--text2);border-radius:12px;padding:10px;cursor:pointer;}
+.mq-items{max-height:260px;overflow-y:auto;border:1px solid var(--border2);border-radius:12px;padding:6px 10px;}
+.mq-items label{display:flex;align-items:center;gap:10px;padding:7px 0;color:var(--text2);font-size:calc(13px*var(--fscale));}
+.mq-emojis{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;}
+.mq-emojis button{width:38px;height:38px;border-radius:10px;border:1px solid var(--border2);background:var(--glass);font-size:20px;cursor:pointer;}
+.mi-grid-item .mgi-lbl{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(11.5px*var(--fscale));font-weight:600;color:var(--text2);}
 
 /* CARDS */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--s1);backdrop-filter:blur(10px);position:relative;overflow:hidden;}
@@ -574,6 +598,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <button class="nb" id="nb-operations" onclick="goPage('operations',this)"><span class="ni">&#x1F4DD;</span>Operations</button>
       <button class="nb" id="nb-revenus" onclick="goPage('revenus',this)"><span class="ni">&#x1F4B0;</span>Revenus</button>
       <button class="nb" id="nb-depenses" onclick="goPage('depenses',this)"><span class="ni">&#x1F4B8;</span>Depenses</button>
+      <button class="nb" id="nb-manquants" onclick="goPage('manquants',this)"><span class="ni">&#x1F9FE;</span>Caisse</button>
     </div>
     <div class="nav-grp">
       <div class="nav-grp-lbl">Engagements &amp; tiers</div>
@@ -822,7 +847,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div class="acc-body">
       <div class="card">
         <div class="card-hd">Declarer une perte</div>
-        <div class="info-box" style="margin-bottom:10px">Pour de l'argent egare (retrouve ou non) : une ecriture au compte 479 (Ecarts de regularisation) - le meme deja utilise pour la regularisation des soldes - trace la perte sans toucher aux autres comptes.</div>
+        <div class="info-box" style="margin-bottom:10px">Pour de l'argent egare (retrouve ou non) - pour un manquant de caisse, utilise le module Caisse (menu) : une ecriture au compte 479 (Ecarts de regularisation) - le meme deja utilise pour la regularisation des soldes - trace la perte sans toucher aux autres comptes.</div>
         <div class="fg"><label class="fl">Compte</label><select class="fc" id="perte-cpt"></select></div>
         <div class="fr">
           <div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="perte-montant"></div>
@@ -832,6 +857,33 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px" onclick="declarerPerteCaisse()">Enregistrer la perte</button>
       </div>
       <div id="pertes-liste" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAISSE : MANQUANTS ET EXCEDENTS -->
+    <div id="pg-manquants" style="display:none">
+      <div class="sec">Caisse : manquants et excedents</div>
+      <div class="acc" id="acc-caisseManq">
+        <div class="acc-hd" onclick="toggleAcc('caisseManq')">
+          <span class="acc-ico">&#x1F9FE;</span><span class="acc-ttl">Manquants</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
+      <div class="info-box" style="margin-bottom:10px">Suivi de tous tes manquants de caisse. Un manquant n'est pas une perte declaree : tu le completes de ta poche, il est retenu sur ton salaire (suivi seulement, puisque tu enregistres deja le net recu), ou la societe l'absorbe.</div>
+      <div id="mq-resume"></div>
+      <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px" onclick="ouvrirManquant()">+ Nouveau manquant</button>
+      <div id="mq-liste" style="margin-top:12px"></div>
+        </div>
+      </div>
+      <div class="acc" id="acc-caisseExc">
+        <div class="acc-hd" onclick="toggleAcc('caisseExc')">
+          <span class="acc-ico">&#x1F4B5;</span><span class="acc-ttl">Excedents</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
+      <div class="info-box" style="margin-bottom:10px">Suivi de tes excedents de caisse et de ce que tu en fais : transport, petit dejeuner ou argent de poche. Le compte 479 compense ces utilisations avec les manquants completes de ta poche.</div>
+      <div id="ex-resume"></div>
+      <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px" onclick="ouvrirExcedent()">+ Nouvel excedent</button>
+      <div id="ex-liste" style="margin-top:12px"></div>
         </div>
       </div>
     </div>
@@ -1315,10 +1367,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       </div>
       <div id="compta-plan">
         <button class="btn-p btn-gold" style="margin-bottom:11px;padding:11px;font-size:calc(14px*var(--fscale))" onclick="ouvrirNouveauCompte()">+ Nouveau compte</button>
+        <div id="plan-tri"></div>
         <div id="compta-plan-list"></div>
       </div>
       <div id="compta-tiers" style="display:none">
         <button class="btn-p btn-gold" style="margin-bottom:11px;padding:11px;font-size:calc(14px*var(--fscale))" onclick="openOv('ov-tiers')">+ Nouveau tiers</button>
+        <div id="tiers-tri"></div>
         <div id="tiers-list"></div>
       </div>
       <div id="compta-journaux" style="display:none">
@@ -1624,31 +1678,33 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <div class="ov" id="ov-menu" onclick="closeOv('ov-menu')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-hd"></div>
-    <div class="modal-title">Ajout rapide</div>
-    <div class="mi-grid">
-      <div class="mi-grid-item" onclick="ouvrirNouveauTx();closeOv('ov-menu')"><div class="mgi-ico">&#x1F504;</div><div class="mgi-lbl">Mouvement</div></div>
-      <div class="mi-grid-item" onclick="openOv('ov-transfert');closeOv('ov-menu')"><div class="mgi-ico">&#x21C4;</div><div class="mgi-lbl">Transfert</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouveauRev();closeOv('ov-menu')"><div class="mgi-ico">&#x1F4B0;</div><div class="mgi-lbl">Revenu</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelleDep();closeOv('ov-menu')"><div class="mgi-ico">&#x1F4B8;</div><div class="mgi-lbl">Depense</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouveauDepot();closeOv('ov-menu')"><div class="mgi-ico">&#x1F3E7;</div><div class="mgi-lbl">Depot</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelleDette();closeOv('ov-menu')"><div class="mgi-ico">&#x1F4B3;</div><div class="mgi-lbl">Dette</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelEmprunt();closeOv('ov-menu')"><div class="mgi-ico">&#x1F4C3;</div><div class="mgi-lbl">Emprunt</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouveauPret();closeOv('ov-menu')"><div class="mgi-ico">&#x1F4B5;</div><div class="mgi-lbl">Pret</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvellePromesse();closeOv('ov-menu')"><div class="mgi-ico">&#x270A;</div><div class="mgi-lbl">Promesse</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelleReg();closeOv('ov-menu')"><div class="mgi-ico">&#x1F527;</div><div class="mgi-lbl">Regul.</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelleTontine();closeOv('ov-menu')"><div class="mgi-ico">&#x1F91D;</div><div class="mgi-lbl">Tontine</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouveauProjet();closeOv('ov-menu')"><div class="mgi-ico">&#x1F3AF;</div><div class="mgi-lbl">Projet</div></div>
-      <div class="mi-grid-item" onclick="ouvrirNouvelleFam();closeOv('ov-menu')"><div class="mgi-ico">&#x1F46A;</div><div class="mgi-lbl">Famille</div></div>
-      <div class="mi-grid-item" onclick="openOv('ov-tiers');closeOv('ov-menu')"><div class="mgi-ico">&#x1F464;</div><div class="mgi-lbl">Contact</div></div>
-    </div>
-    <div class="modal-title" style="margin-top:20px">Outils</div>
-    <div class="mi-grid">
-      <div class="mi-grid-item" onclick="goPage('rapport',G('nb-rapport'));closeOv('ov-menu')"><div class="mgi-ico">&#x1F4C8;</div><div class="mgi-lbl">Rapport</div></div>
-      <div class="mi-grid-item" onclick="goPage('impression',G('nb-impression'));closeOv('ov-menu')"><div class="mgi-ico">&#x1F5A8;</div><div class="mgi-lbl">Impression</div></div>
-      <div class="mi-grid-item" onclick="goPage('controles',G('nb-controles'));closeOv('ov-menu')"><div class="mgi-ico">&#x2705;</div><div class="mgi-lbl">Controles</div></div>
-      <div class="mi-grid-item" onclick="goPage('ia',G('nb-ia'));closeOv('ov-menu')"><div class="mgi-ico">&#x1F916;</div><div class="mgi-lbl">IA</div></div>
-      <div class="mi-grid-item" onclick="goPage('conv',G('nb-conv'));closeOv('ov-menu')"><div class="mgi-ico">&#x1F4B1;</div><div class="mgi-lbl">Devises</div></div>
-    </div>
+    <div id="menu-rapide-body"></div>
+  </div>
+</div>
+
+<!-- MENU RAPIDE : contenu d'un groupe -->
+<div class="ov" id="ov-menu-groupe" onclick="closeOv('ov-menu-groupe')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd"></div>
+    <div class="modal-title" id="mq-g-titre">Groupe</div>
+    <div class="mi-grid" id="mq-g-grid"></div>
+    <button class="btn-s" style="margin-top:14px" onclick="closeOv('ov-menu-groupe')">Fermer</button>
+  </div>
+</div>
+
+<!-- MENU RAPIDE : ajouter / modifier un raccourci -->
+<div class="ov" id="ov-menu-edit" onclick="closeOv('ov-menu-edit')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd"></div>
+    <div class="modal-title" id="mq-e-titre">Nouveau raccourci</div>
+    <div class="fg" id="mq-e-type-row"><label class="fl">Type</label><select class="fc" id="mq-e-type" onchange="mqEditTypeChange()"><option value="dest">Raccourci vers une fonction ou une page</option><option value="groupe">Groupe (regroupe plusieurs fonctions)</option></select></div>
+    <div class="fg" id="mq-e-dest-row"><label class="fl">Fonction ou page</label><select class="fc" id="mq-e-dest" onchange="mqEditDestChange()"></select></div>
+    <div class="fg" id="mq-e-items-row"><label class="fl">Fonctions du groupe</label><div id="mq-e-items" class="mq-items"></div></div>
+    <div class="fr"><div class="fg"><label class="fl">Nom</label><input class="fc" type="text" id="mq-e-lbl" maxlength="16" placeholder="ex: Petit dej"></div><div class="fg"><label class="fl">Icone</label><input class="fc" type="text" id="mq-e-ico" maxlength="4" style="text-align:center;font-size:22px"></div></div>
+    <div class="mq-emojis" id="mq-e-emojis"></div>
+    <button class="btn-p btn-gold" onclick="mqEditSave()">Enregistrer</button>
+    <button class="btn-s" id="mq-e-del" onclick="mqEditRetirer()">Retirer du menu</button>
+    <button class="btn-s" onclick="closeOv('ov-menu-edit')">Annuler</button>
   </div>
 </div>
 
@@ -1680,7 +1736,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <!-- MODAL REVENU -->
 <div class="ov" id="ov-rev"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Revenu</div>
-  <div class="fg"><label class="fl">Categorie (OHADA Cl.7)</label><select class="fc" id="rev-cat"><option value="70|Salaire net">70 - Salaire net</option><option value="71|Prime/Indemnite">71 - Prime / Indemnite</option><option value="72|Heures supp.">72 - Heures supplementaires</option><option value="73|Revenu locatif">73 - Revenu locatif</option><option value="74|Dividendes">74 - Dividendes</option><option value="79|Autre revenu">79 - Autre revenu</option></select></div>
+  <div class="fg"><label class="fl">Categorie (OHADA Cl.7)</label><select class="fc" id="rev-cat"><option value="70|Salaire net">70 - Salaire net</option><option value="71|Prime/Indemnite">71 - Prime / Indemnite</option><option value="72|Heures supp.">72 - Heures supplementaires</option><option value="73|Revenu locatif">73 - Revenu locatif</option><option value="74|Dividendes">74 - Dividendes</option><option value="79|Autre revenu">79 - Autre revenu</option><option value="79|Cadeau de client">79 - Cadeau de client / pourboire</option></select></div>
   <div class="fg"><label class="fl">Compte encaissement</label><select class="fc" id="rev-cpt"><option value="Banque Courant">Banque Courant (salaire)</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Banque Epargne">Banque Epargne</option><option value="Especes">Especes</option><option value="477">477 - Produit a recevoir (pas encore encaisse)</option></select></div>
   <div class="fg"><label class="fl">Libelle</label><input class="fc" type="text" id="rev-lib" placeholder="ex: Salaire juin 2025"></div>
   <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="rev-tiers"><option value="">- Aucun tiers -</option></select></div>
@@ -2310,6 +2366,99 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-regs')">Annuler</button>
 </div></div>
 
+<div class="ov" id="ov-trajet"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Depense partagee</div>
+  <div class="info-box" style="margin-bottom:10px">Pour un trajet, un petit dejeuner, un repas... offert avec plaisir : ni dette, ni creance. Le total est partage a parts egales, ou en montants differents si chacun a pris une part differente (ex : sandwich de 1 000 F et de 500 F). Ta part va dans la categorie choisie, la part des autres en Cadeaux (659).</div>
+  <div class="fg"><label class="fl">Categorie</label>
+    <select class="fc" id="trj-cat" onchange="majTrajetApercu()">
+      <option value="61|Transport">Transport (trajet)</option>
+      <option value="60|Alimentation">Alimentation (petit dejeuner, repas)</option>
+      <option value="65|Communication">Communication</option>
+      <option value="67|Loisirs">Loisirs / sorties</option>
+      <option value="63|Sante">Sante</option>
+      <option value="66|Habillement">Habillement</option>
+      <option value="622|Depenses domestiques">Depenses domestiques</option>
+    </select></div>
+  <div class="fg"><label class="fl">Qui a paye</label>
+    <select class="fc" id="trj-mode" onchange="majTrajetMode()">
+      <option value="moi">J'ai paye pour moi et pour d'autres</option>
+      <option value="autres">J'ai paye seulement pour d'autres</option>
+      <option value="col">Un collegue a paye pour moi (et d'autres)</option>
+    </select></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Montant total paye (FCFA)</label><input class="fc" type="number" id="trj-amt" oninput="majTrajetApercu()"></div>
+    <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="trj-date"></div>
+  </div>
+  <div class="fg"><label class="fl">Repartition</label>
+    <select class="fc" id="trj-repart" onchange="majTrajetMode()">
+      <option value="egal">Parts egales</option>
+      <option value="libre">Montants differents (je saisis chaque part)</option>
+    </select></div>
+  <div class="fg" id="trj-cpt-row"><label class="fl">Compte de paiement</label>
+    <select class="fc" id="trj-cpt"><option value="Especes">Especes</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option></select></div>
+  <div class="fr" id="trj-nb-row">
+    <div class="fg"><label class="fl">Collegues pris en charge</label><input class="fc" type="number" id="trj-nbcol" min="0" value="1" oninput="majTrajetApercu()"></div>
+    <div class="fg"><label class="fl">Passagers / passants</label><input class="fc" type="number" id="trj-nbpas" min="0" value="0" oninput="majTrajetApercu()"></div>
+  </div>
+  <div class="fg" id="trj-nbtot-row" style="display:none"><label class="fl">Nombre de personnes sur le trajet (toi et celui qui a paye inclus)</label><input class="fc" type="number" id="trj-nbtot" min="2" value="2" oninput="majTrajetApercu()"></div>
+  <div class="fg" id="trj-pmoi-row" style="display:none"><label class="fl" id="trj-pmoi-lbl">Ma part (FCFA)</label><input class="fc" type="number" id="trj-pmoi" min="0" oninput="majTrajetApercu()"></div>
+  <div class="fg" id="trj-pcol-row" style="display:none"><label class="fl">Part du ou des collegues (total, FCFA)</label><input class="fc" type="number" id="trj-pcol" min="0" oninput="majTrajetApercu()"></div>
+  <div class="fg" id="trj-ppas-row" style="display:none"><label class="fl">Part du ou des passagers (total, FCFA)</label><input class="fc" type="number" id="trj-ppas" min="0" oninput="majTrajetApercu()"></div>
+  <div class="fg" id="trj-nomcol-row"><label class="fl" id="trj-nomcol-lbl">Nom du ou des collegues (optionnel)</label><input class="fc" type="text" id="trj-nomcol" placeholder="ex: Moustapha"></div>
+  <div class="fg" id="trj-nompas-row"><label class="fl">Nom du ou des passagers (optionnel)</label><input class="fc" type="text" id="trj-nompas" placeholder="ex: une connaissance"></div>
+  <div class="fg"><label class="fl">Libelle (optionnel)</label><input class="fc" type="text" id="trj-lib" placeholder="ex: Petit dejeuner au bureau"></div>
+  <div id="trj-apercu" style="font-size:calc(12.5px*var(--fscale));color:var(--text2);line-height:1.7;margin:4px 0 12px"></div>
+  <button class="btn-p btn-gold" onclick="saveTrajet()">Enregistrer le trajet</button><button class="btn-s" onclick="closeOv('ov-trajet')">Annuler</button>
+</div></div>
+
+<div class="ov" id="ov-manquant"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Nouveau manquant de caisse</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Montant du manquant (FCFA)</label><input class="fc" type="number" id="mq-montant" oninput="majManquantForm()"></div>
+    <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="mq-date"></div>
+  </div>
+  <div class="fg"><label class="fl">Motif</label><input class="fc" type="text" id="mq-motif" placeholder="ex: Caisse du soir"></div>
+  <div class="fg"><label class="fl">Societe concernee (tape le nom)</label><select class="fc" id="mq-tiers"><option value="">- Aucun tiers -</option></select></div>
+  <div class="fg"><label class="fl">Comment c'est regle</label>
+    <select class="fc" id="mq-trait" onchange="majManquantForm()">
+      <option value="poche">Je complete de ma poche</option>
+      <option value="salaire">Retenu sur mon salaire</option>
+      <option value="mixte">Une partie de ma poche, le reste sur mon salaire</option>
+      <option value="absorbe">Absorbe par la societe</option>
+    </select></div>
+  <div class="fg" id="mq-poche-row" style="display:none"><label class="fl">Part completee de ma poche (FCFA)</label><input class="fc" type="number" id="mq-poche" oninput="majManquantForm()"></div>
+  <div class="fg" id="mq-cpt-row"><label class="fl">Compte utilise pour completer</label>
+    <select class="fc" id="mq-cpt"><option value="Especes">Especes</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option></select></div>
+  <div id="mq-apercu" style="font-size:calc(12.5px*var(--fscale));color:var(--text2);line-height:1.7;margin:4px 0 12px"></div>
+  <button class="btn-p btn-gold" onclick="saveManquant()">Enregistrer le manquant</button><button class="btn-s" onclick="closeOv('ov-manquant')">Annuler</button>
+</div></div>
+
+<div class="ov" id="ov-confirm-suppr-manquant"><div class="modal" onclick="event.stopPropagation()">
+  <div class="card-hd">Supprimer ce manquant</div>
+  <p style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px">Supprimer definitivement ce manquant de ton suivi ? Aucune ecriture comptable n'est concernee.</p>
+  <button class="btn-p btn-red" onclick="confirmerSupprManquant()">Supprimer</button>
+  <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-suppr-manquant')">Annuler</button>
+</div></div>
+
+<div class="ov" id="ov-excedent"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Nouvel excedent de caisse</div>
+  <div class="info-box" style="margin-bottom:10px">Tu notes l'excedent trouve en caisse. Rien n'est enregistre en comptabilite tant que tu n'y touches pas : chaque utilisation (transport, petit dejeuner, argent de poche) se declare ensuite sur sa carte.</div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Montant de l'excedent (FCFA)</label><input class="fc" type="number" id="ex-montant"></div>
+    <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="ex-date"></div>
+  </div>
+  <div class="fg"><label class="fl">Motif</label><input class="fc" type="text" id="ex-motif" placeholder="ex: Caisse du matin"></div>
+  <div class="fg"><label class="fl">Societe concernee (tape le nom)</label><select class="fc" id="ex-tiers"><option value="">- Aucun tiers -</option></select></div>
+  <button class="btn-p btn-gold" onclick="saveExcedent()">Enregistrer l'excedent</button><button class="btn-s" onclick="closeOv('ov-excedent')">Annuler</button>
+</div></div>
+
+<div class="ov" id="ov-confirm-suppr-excedent"><div class="modal" onclick="event.stopPropagation()">
+  <div class="card-hd">Supprimer cet excedent</div>
+  <p style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px">Supprimer definitivement cet excedent de ton suivi ? Aucune ecriture comptable n'est concernee.</p>
+  <button class="btn-p btn-red" onclick="confirmerSupprExcedent()">Supprimer</button>
+  <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-suppr-excedent')">Annuler</button>
+</div></div>
+
 <div class="ov" id="ov-argent-retrouve"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Argent retrouve</div>
   <div id="ar-info" style="font-size:calc(13px*var(--fscale));color:var(--text2);margin-bottom:12px"></div>
@@ -2636,7 +2785,7 @@ function ouvrirNouvelleReg(){ouvrirNouvelleSaisie('ov-regularisation',['reg-lib'
 function ouvrirNouvelleFam(){ouvrirNouvelleSaisie('ov-fam',['fam-nom','fam-charge'],['fam-tiers'],[]);}
 function ouvrirNouvelleTontine(){toggleTonCategorie();var tv=G('ton-type-valeur');if(tv)tv.value='especes';ouvrirNouvelleSaisie('ov-ton',['ton-nom','ton-mise','ton-nb','ton-tour','ton-commission'],['ton-tiers'],['ton-debut','ton-debut2']);}
 function closeOv(id){var el=G(id);if(el)el.classList.remove('on');}
-function openFab(){openOv('ov-menu');}
+function openFab(){renderMenuRapide(false);openOv('ov-menu');}
 function refreshApp(){
   if(!currentDataKey){notif('Session verrouillee',true);return;}
   initD(currentDataKey).then(function(){try{migrerTiersEcritures();}catch(e){}try{renderAll();}catch(e){}try{buildCharts();}catch(e){}notif('Page actualisee');}).catch(function(){notif('Erreur actualisation',true);});
@@ -3134,10 +3283,19 @@ function ensureDDefaults(){
   if(D.parametres.decouvertAutorise==null)D.parametres.decouvertAutorise=false;
   if(D.parametres.decouvertPlafond==null)D.parametres.decouvertPlafond=0;
   if(D.parametres.epargneUrgence==null)D.parametres.epargneUrgence=false;
-  ['transactions','revenus','depenses','dettes','promesses','tontines','projets','famille','foyer','depots','ecritures','tiers','prets','regularisations','emprunts','historiqueImpressions','journalAudit','iaHistorique','iaConversationsArchivees','comptesPersonnalises','journauxPersonnalises'].forEach(function(k){if(!D[k])D[k]=[];});
+  ['transactions','revenus','depenses','dettes','promesses','tontines','projets','famille','foyer','depots','ecritures','tiers','prets','regularisations','emprunts','historiqueImpressions','journalAudit','iaHistorique','iaConversationsArchivees','comptesPersonnalises','journauxPersonnalises','manquants','excedents'].forEach(function(k){if(!D[k])D[k]=[];});
+  migrerRetenuesVersManquants();
+  ensureMenuRapide();
   if(!D.tiers.some(function(x){return x.code===TIERS_PASSAGE_CODE;})){
     D.tiers.push({code:TIERS_PASSAGE_CODE,nom:'Tiers de passage',categorie:'Passage',tel:'',notes:'Contact ponctuel - le nom se saisit a chaque utilisation, sans creer de fiche permanente'});
   }
+  [[TIERS_COLLEGUE_CODE,'Collegue','Collegue de travail - le nom se saisit a chaque utilisation'],
+   [TIERS_SOCIETE_CODE,'Societe','Societe (employeur, societe d\'interim, entreprise cliente...) - le nom se saisit a chaque utilisation'],
+   [TIERS_CLIENT_CODE,'Client','Client - le nom se saisit a chaque utilisation']].forEach(function(tl){
+    if(!D.tiers.some(function(x){return x.code===tl[0];})){
+      D.tiers.push({code:tl[0],nom:tl[1],categorie:'Passage',tel:'',notes:tl[2]});
+    }
+  });
   if(!D.tiers.some(function(x){return x.code===TIERS_MAISON_CODE;})){
     D.tiers.push({code:TIERS_MAISON_CODE,nom:'Maison',categorie:'Foyer',tel:'',notes:'Tiers permanent pour les depenses domestiques/ravitaillement et cadeaux non lies a une personne precise'});
   }
@@ -3779,8 +3937,8 @@ function memeTiers(tiersA,nomA,tiersB,nomB){
   // Le tiers de passage partage toujours le meme code (TIERS_PASSAGE_CODE) quelle que soit la personne
   // reelle - pour lui uniquement, on compare par le nom saisi plutot que par ce code commun, sinon deux
   // personnes de passage differentes seraient a tort traitees comme le meme tiers.
-  var ka=resolveTiersKey(tiersA===TIERS_PASSAGE_CODE?nomA:(tiersA||nomA));
-  var kb=resolveTiersKey(tiersB===TIERS_PASSAGE_CODE?nomB:(tiersB||nomB));
+  var ka=resolveTiersKey(estTiersNomLibre(tiersA)?nomA:(tiersA||nomA));
+  var kb=resolveTiersKey(estTiersNomLibre(tiersB)?nomB:(tiersB||nomB));
   if(!ka||!kb)return false;
   return String(ka).trim().toLowerCase()===String(kb).trim().toLowerCase();
 }
@@ -4007,6 +4165,16 @@ var TIERS_ACCOUNTS=['40','401','41','46','465','466','467','471','472','476','47
 var TIERS_ACCOUNTS_HISTORIQUE=TIERS_ACCOUNTS.concat(['656','659','622','69']);
 var TIERS_PASSAGE_CODE='PASSAGE';
 var TIERS_MAISON_CODE='MAISON';
+var TIERS_COLLEGUE_CODE='COLLEGUE';
+var TIERS_SOCIETE_CODE='SOCIETE';
+var TIERS_CLIENT_CODE='CLIENT';
+// Tiers permanents "a nom libre" : un seul code technique, le nom reel se saisit a chaque utilisation
+// (meme mecanisme que le Tiers de passage). Societe : utile en interim (celle ou je travaille et/ou celle qui me paie).
+var TIERS_NOM_LIBRE={PASSAGE:{nom:'Tiers de passage',ph:'Nom de la personne pour cette operation'},
+  COLLEGUE:{nom:'Collegue',ph:'Nom du collegue'},
+  SOCIETE:{nom:'Societe',ph:'Nom de la societe (ex: celle ou je travaille, ou celle qui me paie)'},
+  CLIENT:{nom:'Client',ph:'Nom du client'}};
+function estTiersNomLibre(code){return !!code&&Object.prototype.hasOwnProperty.call(TIERS_NOM_LIBRE,code);}
 function tiersSoldeNet(code){
   // Solde net sur les comptes de nature "tiers" uniquement (classe 4) : positif = on me doit (creance), negatif = je dois (dette).
   // Les lignes de tresorerie/charges/produits parfois taguees avec ce meme tiers (pour tracabilite) sont ignorees ici.
@@ -4155,7 +4323,7 @@ function fillNomFromTiers(selId,nomId){
   if(t)nomEl.value=t.nom;
 }
 function populateTiersSelects(){
-  var ids=['tx-tiers','rev-tiers','dep-tiers','dpt-tiers','det-tiers','prom-tiers','ton-tiers','fam-tiers','reg-tiers','pret-tiers','tg-tiers','tv-tiers','pdp-tiers','emp-tiers','rach-tiers','popr-tiers'];
+  var ids=['tx-tiers','rev-tiers','dep-tiers','dpt-tiers','det-tiers','prom-tiers','ton-tiers','fam-tiers','reg-tiers','pret-tiers','tg-tiers','tv-tiers','pdp-tiers','emp-tiers','rach-tiers','popr-tiers','mq-tiers','ex-tiers'];
   var opts=buildTiersOpts();
   ids.forEach(function(id){var el=G(id);if(el)el.innerHTML=opts;});
   wireTiersPassageOverride(ids);
@@ -4178,14 +4346,15 @@ function toggleTiersPassageInput(selectId){
   var sel=G(selectId);if(!sel)return;
   var inpId=selectId+'-nom';
   var inp=G(inpId);
-  if(sel.value===TIERS_PASSAGE_CODE){
+  if(estTiersNomLibre(sel.value)){
     if(!inp){
       inp=document.createElement('input');
       inp.type='text';inp.id=inpId;inp.className='fc';
-      inp.placeholder='Nom de la personne pour cette operation';
+      inp.placeholder=TIERS_NOM_LIBRE[sel.value].ph;
       inp.style.marginTop='6px';inp.autocomplete='off';
       if(sel.parentNode)sel.parentNode.insertBefore(inp,sel.nextSibling);
     }
+    inp.placeholder=TIERS_NOM_LIBRE[sel.value].ph;
     inp.style.display='';
   } else if(inp){
     inp.style.display='none';inp.value='';
@@ -4196,10 +4365,10 @@ function toggleTiersPassageInput(selectId){
 function nomEffectifTiers(selectId){
   var sel=G(selectId);
   var code=(sel||{}).value||'';
-  if(code===TIERS_PASSAGE_CODE){
+  if(estTiersNomLibre(code)){
     var inp=G(selectId+'-nom');
     var nom=((inp||{}).value||'').trim();
-    return nom||'Tiers de passage';
+    return nom||TIERS_NOM_LIBRE[code].nom;
   }
   return impNomTiers(code);
 }
@@ -4381,8 +4550,8 @@ function tiersReferences(code){
 }
 function supprimerTiers(i){
   var t=(D.tiers||[])[i];if(!t)return;
-  if(t.code===TIERS_PASSAGE_CODE){
-    notif('Le tiers de passage est un tiers permanent de l\'application (contacts occasionnels) - il ne peut pas etre supprime.',true);
+  if(estTiersNomLibre(t.code)){
+    notif('Le tiers "'+t.nom+'" est un tiers permanent de l\'application (le nom se saisit a chaque utilisation) - il ne peut pas etre supprime.',true);
     return;
   }
   if(t.code===TIERS_MAISON_CODE){
@@ -10336,6 +10505,7 @@ function renderTres(){
   renderTxList('tous');
   setTimeout(buildTresChart,100);
   renderPertesCaisse();
+  
 }
 // Perte de caisse / argent retrouve : reutilise le compte 479 (Ecarts de regularisation), deja utilise
 // pour Regularisation des soldes - meme logique de "ecart inexplique" qui peut se resorber plus tard.
@@ -10437,6 +10607,879 @@ function renderPertesCaisse(){
   }
   el.innerHTML=html;
 }
+
+// ============ DEPENSE PARTAGEE (trajet, petit dejeuner, repas...) ============
+// Depense offerte "avec plaisir" : ni dette ni creance. Repartition a parts egales OU en montants
+// differents (chacun a pris une part differente). 3 cas : (1) j'ai paye pour moi + d'autres, (2) j'ai paye
+// seulement pour d'autres, (3) un collegue a paye pour moi (aucun mouvement de tresorerie : ma part est un
+// don recu). Collegue et passants sont rattaches aux tiers permanents COLLEGUE / PASSAGE (nom libre).
+function ouvrirTrajet(presetCat){
+  ouvrirNouvelleSaisie('ov-trajet',['trj-amt','trj-lib','trj-nomcol','trj-nompas','trj-pmoi','trj-pcol','trj-ppas'],[],['trj-date']);
+  var m=G('trj-mode');if(m)m.value='moi';
+  var rp=G('trj-repart');if(rp)rp.value='egal';
+  var ct=G('trj-cat');if(ct)ct.value=presetCat||'61|Transport';
+  var c=G('trj-cpt');if(c)c.value='Especes';
+  var a=G('trj-nbcol');if(a)a.value='1';
+  var b=G('trj-nbpas');if(b)b.value='0';
+  var t=G('trj-nbtot');if(t)t.value='2';
+  majTrajetMode();
+}
+function majTrajetMode(){
+  var mode=(G('trj-mode')||{}).value||'moi';
+  var libre=((G('trj-repart')||{}).value||'egal')==='libre';
+  var col=mode==='col';
+  function vis(id,v,disp){var e=G(id);if(e)e.style.display=v?disp:'none';}
+  vis('trj-cpt-row',!col,'block');
+  vis('trj-nb-row',!col&&!libre,'flex');
+  vis('trj-nbtot-row',col&&!libre,'block');
+  vis('trj-pmoi-row',libre&&mode!=='autres','block');
+  vis('trj-pcol-row',libre&&!col,'block');
+  vis('trj-ppas-row',libre&&!col,'block');
+  vis('trj-nompas-row',!col,'block');
+  var l=G('trj-nomcol-lbl');if(l)l.textContent=col?'Nom du collegue qui a paye (optionnel)':'Nom du ou des collegues (optionnel)';
+  var lm=G('trj-pmoi-lbl');if(lm)lm.textContent=col?'Ma part dans ce que mon collegue a paye (FCFA)':'Ma part (FCFA)';
+  majTrajetApercu();
+}
+function lireEntierTrajet(id,min){
+  var v=Math.floor(Number((G(id)||{}).value||0));
+  return (isFinite(v)&&v>=min)?v:min;
+}
+function lireMontantTrajet(id){
+  var v=Math.round(Number((G(id)||{}).value||0));
+  return (isFinite(v)&&v>0)?v:0;
+}
+// Repartition. egal : parts egales (le reste de la division va a ma part, ou aux passants en mode 2).
+// libre : montants saisis (ma part / collegues / passagers) - leur somme doit egaler le total (r.reste===0).
+function repartitionTrajet(total,mode,nbCol,nbPas,nbTot,libre,pMoi,pCol,pPas){
+  total=Math.round(Number(total)||0);nbCol=Math.max(0,Math.floor(nbCol||0));nbPas=Math.max(0,Math.floor(nbPas||0));
+  var r={total:total,maPart:0,offertCol:0,offertPas:0,recu:0,personnes:0,reste:0,libre:!!libre};
+  if(libre){
+    pMoi=Math.max(0,Math.round(Number(pMoi)||0));pCol=Math.max(0,Math.round(Number(pCol)||0));pPas=Math.max(0,Math.round(Number(pPas)||0));
+    if(mode==='col'){r.recu=pMoi;r.reste=total-pMoi;}
+    else{
+      r.maPart=mode==='moi'?pMoi:0;r.offertCol=pCol;r.offertPas=pPas;
+      r.reste=total-(r.maPart+r.offertCol+r.offertPas);
+    }
+    return r;
+  }
+  if(mode==='col'){
+    var n=Math.max(2,Math.floor(nbTot||2));
+    r.personnes=n;r.recu=Math.round(total/n);
+  } else if(mode==='autres'){
+    var n2=nbCol+nbPas;r.personnes=n2;
+    if(n2>0){
+      var f2=Math.floor(total/n2);
+      if(nbPas===0)r.offertCol=total;
+      else{r.offertCol=nbCol*f2;r.offertPas=total-r.offertCol;}
+    }
+  } else {
+    var n1=1+nbCol+nbPas;r.personnes=n1;
+    var f1=Math.floor(total/n1);
+    r.offertCol=nbCol*f1;r.offertPas=nbPas*f1;
+    r.maPart=total-r.offertCol-r.offertPas;
+  }
+  return r;
+}
+function trajetCategorie(){
+  var v=((G('trj-cat')||{}).value||'61|Transport').split('|');
+  return {code:v[0],lib:v[1]||v[0]};
+}
+function trajetParams(){
+  return {mode:(G('trj-mode')||{}).value||'moi',libre:((G('trj-repart')||{}).value||'egal')==='libre',
+    nbCol:lireEntierTrajet('trj-nbcol',0),nbPas:lireEntierTrajet('trj-nbpas',0),nbTot:lireEntierTrajet('trj-nbtot',2),
+    pMoi:lireMontantTrajet('trj-pmoi'),pCol:lireMontantTrajet('trj-pcol'),pPas:lireMontantTrajet('trj-ppas')};
+}
+function trajetRepartition(q,total){
+  return repartitionTrajet(total,q.mode,q.nbCol,q.nbPas,q.nbTot,q.libre,q.pMoi,q.pCol,q.pPas);
+}
+function majTrajetApercu(){
+  var el=G('trj-apercu');if(!el)return;
+  var q=trajetParams();
+  var r=trajetRepartition(q,(G('trj-amt')||{}).value);
+  if(!r.total){el.textContent='';return;}
+  var l=[],cat=trajetCategorie().lib;
+  if(q.libre){
+    if(q.mode==='col'){
+      l.push('Ma part ('+escHtml(cat)+') : <b>'+fmt(r.recu)+' F</b> sur '+fmt(r.total)+' F payes par mon collegue');
+      if(r.recu>r.total)l.push('<span style="color:var(--red)">Ta part depasse le montant paye</span>');
+    } else {
+      if(q.mode==='moi')l.push('Ma part ('+escHtml(cat)+') : <b>'+fmt(r.maPart)+' F</b>');
+      l.push('Collegues (Cadeaux) : <b>'+fmt(r.offertCol)+' F</b>');
+      l.push('Passagers (Cadeaux) : <b>'+fmt(r.offertPas)+' F</b>');
+      l.push(r.reste===0?'<span style="color:var(--green)">Total reparti</span>':'<span style="color:var(--red)">Reste a repartir : '+fmt(r.reste)+' F</span>');
+    }
+    el.innerHTML=l.join('<br>');return;
+  }
+  if(q.mode==='col'){
+    l.push('Ma part ('+escHtml(cat)+') : <b>'+fmt(r.recu)+' F</b> sur '+r.personnes+' personnes');
+    l.push('Offerte par mon collegue : aucun argent ne sort de ta poche');
+  } else {
+    if(q.nbCol+q.nbPas===0){el.textContent='Ajoute au moins un collegue ou un passager.';return;}
+    if(q.mode==='moi')l.push('Ma part ('+escHtml(cat)+') : <b>'+fmt(r.maPart)+' F</b> sur '+r.personnes+' personnes');
+    if(r.offertCol>0)l.push('Offert aux collegues (Cadeaux) : <b>'+fmt(r.offertCol)+' F</b>');
+    if(r.offertPas>0)l.push('Offert aux passagers (Cadeaux) : <b>'+fmt(r.offertPas)+' F</b>');
+  }
+  el.innerHTML=l.join('<br>');
+}
+function saveTrajet(){
+  var q=trajetParams();
+  var cptVal=(G('trj-cpt')||{}).value||'Especes';
+  var amt=Math.round(Number((G('trj-amt')||{}).value||0));
+  var date=(G('trj-date')||{}).value||today();
+  var nomCol=((G('trj-nomcol')||{}).value||'').trim();
+  var nomPas=((G('trj-nompas')||{}).value||'').trim();
+  if(!amt||amt<=0){notif('Montant obligatoire',true);return;}
+  var r=trajetRepartition(q,amt);
+  var tc=trajetCategorie();
+  var libBase=((G('trj-lib')||{}).value||'').trim()||(tc.code==='61'?'Trajet partage':'Depense partagee - '+tc.lib);
+  // Cas 3 : un collegue a paye - ma part est un don recu, aucun mouvement de tresorerie
+  if(q.mode==='col'){
+    if(r.recu<=0){notif(q.libre?'Indique ta part':'Montant trop faible pour etre reparti',true);return;}
+    if(r.recu>amt){notif('Ta part depasse le montant paye',true);return;}
+    var libC=libBase+' (offert'+(nomCol?' par '+nomCol:'')+')';
+    var refC=passerEcriture('OD',date,libC,[
+      {compte:tc.code,lib:tc.lib,sens:'D',montant:r.recu,tiers:''},
+      {compte:'756',lib:'Dons et remises de dettes recus',sens:'C',montant:r.recu,tiers:TIERS_COLLEGUE_CODE}
+    ],'');
+    if(refC===false){notif('Depense annulee - l\'ecriture correspondante a echoue',true);return;}
+    D.depenses.push({categorie:tc.lib,libelle:libC,montant:r.recu,date:date,tiers:'',compte:'Offert par un collegue'});
+    D.revenus.push({categorie:'Dons recus',libelle:libC,montant:r.recu,date:date,tiers:TIERS_COLLEGUE_CODE,compte:'Offert par un collegue'});
+    save();closeOv('ov-trajet');notif('Depense offerte enregistree ('+fmt(r.recu)+' F de '+tc.lib.toLowerCase()+', aucun argent sorti)');
+    clr('trj-amt','trj-lib','trj-nomcol','trj-nompas','trj-pmoi','trj-pcol','trj-ppas');
+    try{renderAll();}catch(e){}
+    return;
+  }
+  if(q.libre){
+    if(r.reste!==0){notif('La somme des parts ('+fmt(amt-r.reste)+' F) doit etre egale au total ('+fmt(amt)+' F)',true);return;}
+    if(r.offertCol+r.offertPas<=0){notif('Ajoute au moins une part pour un collegue ou un passager',true);return;}
+  } else if(q.nbCol+q.nbPas===0){notif('Ajoute au moins un collegue ou un passager',true);return;}
+  if(!COMPTES_TRES.includes(cptVal)){notif('Choisissez un compte de paiement',true);return;}
+  var libCol=libBase+(nomCol?' - '+nomCol:''),libPas=libBase+(nomPas?' - '+nomPas:'');
+  var cptC=cptCode(cptVal);
+  var _dla=D.dettes.length;
+  execDebitAvecConfirmation(cptVal,amt,{objet:'Depense partagee - '+libBase},function(){
+    var lignes=[];
+    if(r.maPart>0)lignes.push({compte:tc.code,lib:tc.lib,sens:'D',montant:r.maPart,tiers:''});
+    if(r.offertCol>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertCol,tiers:TIERS_COLLEGUE_CODE});
+    if(r.offertPas>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertPas,tiers:TIERS_PASSAGE_CODE});
+    lignes.push({compte:cptC,lib:cptVal,sens:'C',montant:amt,tiers:''});
+    var ref=passerEcriture('AC',date,libBase,lignes,'');
+    if(ref===false){
+      annulerDebitApresEchecEcriture(cptVal,amt,_dla);
+      notif('Depense annulee - l\'ecriture correspondante a echoue',true);
+      return;
+    }
+    if(r.maPart>0)D.depenses.push({categorie:tc.lib,libelle:libBase,montant:r.maPart,date:date,tiers:'',compte:cptVal});
+    if(r.offertCol>0)D.depenses.push({categorie:'Cadeaux offerts',libelle:libCol,montant:r.offertCol,date:date,tiers:TIERS_COLLEGUE_CODE,compte:cptVal});
+    if(r.offertPas>0)D.depenses.push({categorie:'Cadeaux offerts',libelle:libPas,montant:r.offertPas,date:date,tiers:TIERS_PASSAGE_CODE,compte:cptVal});
+    save();closeOv('ov-trajet');
+    notif('Depense partagee enregistree ('+fmt(r.maPart)+' F ma part, '+fmt(r.offertCol+r.offertPas)+' F offerts)');
+    clr('trj-amt','trj-lib','trj-nomcol','trj-nompas','trj-pmoi','trj-pcol','trj-ppas');
+    try{renderAll();}catch(e){}
+  });
+}
+
+// ============ MENU RAPIDE PERSONNALISABLE ============
+function mqEm(c){try{return String.fromCodePoint(c);}catch(e){return '?';}}
+var MENU_ACTIONS_BASE=[
+  ['a:tx',0x1F504,'Mouvement',function(){ouvrirNouveauTx();}],
+  ['a:transfert',0x21C4,'Transfert',function(){openOv('ov-transfert');}],
+  ['a:rev',0x1F4B0,'Revenu',function(){ouvrirNouveauRev();}],
+  ['a:dep',0x1F4B8,'Depense',function(){ouvrirNouvelleDep();}],
+  ['a:partage',0x1F465,'Partage',function(){ouvrirTrajet();}],
+  ['a:manquant',0x1F9FE,'Manquant',function(){ouvrirManquant();}],
+  ['a:excedent',0x1F4B6,'Excedent',function(){ouvrirExcedent();}],
+  ['a:depot',0x1F3E7,'Depot',function(){ouvrirNouveauDepot();}],
+  ['a:dette',0x1F4B3,'Dette',function(){ouvrirNouvelleDette();}],
+  ['a:emprunt',0x1F4C3,'Emprunt',function(){ouvrirNouvelEmprunt();}],
+  ['a:pret',0x1F4B5,'Pret',function(){ouvrirNouveauPret();}],
+  ['a:promesse',0x270A,'Promesse',function(){ouvrirNouvellePromesse();}],
+  ['a:reg',0x1F527,'Regul.',function(){ouvrirNouvelleReg();}],
+  ['a:tontine',0x1F91D,'Tontine',function(){ouvrirNouvelleTontine();}],
+  ['a:projet',0x1F3AF,'Projet',function(){ouvrirNouveauProjet();}],
+  ['a:famille',0x1F46A,'Famille',function(){ouvrirNouvelleFam();}],
+  ['a:contact',0x1F464,'Contact',function(){openOv('ov-tiers');}]
+];
+var MENU_PRESETS=[
+  ['a:partage-alim',0x1F96A,'Repas partage',function(){ouvrirTrajet('60|Alimentation');}],
+  ['a:partage-trans',0x1F695,'Trajet partage',function(){ouvrirTrajet('61|Transport');}]
+];
+var MENU_DEFAUT_SAISIE=MENU_ACTIONS_BASE.map(function(a){return a[0];});
+var MENU_DEFAUT_OUTILS=['g:rapport','g:impression','g:controles','g:ia','g:conv'];
+var MENU_EMOJIS=[0x1F4B0,0x1F4B8,0x1F6D2,0x1F68C,0x1F695,0x1F96A,0x2615,0x1F4F1,0x1F4A1,0x1F3E0,0x1F46A,0x1F381,0x1F48A,0x1F4DA,0x1F3AF,0x2B50,0x1F4C1,0x1F9FE,0x1F4B3,0x1F91D,0x1F4C8,0x1F512,0x1F4DD,0x1F527];
+var _mqEdit=false,_mqDrag=null,_mqStart=null,_mqTimer=null,_mqSuppress=false,_mqCtx=null,_mqResetArme=false;
+
+function ensureMenuRapide(){
+  var m=D.menuRapide;
+  if(!m||typeof m!=='object'||Array.isArray(m)){m=D.menuRapide={};}
+  if(!Array.isArray(m.saisie))m.saisie=[];
+  if(!Array.isArray(m.outils))m.outils=[];
+  if(!Array.isArray(m.vus))m.vus=[];
+  if(!m.perso||typeof m.perso!=='object')m.perso={};
+  if(!m.over||typeof m.over!=='object')m.over={};
+  // les fonctions de base jamais vues (premiere fois, ou ajoutees par une mise a jour) sont ajoutees ;
+  // celles que l'utilisateur a retirees restent retirees
+  MENU_DEFAUT_SAISIE.forEach(function(id){if(m.vus.indexOf(id)<0){m.vus.push(id);if(m.saisie.indexOf(id)<0&&m.outils.indexOf(id)<0)m.saisie.push(id);}});
+  MENU_DEFAUT_OUTILS.forEach(function(id){if(m.vus.indexOf(id)<0){m.vus.push(id);if(m.saisie.indexOf(id)<0&&m.outils.indexOf(id)<0)m.outils.push(id);}});
+  return m;
+}
+var MENU_SECTIONS=[
+  ['periode',0x1F4C5,'Periode','Tableau de bord'],['alertes',0x1F6A8,'Alertes','Tableau de bord'],['analyse',0x1F50D,'Analyse','Tableau de bord'],
+  ['pilotage',0x1F4C8,'Pilotage','Tableau de bord'],['revdep',0x2696,'Rev. / Dep.','Tableau de bord'],['echeances',0x23F0,'Echeances','Tableau de bord'],
+  ['pertesCaisse',0x1F4C9,'Pertes caisse','Tresorerie'],['caisseManq',0x1F9FE,'Manquants','Caisse'],['caisseExc',0x1F4B6,'Excedents','Caisse'],
+  ['dethisto',0x1F4D5,'Hist. dettes','Dettes'],['prethisto',0x1F4D7,'Hist. prets','Prets'],
+  ['rapEvolution',0x1F4CA,'Evolution 12m','Rapport'],['rapClotures',0x1F512,'Clotures','Rapport'],['rapExport',0x1F4E4,'Export/Import','Rapport'],
+  ['rapDrive',0x2601,'Google Drive','Rapport'],['rapPwaDiag',0x1F4F2,'Diag. PWA','Rapport'],['rapSecurite',0x1F6E1,'Securite','Rapport'],
+  ['rapApparence',0x1F3A8,'Apparence','Rapport'],['rapRegularisation',0x1F527,'Regul. soldes','Rapport'],['rapDanger',0x26A0,'Zone danger','Rapport']
+];
+var MENU_ONGLETS=[
+  ['compta','plan','Plan comptable',0x1F4D2],['compta','tiers','Tiers',0x1F464],['compta','journaux','Journaux',0x1F4D6],['compta','balance','Balance',0x2696],['compta','grandlivre','Grand Livre',0x1F4D8],
+  ['etat','bilan','Bilan',0x1F3E6],['etat','resultat','Resultat',0x1F4B9],['etat','sig','SIG',0x1F4CA],['etat','tft','TFT',0x1F4B1],['etat','impression','Imprimer etats',0x1F5A8]
+];
+var MENU_CAT_ICO={'60':0x1F37D,'61':0x1F695,'62':0x1F3E0,'622':0x1F6D2,'63':0x1F48A,'64':0x1F393,'65':0x1F4F1,'66':0x1F455,'67':0x1F3AE,'68':0x1F54C,'69':0x1F46A,'70':0x1F4B5,'71':0x1F381,'72':0x23F1,'73':0x1F3D8,'74':0x1F4B9,'79':0x1F4B0};
+function mqAllerSection(accId){
+  var sec=G('acc-'+accId);if(!sec)return;
+  var pg=sec.closest('[id^="pg-"]');
+  if(pg){var p=pg.id.slice(3);goPage(p,G('nb-'+p));}
+  if(!sec.classList.contains('open')&&!sec.classList.contains('fixed'))toggleAcc(accId);
+  setTimeout(function(){try{sec.scrollIntoView({block:'start',behavior:'smooth'});}catch(e){}},150);
+}
+function mqAllerOnglet(page,tab){
+  var p=page==='etat'?'etatfinancier':'compta',bar=page==='etat'?'etatfin-tabs':'compta-tabs';
+  goPage(p,G('nb-'+p));
+  var btn=document.querySelector('#'+bar+' .mtab[onclick*="\''+tab+'\'"]');
+  if(page==='etat')switchEtatTab(tab,btn);else switchComptaTab(tab,btn);
+}
+function mqSetVal(id,v){var e=G(id);if(e){e.value=v;try{e.dispatchEvent(new Event('change',{bubbles:true}));}catch(err){}}}
+function menuCatalogue(){
+  var cat={};
+  var add=function(id,kind,grp,ico,lbl,go){cat[id]={id:id,kind:kind,grp:grp,ico:ico,lbl:lbl,go:go};};
+  MENU_ACTIONS_BASE.forEach(function(a){add(a[0],'action','Saisies principales',mqEm(a[1]),a[2],a[3]);});
+  MENU_PRESETS.forEach(function(a){add(a[0],'action','Partages rapides',mqEm(a[1]),a[2],a[3]);});
+  add('a:partage-col','action','Partages rapides',mqEm(0x1F91D),'Collegue a paye',function(){ouvrirTrajet();mqSetVal('trj-mode','col');if(typeof majTrajetMode==='function')majTrajetMode();});
+  add('a:partage-autres','action','Partages rapides',mqEm(0x1F381),'Offert aux autres',function(){ouvrirTrajet();mqSetVal('trj-mode','autres');if(typeof majTrajetMode==='function')majTrajetMode();});
+  // depenses / revenus par categorie : lues dans les listes reelles du formulaire (toujours a jour)
+  [['dep','dep-cat','Depenses par categorie','Dep. ',function(){ouvrirNouvelleDep();}],['rev','rev-cat','Revenus par categorie','Rev. ',function(){ouvrirNouveauRev();}]].forEach(function(d){
+    var sel=G(d[1]);if(!sel)return;
+    for(var i=0;i<sel.options.length;i++){(function(o){
+      var code=o.value.split('|')[0],nom=o.value.split('|')[1]||o.text;
+      add('c:'+d[0]+':'+o.value,'action',d[2],mqEm(MENU_CAT_ICO[code]||0x1F3F7),d[3]+nom,function(){d[4]();mqSetVal(d[1],o.value);});
+    })(sel.options[i]);}
+  });
+  add('f:membre','action','Autres formulaires',mqEm(0x1F9D3),'Membre a charge',function(){ouvrirNouvelleFam();mqSetVal('fam-type','membre');});
+  add('f:foyer','action','Autres formulaires',mqEm(0x1F3E0),'Depense foyer',function(){ouvrirNouvelleFam();mqSetVal('fam-type','foyer');});
+  add('f:occ','action','Autres formulaires',mqEm(0x1F6CD),'Dep. occasionnelle',function(){ouvrirDepenseOccasionnelleFamille();});
+  add('f:compte','action','Autres formulaires',mqEm(0x1F4D2),'Nouveau compte',function(){ouvrirNouveauCompte();});
+  add('f:journal','action','Autres formulaires',mqEm(0x1F4D6),'Nouveau journal',function(){ouvrirNouveauJournal();});
+  add('f:recherche','action','Autres formulaires',mqEm(0x1F50E),'Recherche',function(){ouvrirRecherche();});
+  add('f:seuils','action','Autres formulaires',mqEm(0x1F514),'Seuils alerte',function(){ouvrirSeuilsAlerte();});
+  add('f:paramtres','action','Autres formulaires',mqEm(0x2699),'Param. tresorerie',function(){ouvrirParamTresorerie();});
+  add('f:ecrmois','action','Autres formulaires',mqEm(0x1F5D3),'Ecritures du mois',function(){goPage('journal',G('nb-journal'));ouvrirEcrituresMoisCourant();});
+  add('v:grille','action','Tresorerie',mqEm(0x25A6),'Comptes en grille',function(){goPage('tresorerie',G('nb-tresorerie'));if(vueTresActuelle()!=='grille')basculerVueTres();});
+  add('v:liste','action','Tresorerie',mqEm(0x2630),'Comptes en liste',function(){goPage('tresorerie',G('nb-tresorerie'));if(vueTresActuelle()!=='liste')basculerVueTres();});
+  MENU_ONGLETS.forEach(function(o){add('o:'+o[0]+':'+o[1],'action',o[0]==='etat'?'Etats financiers (onglets)':'Comptabilite (onglets)',mqEm(o[3]),o[2],function(){mqAllerOnglet(o[0],o[1]);});});
+  MENU_SECTIONS.forEach(function(s){add('s:'+s[0],'action','Sections ('+s[3]+')',mqEm(s[1]),s[2],function(){mqAllerSection(s[0]);});});
+  var nbs=document.querySelectorAll('#nav-drawer .nb[id^="nb-"]');
+  for(var i=0;i<nbs.length;i++){(function(b){
+    var p=b.id.slice(3),ni=b.querySelector('.ni'),ico=ni?ni.textContent:'';
+    var lbl=(b.textContent||'').replace(ico,'').trim();
+    add('g:'+p,'page','Pages',ico,lbl,function(){goPage(p,G('nb-'+p));});
+  })(nbs[i]);}
+  return cat;
+}
+function mqOptionsGroupees(fn){
+  var cat=menuCatalogue(),order=[],by={};
+  Object.keys(cat).forEach(function(k){var g=cat[k].grp||'Autres';if(!by[g]){by[g]=[];order.push(g);}by[g].push(cat[k]);});
+  return order.map(function(g){return fn(g,by[g]);}).join('');
+}
+function menuInfo(id,cat){
+  var m=ensureMenuRapide();cat=cat||menuCatalogue();
+  var p=m.perso[id],c;
+  if(p){
+    if(p.type==='groupe')return {id:id,groupe:true,custom:true,ico:p.ico||mqEm(0x1F4C1),lbl:p.lbl||'Groupe',items:(p.items||[]).filter(function(x){return cat[x];})};
+    c=cat[p.dest];if(!c)return null;
+    return {id:id,custom:true,dest:p.dest,ico:p.ico||c.ico,lbl:p.lbl||c.lbl,go:c.go};
+  }
+  c=cat[id];if(!c)return null;
+  var o=m.over[id]||{};
+  return {id:id,ico:o.ico||c.ico,lbl:o.lbl||c.lbl,go:c.go};
+}
+function mqTuile(id,cat){
+  var it=menuInfo(id,cat);if(!it)return '';
+  return '<div class="mi-grid-item" data-id="'+escHtml(id)+'">'+
+    (it.groupe?'<span class="mi-badge mi-grp-badge">'+it.items.length+'</span>':'')+
+    '<span class="mi-x" data-act="x" data-id="'+escHtml(id)+'">&times;</span>'+
+    '<div class="mgi-ico">'+escHtml(it.ico)+'</div><div class="mgi-lbl">'+escHtml(it.lbl)+'</div></div>';
+}
+function renderMenuRapide(keepEdit){
+  var body=G('menu-rapide-body');if(!body)return;
+  var m=ensureMenuRapide(),cat=menuCatalogue();
+  if(!keepEdit)_mqEdit=false;
+  _mqResetArme=false;
+  body.classList.toggle('mq-edit',_mqEdit);
+  var addT=function(sec){return '<div class="mi-add" data-act="add" data-sec="'+sec+'"><span class="mgi-plus">+</span>Ajouter</div>';};
+  var h='<div class="mq-bar"><span>Maintiens une icone puis glisse-la pour la deplacer. Touche-la pour la modifier.</span><button class="mq-done" data-act="done">Termine</button></div>';
+  h+='<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">Ajout rapide<button class="mq-edit-btn" data-act="edit">Organiser</button></div>';
+  h+='<div class="mi-grid" data-sec="saisie">'+m.saisie.map(function(id){return mqTuile(id,cat);}).join('')+addT('saisie')+'</div>';
+  h+='<div class="modal-title" style="margin-top:20px">Outils</div>';
+  h+='<div class="mi-grid" data-sec="outils">'+m.outils.map(function(id){return mqTuile(id,cat);}).join('')+addT('outils')+'</div>';
+  h+='<button class="mq-reset" data-act="reset">Reinitialiser le menu</button>';
+  body.innerHTML=h;
+  mqInitEvents(body);
+}
+function mqEntrerEdition(){
+  _mqEdit=true;var b=G('menu-rapide-body');if(b)b.classList.add('mq-edit');
+  try{if(navigator.vibrate)navigator.vibrate(25);}catch(e){}
+}
+function mqQuitterEdition(){_mqEdit=false;renderMenuRapide(false);}
+function executerMenuItem(id){
+  var it=menuInfo(id);if(!it)return;
+  if(it.groupe){ouvrirGroupeMenu(id);return;}
+  closeOv('ov-menu');
+  try{it.go();}catch(e){console.warn('menu rapide:',id,e);}
+}
+function ouvrirGroupeMenu(id){
+  var it=menuInfo(id);if(!it||!it.groupe)return;
+  var cat=menuCatalogue();
+  G('mq-g-titre').textContent=it.ico+' '+it.lbl;
+  G('mq-g-grid').innerHTML=it.items.map(function(x){
+    var c=menuInfo(x,cat);if(!c)return '';
+    return '<div class="mi-grid-item" data-gid="'+escHtml(x)+'"><div class="mgi-ico">'+escHtml(c.ico)+'</div><div class="mgi-lbl">'+escHtml(c.lbl)+'</div></div>';
+  }).join('')||'<div style="color:var(--text3);padding:10px">Groupe vide</div>';
+  var g=G('mq-g-grid');
+  if(!g._mqInit){g._mqInit=true;g.addEventListener('click',function(e){
+    var t=e.target.closest('[data-gid]');if(!t)return;
+    var c=menuInfo(t.getAttribute('data-gid'));if(!c)return;
+    closeOv('ov-menu-groupe');closeOv('ov-menu');
+    try{c.go();}catch(err){console.warn('menu rapide groupe:',err);}
+  });}
+  closeOv('ov-menu');openOv('ov-menu-groupe');
+}
+// --- ordre : lu depuis le DOM apres un glisser-deposer ---
+function mqSauverOrdreDom(){
+  var m=ensureMenuRapide();
+  ['saisie','outils'].forEach(function(sec){
+    var g=document.querySelector('#menu-rapide-body .mi-grid[data-sec="'+sec+'"]');if(!g)return;
+    var ids=[];for(var i=0;i<g.children.length;i++){var id=g.children[i].getAttribute('data-id');if(id)ids.push(id);}
+    m[sec]=ids;
+  });
+  save();
+}
+function deplacerMenuItem(id,sec,index){
+  var m=ensureMenuRapide();
+  ['saisie','outils'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
+  if(!m[sec])return;
+  if(index<0||index>m[sec].length)index=m[sec].length;
+  m[sec].splice(index,0,id);save();
+}
+function mqCible(x,y,drag){
+  var els=document.elementsFromPoint?document.elementsFromPoint(x,y):[];
+  for(var i=0;i<els.length;i++){
+    var it=els[i].closest?els[i].closest('.mi-grid-item,.mi-add'):null;
+    if(it&&it!==drag&&it.closest('#menu-rapide-body'))return it;
+  }
+  return null;
+}
+function mqDeplacer(x,y){
+  var drag=_mqDrag;if(!drag)return;
+  var body=G('menu-rapide-body'),sc=body?body.closest('.modal'):null;
+  if(sc){var r=sc.getBoundingClientRect();if(y<r.top+70)sc.scrollTop-=12;else if(y>r.bottom-70)sc.scrollTop+=12;}
+  var t=mqCible(x,y,drag);if(!t)return;
+  var grid=t.parentNode;
+  if(t.classList.contains('mi-add')){grid.insertBefore(drag,t);return;}
+  if(drag.parentNode===grid){
+    var kids=Array.prototype.slice.call(grid.children);
+    if(kids.indexOf(drag)<kids.indexOf(t))grid.insertBefore(drag,t.nextSibling);else grid.insertBefore(drag,t);
+  }else grid.insertBefore(drag,t);
+}
+function mqCommencerDrag(it){_mqDrag=it;it.classList.add('dragging');}
+function mqNettoyer(){
+  document.removeEventListener('pointermove',mqMove);
+  document.removeEventListener('pointerup',mqFin);
+  document.removeEventListener('pointercancel',mqFin);
+  _mqStart=null;_mqDrag=null;
+}
+function mqMove(e){
+  if(!_mqStart)return;
+  var dx=e.clientX-_mqStart.x,dy=e.clientY-_mqStart.y,d=Math.sqrt(dx*dx+dy*dy);
+  if(!_mqDrag){
+    if(_mqTimer){if(d>10){clearTimeout(_mqTimer);_mqTimer=null;mqNettoyer();}return;}
+    if(_mqEdit&&d>8)mqCommencerDrag(_mqStart.it);else return;
+  }
+  mqDeplacer(e.clientX,e.clientY);
+}
+function mqFin(){
+  clearTimeout(_mqTimer);_mqTimer=null;
+  if(_mqDrag){_mqDrag.classList.remove('dragging');mqSauverOrdreDom();_mqSuppress=true;}
+  mqNettoyer();
+}
+function mqInitEvents(body){
+  if(body._mqInit)return;body._mqInit=true;
+  body.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.mi-grid-item'))e.preventDefault();});
+  body.addEventListener('touchmove',function(e){if(_mqDrag&&e.cancelable)e.preventDefault();},{passive:false});
+  body.addEventListener('pointerdown',function(e){
+    _mqSuppress=false;
+    var it=e.target.closest?e.target.closest('.mi-grid-item[data-id]'):null;
+    if(!it||e.target.closest('[data-act]'))return;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    clearTimeout(_mqTimer);_mqTimer=null;mqNettoyer();
+    _mqStart={x:e.clientX,y:e.clientY,it:it};
+    if(!_mqEdit){
+      _mqTimer=setTimeout(function(){
+        _mqTimer=null;if(!_mqStart)return;
+        mqEntrerEdition();_mqSuppress=true;mqCommencerDrag(_mqStart.it);
+      },450);
+    }
+    document.addEventListener('pointermove',mqMove);
+    document.addEventListener('pointerup',mqFin);
+    document.addEventListener('pointercancel',mqFin);
+  });
+  body.addEventListener('click',function(e){
+    if(_mqSuppress){_mqSuppress=false;return;}
+    var a=e.target.closest?e.target.closest('[data-act]'):null;
+    if(a){
+      var act=a.getAttribute('data-act');
+      if(act==='edit'){mqEntrerEdition();}
+      else if(act==='done'){mqQuitterEdition();}
+      else if(act==='add'){ouvrirEditMenu('add',a.getAttribute('data-sec'),null);}
+      else if(act==='x'){retirerMenuItem(a.getAttribute('data-id'));}
+      else if(act==='reset'){
+        if(!_mqResetArme){_mqResetArme=true;a.textContent='Appuie encore pour confirmer';setTimeout(function(){_mqResetArme=false;if(a.isConnected)a.textContent='Reinitialiser le menu';},4000);}
+        else reinitialiserMenuRapide();
+      }
+      return;
+    }
+    var it=e.target.closest?e.target.closest('.mi-grid-item[data-id]'):null;
+    if(!it)return;
+    var id=it.getAttribute('data-id');
+    if(_mqEdit)ouvrirEditMenu('edit',null,id);else executerMenuItem(id);
+  });
+}
+// --- retirer / reinitialiser ---
+function retirerMenuItem(id){
+  var m=ensureMenuRapide();
+  ['saisie','outils'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
+  if(m.perso[id])delete m.perso[id];
+  save();renderMenuRapide(true);
+}
+function reinitialiserMenuRapide(){
+  var m=ensureMenuRapide();
+  m.saisie=MENU_DEFAUT_SAISIE.slice();m.outils=MENU_DEFAUT_OUTILS.slice();
+  m.vus=MENU_DEFAUT_SAISIE.concat(MENU_DEFAUT_OUTILS);m.perso={};m.over={};
+  save();renderMenuRapide(true);
+}
+// --- ajout / modification ---
+function mqRemplirDest(sel){
+  G('mq-e-dest').innerHTML=mqOptionsGroupees(function(g,arr){
+    return '<optgroup label="'+escHtml(g)+'">'+arr.map(function(c){return '<option value="'+escHtml(c.id)+'">'+escHtml(c.ico+' '+c.lbl)+'</option>';}).join('')+'</optgroup>';
+  });
+  if(sel&&menuCatalogue()[sel])G('mq-e-dest').value=sel;
+}
+function mqRemplirItems(sel){
+  G('mq-e-items').innerHTML=mqOptionsGroupees(function(g,arr){
+    return '<div style="margin:8px 0 2px;font-size:11px;font-weight:700;color:var(--gold2);text-transform:uppercase">'+escHtml(g)+'</div>'+
+      arr.map(function(c){return '<label><input type="checkbox" value="'+escHtml(c.id)+'"'+(sel&&sel.indexOf(c.id)>=0?' checked':'')+'><span>'+escHtml(c.ico+' '+c.lbl)+'</span></label>';}).join('');
+  });
+}
+function ouvrirEditMenu(mode,sec,id){
+  var m=ensureMenuRapide(),cat=menuCatalogue();
+  _mqCtx={mode:mode,sec:sec,id:id};
+  var E=function(x){return G(x);};
+  E('mq-e-emojis').innerHTML=MENU_EMOJIS.map(function(c){return '<button type="button" data-em="'+c+'">'+mqEm(c)+'</button>';}).join('');
+  if(!E('mq-e-emojis')._mqInit){E('mq-e-emojis')._mqInit=true;E('mq-e-emojis').addEventListener('click',function(e){var b=e.target.closest('[data-em]');if(b)E('mq-e-ico').value=mqEm(parseInt(b.getAttribute('data-em'),10));});}
+  mqRemplirDest(null);mqRemplirItems(null);
+  var lbl=E('mq-e-lbl');lbl.value='';lbl.setAttribute('data-auto','');E('mq-e-ico').value='';
+  if(mode==='add'){
+    E('mq-e-titre').textContent='Nouveau raccourci';
+    E('mq-e-type-row').style.display='block';E('mq-e-type').value='dest';
+    E('mq-e-del').style.display='none';
+    mqEditTypeChange();mqEditDestChange();
+  }else{
+    var p=m.perso[id],it=menuInfo(id,cat);if(!it)return;
+    E('mq-e-titre').textContent='Modifier : '+it.lbl;
+    E('mq-e-type-row').style.display='none';
+    E('mq-e-del').style.display='block';
+    lbl.value=it.lbl;E('mq-e-ico').value=it.ico;
+    if(p&&p.type==='groupe'){E('mq-e-type').value='groupe';mqRemplirItems(p.items||[]);}
+    else if(p){E('mq-e-type').value='dest';mqRemplirDest(p.dest);}
+    E('mq-e-dest-row').style.display=(p&&p.type!=='groupe')?'block':'none';
+    E('mq-e-items-row').style.display=(p&&p.type==='groupe')?'block':'none';
+  }
+  openOv('ov-menu-edit');
+}
+function mqEditTypeChange(){
+  var g=G('mq-e-type').value==='groupe';
+  G('mq-e-dest-row').style.display=g?'none':'block';
+  G('mq-e-items-row').style.display=g?'block':'none';
+  if(g){var l=G('mq-e-lbl');if(!l.value||l.value===l.getAttribute('data-auto')){l.value='Groupe';l.setAttribute('data-auto','Groupe');}if(!G('mq-e-ico').value)G('mq-e-ico').value=mqEm(0x1F4C1);}
+  else mqEditDestChange();
+}
+function mqEditDestChange(){
+  if(!_mqCtx||G('mq-e-type').value==='groupe')return;
+  var c=menuCatalogue()[G('mq-e-dest').value];if(!c)return;
+  var l=G('mq-e-lbl');
+  if(!l.value||l.value===l.getAttribute('data-auto')||l.value==='Groupe'){l.value=c.lbl;l.setAttribute('data-auto',c.lbl);G('mq-e-ico').value=c.ico;}
+}
+function mqEditSave(){
+  var c=_mqCtx;if(!c)return;
+  var m=ensureMenuRapide(),cat=menuCatalogue();
+  var lbl=G('mq-e-lbl').value.trim(),ico=Array.from(G('mq-e-ico').value.trim()).slice(0,2).join('');
+  if(!lbl){notif('Donne un nom au raccourci',true);return;}
+  var type=(c.mode==='add')?G('mq-e-type').value:((m.perso[c.id]&&m.perso[c.id].type==='groupe')?'groupe':(m.perso[c.id]?'dest':'base'));
+  var items=[];
+  if(type==='groupe'){
+    var cbs=G('mq-e-items').querySelectorAll('input[type=checkbox]');
+    for(var i=0;i<cbs.length;i++)if(cbs[i].checked)items.push(cbs[i].value);
+    if(!items.length){notif('Choisis au moins une fonction pour le groupe',true);return;}
+  }
+  if(c.mode==='add'){
+    var id='p:'+Date.now().toString(36)+Math.floor(Math.random()*1000).toString(36);
+    if(type==='groupe')m.perso[id]={type:'groupe',lbl:lbl,ico:ico,items:items};
+    else{
+      var dest=G('mq-e-dest').value;if(!cat[dest]){notif('Choisis une fonction',true);return;}
+      m.perso[id]={type:'dest',dest:dest,lbl:lbl,ico:ico};
+    }
+    m[c.sec==='outils'?'outils':'saisie'].push(id);
+  }else if(type==='base'){
+    var base=cat[c.id];
+    if(base){
+      var o={};if(lbl!==base.lbl)o.lbl=lbl;if(ico&&ico!==base.ico)o.ico=ico;
+      if(o.lbl||o.ico)m.over[c.id]=o;else delete m.over[c.id];
+    }
+  }else if(type==='groupe'){
+    m.perso[c.id].lbl=lbl;m.perso[c.id].ico=ico;m.perso[c.id].items=items;
+  }else{
+    var d2=G('mq-e-dest').value;if(!cat[d2]){notif('Choisis une fonction',true);return;}
+    m.perso[c.id].lbl=lbl;m.perso[c.id].ico=ico;m.perso[c.id].dest=d2;
+  }
+  save();closeOv('ov-menu-edit');renderMenuRapide(true);
+}
+function mqEditRetirer(){
+  if(!_mqCtx||_mqCtx.mode!=='edit')return;
+  retirerMenuItem(_mqCtx.id);closeOv('ov-menu-edit');
+}
+
+
+// ============ MANQUANTS DE CAISSE ============
+// Module a part entiere (distinct de "Declarer une perte") : chaque manquant est suivi avec la facon dont il
+// est regle. Seule la part completee de sa poche passe en comptabilite (D 479 Ecarts / C tresorerie) ; la part
+// retenue sur salaire est un SUIVI seulement (le salaire enregistre est deja le net recu - une ecriture
+// compterait la perte deux fois) ; la part absorbee par la societe n'a aucun impact sur ses comptes.
+function manqReteRetenu(m){return (m.deductions||[]).reduce(function(a,d){return a+Number(d.montant||0);},0);}
+function manqResteRetenir(m){return Math.max(0,Number(m.partRetenue||0)-manqReteRetenu(m));}
+function repartitionManquant(montant,trait,poche){
+  montant=Math.round(Number(montant)||0);poche=Math.round(Number(poche)||0);
+  var r={montant:montant,poche:0,retenu:0,absorbe:0};
+  if(trait==='poche')r.poche=montant;
+  else if(trait==='salaire')r.retenu=montant;
+  else if(trait==='absorbe')r.absorbe=montant;
+  else if(trait==='mixte'){r.poche=Math.max(0,Math.min(montant,poche));r.retenu=montant-r.poche;}
+  return r;
+}
+function ouvrirManquant(){
+  ouvrirNouvelleSaisie('ov-manquant',['mq-montant','mq-motif','mq-poche'],['mq-tiers'],['mq-date']);
+  var t=G('mq-trait');if(t)t.value='poche';
+  var c=G('mq-cpt');if(c)c.value='Especes';
+  var ti=G('mq-tiers');if(ti){ti.value=TIERS_SOCIETE_CODE;toggleTiersPassageInput('mq-tiers');}
+  majManquantForm();
+}
+function majManquantForm(){
+  var tr=(G('mq-trait')||{}).value||'poche';
+  var pr=G('mq-poche-row');if(pr)pr.style.display=tr==='mixte'?'block':'none';
+  var cr=G('mq-cpt-row');if(cr)cr.style.display=(tr==='poche'||tr==='mixte')?'block':'none';
+  var ap=G('mq-apercu');if(!ap)return;
+  var r=repartitionManquant((G('mq-montant')||{}).value,tr,(G('mq-poche')||{}).value);
+  if(!r.montant){ap.textContent='';return;}
+  var l=[];
+  if(r.poche>0)l.push('Complete de ma poche : <b>'+fmt(r.poche)+' F</b> (ecriture comptable)');
+  if(r.retenu>0)l.push('A retenir sur mon salaire : <b>'+fmt(r.retenu)+' F</b> (suivi, sans ecriture)');
+  if(r.absorbe>0)l.push('Absorbe par la societe : <b>'+fmt(r.absorbe)+' F</b> (aucun impact)');
+  ap.innerHTML=l.join('<br>');
+}
+function saveManquant(){
+  var montant=Math.round(Number((G('mq-montant')||{}).value||0));
+  var date=(G('mq-date')||{}).value||today();
+  var motif=((G('mq-motif')||{}).value||'').trim();
+  var tiers=(G('mq-tiers')||{}).value||'';
+  var tr=(G('mq-trait')||{}).value||'poche';
+  var cptVal=(G('mq-cpt')||{}).value||'Especes';
+  var pocheSaisie=Math.round(Number((G('mq-poche')||{}).value||0));
+  if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
+  if(!motif){notif('Motif obligatoire',true);return;}
+  if(tr==='mixte'&&(pocheSaisie<=0||pocheSaisie>=montant)){notif('Pour un reglement mixte, la part de ta poche doit etre entre 0 et le montant du manquant',true);return;}
+  var r=repartitionManquant(montant,tr,pocheSaisie);
+  if(r.poche>0&&!COMPTES_TRES.includes(cptVal)){notif('Choisissez le compte utilise pour completer',true);return;}
+  var nomT=tiers?nomEffectifTiers('mq-tiers'):'';
+  var rec={id:'MQ'+Date.now()+Math.floor(Math.random()*1000),date:date,montant:montant,motif:motif,tiers:tiers,tiersNom:nomT,
+    traitement:tr,partPoche:r.poche,partRetenue:r.retenu,partAbsorbe:r.absorbe,compte:r.poche>0?cptVal:'',ref:'',deductions:[],
+    statut:r.retenu>0?'en_cours':'solde'};
+  if(rec.statut==='solde')rec.dateCloture=date;
+  function finaliser(){
+    if(!D.manquants)D.manquants=[];
+    D.manquants.push(rec);
+    save();closeOv('ov-manquant');
+    notif('Manquant enregistre'+(r.retenu>0?' - '+fmt(r.retenu)+' F a retenir sur salaire':''));
+    clr('mq-montant','mq-motif','mq-poche');
+    try{renderAll();}catch(e){}
+  }
+  if(r.poche>0){
+    var _dla=D.dettes.length;
+    execDebitAvecConfirmation(cptVal,r.poche,{objet:'Manquant de caisse - '+motif},function(){
+      var ref=passerEcriture('OD',date,'Manquant de caisse - '+motif,[
+        {compte:'479',lib:'Ecarts de regularisation',sens:'D',montant:r.poche,tiers:''},
+        {compte:cptCode(cptVal),lib:cptVal,sens:'C',montant:r.poche,tiers:''}
+      ],'');
+      if(ref===false){annulerDebitApresEchecEcriture(cptVal,r.poche,_dla);notif('Manquant annule - l\'ecriture correspondante a echoue',true);return;}
+      rec.ref=ref;
+      finaliser();
+    });
+  } else {
+    finaliser();
+  }
+}
+function enregistrerRetenueManquant(id){
+  var m=(D.manquants||[]).find(function(x){return x.id===id;});if(!m)return;
+  var v=Math.round(Number((G('mq-m-'+id)||{}).value||0));
+  var date=(G('mq-d-'+id)||{}).value||today();
+  if(!v||v<=0){notif('Montant de la retenue obligatoire',true);return;}
+  var reste=manqResteRetenir(m);
+  if(v>reste+0.5){notif('La retenue depasse le reste a retenir ('+fmt(reste)+' F)',true);return;}
+  if(!m.deductions)m.deductions=[];
+  m.deductions.push({date:date,montant:v});
+  if(manqResteRetenir(m)<=0.5){m.statut='solde';m.dateCloture=date;}
+  save();notif(m.statut==='solde'?'Retenue enregistree - manquant solde':'Retenue enregistree');
+  renderManquants();
+}
+function annulerDerniereRetenueManquant(id){
+  var m=(D.manquants||[]).find(function(x){return x.id===id;});
+  if(!m||!(m.deductions||[]).length)return;
+  m.deductions.pop();m.statut='en_cours';delete m.dateCloture;
+  save();notif('Derniere retenue annulee');renderManquants();
+}
+var _mqSupprId='';
+function demanderSupprManquant(id){_mqSupprId=id;openOv('ov-confirm-suppr-manquant');}
+function confirmerSupprManquant(){
+  var m=(D.manquants||[]).find(function(x){return x.id===_mqSupprId;});
+  if(m&&m.ref){notif('Ce manquant a une ecriture comptable ('+m.ref+') : extournez-la dans le Journal pour corriger.',true);closeOv('ov-confirm-suppr-manquant');return;}
+  D.manquants=(D.manquants||[]).filter(function(x){return x.id!==_mqSupprId;});
+  _mqSupprId='';closeOv('ov-confirm-suppr-manquant');
+  save();notif('Manquant supprime');renderManquants();
+}
+function totauxManquants(){
+  var t={nb:0,total:0,poche:0,absorbe:0,aRetenir:0,dejaRetenu:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
+  var now=new Date(),y=now.getFullYear(),mo=now.getMonth();
+  (D.manquants||[]).forEach(function(m){
+    var mt=Number(m.montant||0);
+    t.nb++;t.total+=mt;t.poche+=Number(m.partPoche||0);t.absorbe+=Number(m.partAbsorbe||0);
+    t.aRetenir+=Number(m.partRetenue||0);t.dejaRetenu+=manqReteRetenu(m);
+    var d=new Date(m.date);
+    if(d.getFullYear()===y){t.annee+=mt;t.nbAnnee++;if(d.getMonth()===mo){t.mois+=mt;t.nbMois++;}}
+  });
+  t.reste=Math.max(0,t.aRetenir-t.dejaRetenu);
+  return t;
+}
+function renderManquants(){
+  initDashAccordions();
+  renderExcedents();
+  var rs=G('mq-resume');
+  var t=totauxManquants();
+  function carte(lbl,val,sub,col){return '<div class="card" style="padding:12px;margin-bottom:0"><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+lbl+'</div><div style="font-size:calc(15px*var(--fscale));font-weight:800;color:'+(col||'var(--text)')+';margin-top:3px">'+val+'</div>'+(sub?'<div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:2px">'+sub+'</div>':'')+'</div>';}
+  if(rs)rs.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
+    '<div style="grid-column:1/-1">'+carte('Total de tous les manquants',fmt(t.total)+' F',t.nb+' manquant(s) depuis le debut','var(--red)')+'</div>'+
+    carte('Cette annee',fmt(t.annee)+' F',t.nbAnnee+' manquant(s)')+
+    carte('Ce mois-ci',fmt(t.mois)+' F',t.nbMois+' manquant(s)')+
+    carte('Complete de ma poche',fmt(t.poche)+' F','')+
+    carte('Absorbe par la societe',fmt(t.absorbe)+' F','')+
+    carte('Deja retenu sur salaire',fmt(t.dejaRetenu)+' F','sur '+fmt(t.aRetenir)+' F a retenir','var(--green)')+
+    carte('Reste a retenir',fmt(t.reste)+' F','',t.reste>0?'var(--red)':'var(--green)')+
+    '</div>';
+  var el=G('mq-liste');if(!el)return;
+  var liste=(D.manquants||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  if(!liste.length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucun manquant enregistre</div></div>';return;}
+  var TRL={poche:'Complete de ma poche',salaire:'Retenu sur salaire',mixte:'Poche + salaire',absorbe:'Absorbe par la societe'};
+  el.innerHTML=liste.map(function(m){
+    var enCours=m.statut!=='solde',ret=manqReteRetenu(m),reste=manqResteRetenir(m),aRet=Number(m.partRetenue||0);
+    var lignes=[];
+    if(m.partPoche>0)lignes.push('Poche : '+fmt(m.partPoche)+' F ('+escHtml(m.compte)+(m.ref?' - '+escHtml(m.ref):'')+')');
+    if(aRet>0)lignes.push('Salaire : '+fmt(ret)+' / '+fmt(aRet)+' F retenus');
+    if(m.partAbsorbe>0)lignes.push('Societe : '+fmt(m.partAbsorbe)+' F absorbes');
+    var detRet='';
+    if(aRet>0){
+      var pct=Math.min(100,Math.round(ret/Math.max(1,aRet)*100));
+      var hist=(m.deductions||[]).slice(-3).reverse().map(function(d){return '<div style="display:flex;justify-content:space-between;font-size:calc(11.5px*var(--fscale));color:var(--text2);padding:2px 0"><span>'+fmtD(d.date)+'</span><span>-'+fmt(d.montant)+' F</span></div>';}).join('');
+      detRet='<div class="pb" style="margin:8px 0"><div class="pf pfg" style="width:'+pct+'%"></div></div>'+hist;
+      if(enCours)detRet+='<div class="fr" style="margin-top:8px"><div class="fg"><input class="fc" type="number" id="mq-m-'+m.id+'" placeholder="Retenue ce mois (F)"></div><div class="fg"><input class="fc" type="date" id="mq-d-'+m.id+'" value="'+today()+'"></div></div>'+
+        '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="enregistrerRetenueManquant(\''+m.id+'\')">Enregistrer une retenue</button>';
+    }
+    var actions='<div style="display:flex;gap:8px;margin-top:8px">'+
+      ((m.deductions||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerDerniereRetenueManquant(\''+m.id+'\')">Annuler la derniere retenue</button>':'')+
+      (m.ref?'':'<button class="btn-s" style="flex:1;color:var(--red)" onclick="demanderSupprManquant(\''+m.id+'\')">Supprimer</button>')+'</div>';
+    return '<div class="card" style="border-left:3px solid '+(enCours?'var(--red)':'var(--green)')+';margin-bottom:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(m.motif)+'</div>'+
+      '<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+fmtD(m.date)+(m.tiersNom?' - '+escHtml(m.tiersNom):'')+' - '+TRL[m.traitement]+'</div></div>'+
+      '<div style="text-align:right"><div style="font-family:var(--font-mono);font-weight:700;color:var(--red)">'+fmt(m.montant)+' F</div>'+
+      '<div style="font-size:calc(10.5px*var(--fscale));color:'+(enCours?'var(--red)':'var(--green)')+'">'+(enCours?'Reste '+fmt(reste)+' F':'Solde')+'</div></div></div>'+
+      '<div style="font-size:calc(11.5px*var(--fscale));color:var(--text2);margin-top:6px;line-height:1.6">'+lignes.join('<br>')+'</div>'+
+      detRet+actions+'</div>';
+  }).join('');
+}
+// Migration unique : les suivis "Retenues sur salaire" de la version precedente deviennent des manquants
+// regles sur salaire (meme donnees, aucune ecriture n'existait).
+function migrerRetenuesVersManquants(){
+  if(!Array.isArray(D.retenuesSalaire)){return;}
+  if(!D.manquants)D.manquants=[];
+  D.retenuesSalaire.forEach(function(r){
+    if(D.manquants.some(function(m){return m.id===r.id;}))return;
+    D.manquants.push({id:r.id,date:r.date,montant:r.total,motif:r.libelle,tiers:'',tiersNom:'',traitement:'salaire',partPoche:0,partRetenue:r.total,partAbsorbe:0,
+      compte:'',ref:'',deductions:r.deductions||[],statut:r.statut||'en_cours',dateCloture:r.dateCloture});
+  });
+  delete D.retenuesSalaire;
+}
+
+// ============ EXCEDENTS DE CAISSE (suivi) ============
+// Chaque excedent est note (date, montant, motif). Rien ne passe en comptabilite tant qu'on n'y touche pas.
+// Chaque utilisation genere une ecriture avec le compte 479 (Ecarts de regularisation) au credit :
+//  - transport / petit dejeuner : charge (61 / 60) au debit, aucun mouvement de tresorerie ;
+//  - argent de poche : tresorerie choisie au debit (l'argent entre dans ma poche).
+// Le 479 se compense avec les manquants completes de sa poche (479 au debit).
+var EX_POUR={transport:'Transport',petitdej:'Petit dejeuner',poche:'Argent de poche'};
+function solde479(){
+  var s=0;
+  (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){
+    if(l.compte==='479')s+=(l.sens==='C'?1:-1)*Number(l.montant||0);
+  });});
+  return s;
+}
+function exUtilise(e){return (e.usages||[]).reduce(function(a,u){return a+Number(u.montant||0);},0);}
+function exReste(e){return Math.max(0,Number(e.montant||0)-exUtilise(e)-Number(e.reverse||0));}
+function ouvrirExcedent(){
+  ouvrirNouvelleSaisie('ov-excedent',['ex-montant','ex-motif'],['ex-tiers'],['ex-date']);
+  var ti=G('ex-tiers');if(ti){ti.value=TIERS_SOCIETE_CODE;toggleTiersPassageInput('ex-tiers');}
+}
+function saveExcedent(){
+  var montant=Math.round(Number((G('ex-montant')||{}).value||0));
+  var date=(G('ex-date')||{}).value||today();
+  var motif=((G('ex-motif')||{}).value||'').trim();
+  var tiers=(G('ex-tiers')||{}).value||'';
+  if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
+  if(!motif){notif('Motif obligatoire',true);return;}
+  if(!D.excedents)D.excedents=[];
+  D.excedents.push({id:'EX'+Date.now()+Math.floor(Math.random()*1000),date:date,montant:montant,motif:motif,tiers:tiers,
+    tiersNom:tiers?nomEffectifTiers('ex-tiers'):'',usages:[],reverse:0,statut:'en_cours'});
+  save();closeOv('ov-excedent');notif('Excedent enregistre');
+  clr('ex-montant','ex-motif');
+  try{renderAll();}catch(e){}
+}
+function exMajPour(id){
+  var v=(G('ex-p-'+id)||{}).value;var r=G('ex-cr-'+id);
+  if(r)r.style.display=v==='poche'?'block':'none';
+}
+function utiliserExcedent(id){
+  var e=(D.excedents||[]).find(function(x){return x.id===id;});if(!e)return;
+  var v=Math.round(Number((G('ex-m-'+id)||{}).value||0));
+  var date=(G('ex-d-'+id)||{}).value||today();
+  var pour=(G('ex-p-'+id)||{}).value||'transport';
+  var cpt=(G('ex-c-'+id)||{}).value||'Especes';
+  if(!v||v<=0){notif('Montant utilise obligatoire',true);return;}
+  var reste=exReste(e);
+  if(v>reste+0.5){notif('Ce montant depasse le reste de l\'excedent ('+fmt(reste)+' F)',true);return;}
+  if(pour==='poche'&&!COMPTES_TRES.includes(cpt)){notif('Choisissez le compte qui recoit l\'argent de poche',true);return;}
+  var lib='Excedent de caisse - '+EX_POUR[pour].toLowerCase()+' ('+e.motif+')';
+  var lignes;
+  if(pour==='poche')lignes=[{compte:cptCode(cpt),lib:cpt,sens:'D',montant:v,tiers:''},{compte:'479',lib:'Ecarts de regularisation',sens:'C',montant:v,tiers:''}];
+  else lignes=[{compte:pour==='petitdej'?'60':'61',lib:pour==='petitdej'?'Alimentation':'Transport',sens:'D',montant:v,tiers:''},{compte:'479',lib:'Ecarts de regularisation',sens:'C',montant:v,tiers:''}];
+  var ref=passerEcriture('OD',date,lib,lignes,'');
+  if(ref===false){notif('Utilisation annulee - l\'ecriture correspondante a echoue',true);return;}
+  if(pour==='poche')D.comptes[cpt]=(D.comptes[cpt]||0)+v;
+  else D.depenses.push({categorie:pour==='petitdej'?'Alimentation':'Transport',libelle:lib,montant:v,date:date,tiers:'',compte:'Excedent de caisse'});
+  if(!e.usages)e.usages=[];
+  e.usages.push({date:date,montant:v,pour:pour,compte:pour==='poche'?cpt:'',ref:ref});
+  if(exReste(e)<=0.5){e.statut='solde';e.dateCloture=date;}
+  save();notif('Utilisation enregistree'+(e.statut==='solde'?' - excedent solde':''));
+  try{renderAll();}catch(er){}
+}
+function reverserExcedent(id){
+  var e=(D.excedents||[]).find(function(x){return x.id===id;});if(!e)return;
+  var r=exReste(e);if(r<=0.5)return;
+  e.reverse=Number(e.reverse||0)+r;e.statut='solde';e.dateCloture=today();
+  save();notif('Reste reverse a la societe - excedent solde');renderExcedents();
+}
+function annulerReversementExcedent(id){
+  var e=(D.excedents||[]).find(function(x){return x.id===id;});if(!e||!Number(e.reverse||0))return;
+  e.reverse=0;e.statut='en_cours';delete e.dateCloture;
+  save();notif('Reversement annule');renderExcedents();
+}
+var _exSupprId='';
+function demanderSupprExcedent(id){_exSupprId=id;openOv('ov-confirm-suppr-excedent');}
+function confirmerSupprExcedent(){
+  var e=(D.excedents||[]).find(function(x){return x.id===_exSupprId;});
+  if(e&&(e.usages||[]).length){notif('Cet excedent a des utilisations avec ecritures comptables : extournez-les dans le Journal pour corriger.',true);closeOv('ov-confirm-suppr-excedent');return;}
+  D.excedents=(D.excedents||[]).filter(function(x){return x.id!==_exSupprId;});
+  _exSupprId='';closeOv('ov-confirm-suppr-excedent');
+  save();notif('Excedent supprime');renderExcedents();
+}
+function totauxExcedents(){
+  var t={nb:0,total:0,transport:0,petitdej:0,poche:0,reverse:0,reste:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
+  var now=new Date(),y=now.getFullYear(),mo=now.getMonth();
+  (D.excedents||[]).forEach(function(e){
+    var mt=Number(e.montant||0);t.nb++;t.total+=mt;t.reverse+=Number(e.reverse||0);t.reste+=exReste(e);
+    (e.usages||[]).forEach(function(u){t[u.pour]=(t[u.pour]||0)+Number(u.montant||0);});
+    var d=new Date(e.date);
+    if(d.getFullYear()===y){t.annee+=mt;t.nbAnnee++;if(d.getMonth()===mo){t.mois+=mt;t.nbMois++;}}
+  });
+  t.utilise=t.transport+t.petitdej+t.poche;
+  return t;
+}
+function renderExcedents(){
+  var rs=G('ex-resume');
+  var t=totauxExcedents();
+  function carte(lbl,val,sub,col){return '<div class="card" style="padding:12px;margin-bottom:0"><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+lbl+'</div><div style="font-size:calc(15px*var(--fscale));font-weight:800;color:'+(col||'var(--text)')+';margin-top:3px">'+val+'</div>'+(sub?'<div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:2px">'+sub+'</div>':'')+'</div>';}
+  if(rs){
+    var s479=solde479();
+    rs.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
+      '<div style="grid-column:1/-1">'+carte('Total de tous les excedents',fmt(t.total)+' F',t.nb+' excedent(s) depuis le debut','var(--green)')+'</div>'+
+      carte('Cette annee',fmt(t.annee)+' F',t.nbAnnee+' excedent(s)')+
+      carte('Ce mois-ci',fmt(t.mois)+' F',t.nbMois+' excedent(s)')+
+      carte('Transport',fmt(t.transport)+' F','')+
+      carte('Petit dejeuner',fmt(t.petitdej)+' F','')+
+      carte('Argent de poche',fmt(t.poche)+' F','')+
+      carte('Reverse a la societe',fmt(t.reverse)+' F','')+
+      '<div style="grid-column:1/-1">'+carte('Reste non utilise',fmt(t.reste)+' F','sur '+fmt(t.total)+' F au total',t.reste>0?'var(--gold2)':'var(--green)')+'</div>'+
+      '</div>'+
+      '<div style="font-size:calc(12px*var(--fscale));color:var(--text2);line-height:1.6;margin-bottom:12px">'+
+      (Math.abs(s479)<0.5?'Compte 479 (ecarts de caisse) : equilibre, rien a compenser.':
+        'Compte 479 (ecarts de caisse) : '+(s479>0?'excedents utilises en plus des manquants completes':'manquants completes en plus des excedents utilises')+' = '+fmt(Math.abs(s479))+' F.')+'</div>';
+  }
+  var el=G('ex-liste');if(!el)return;
+  var liste=(D.excedents||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  if(!liste.length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucun excedent enregistre</div></div>';return;}
+  var opts=COMPTES_TRES.map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');
+  el.innerHTML=liste.map(function(e){
+    var enCours=e.statut!=='solde',reste=exReste(e),ut=exUtilise(e);
+    var pct=Math.min(100,Math.round((ut+Number(e.reverse||0))/Math.max(1,e.montant)*100));
+    var hist=(e.usages||[]).slice(-4).reverse().map(function(u){return '<div style="display:flex;justify-content:space-between;font-size:calc(11.5px*var(--fscale));color:var(--text2);padding:2px 0"><span>'+fmtD(u.date)+' - '+EX_POUR[u.pour]+(u.compte?' ('+escHtml(u.compte)+')':'')+'</span><span>-'+fmt(u.montant)+' F</span></div>';}).join('');
+    var form='';
+    if(enCours){
+      form='<div class="fr" style="margin-top:8px"><div class="fg"><input class="fc" type="number" id="ex-m-'+e.id+'" placeholder="Montant utilise (F)"></div><div class="fg"><input class="fc" type="date" id="ex-d-'+e.id+'" value="'+today()+'"></div></div>'+
+        '<div class="fg"><select class="fc" id="ex-p-'+e.id+'" onchange="exMajPour(\''+e.id+'\')"><option value="transport">Pour mon transport</option><option value="petitdej">Pour mon petit dejeuner</option><option value="poche">Comme argent de poche</option></select></div>'+
+        '<div class="fg" id="ex-cr-'+e.id+'" style="display:none"><label class="fl">Compte qui recoit l\'argent de poche</label><select class="fc" id="ex-c-'+e.id+'">'+opts+'</select></div>'+
+        '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="utiliserExcedent(\''+e.id+'\')">Enregistrer l\'utilisation</button>';
+    }
+    var actions='<div style="display:flex;gap:8px;margin-top:8px">'+
+      (enCours&&reste>0.5?'<button class="btn-s" style="flex:1" onclick="reverserExcedent(\''+e.id+'\')">Reverser le reste</button>':'')+
+      (Number(e.reverse||0)>0?'<button class="btn-s" style="flex:1" onclick="annulerReversementExcedent(\''+e.id+'\')">Annuler le reversement</button>':'')+
+      ((e.usages||[]).length?'':'<button class="btn-s" style="flex:1;color:var(--red)" onclick="demanderSupprExcedent(\''+e.id+'\')">Supprimer</button>')+'</div>';
+    return '<div class="card" style="border-left:3px solid '+(enCours?'var(--gold2)':'var(--green)')+';margin-bottom:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(e.motif)+'</div>'+
+      '<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+fmtD(e.date)+(e.tiersNom?' - '+escHtml(e.tiersNom):'')+'</div></div>'+
+      '<div style="text-align:right"><div style="font-family:var(--font-mono);font-weight:700;color:var(--green)">'+fmt(e.montant)+' F</div>'+
+      '<div style="font-size:calc(10.5px*var(--fscale));color:'+(enCours?'var(--gold2)':'var(--green)')+'">'+(enCours?'Reste '+fmt(reste)+' F':'Solde')+'</div></div></div>'+
+      '<div class="pb" style="margin:8px 0"><div class="pf pfg" style="width:'+pct+'%"></div></div>'+
+      (Number(e.reverse||0)>0?'<div style="font-size:calc(11.5px*var(--fscale));color:var(--text2)">Reverse a la societe : '+fmt(e.reverse)+' F</div>':'')+
+      hist+form+actions+'</div>';
+  }).join('');
+}
+
 // Ouvre la liste des mouvements d'un compte precis, filtree sur le mois en cours (declenche par un tap sur la carte du compte)
 function ouvrirOperationsCompteMoisCourant(compte){
   var chps=G('chips-tres');
@@ -10516,12 +11559,56 @@ function switchComptaTab(t,btn){
   ['plan','tiers','journaux','balance','grandlivre'].forEach(function(k){var e=G('compta-'+k);if(e)e.style.display=k===t?'':'none';});
   renderCompta();
 }
+// ============ TRI DES LISTES (Plan comptable / Tiers) ============
+function triEtat(cle){
+  var p=D.parametres||(D.parametres={}),t=p[cle];
+  if(!t||typeof t!=='object')t={c:'code',o:''};
+  if(t.c!=='nom')t.c='code';
+  if(t.o!=='az'&&t.o!=='za'&&t.o!=='rec')t.o='';
+  return t;
+}
+function triClic(cle,action){
+  if(!D.parametres)D.parametres={};
+  var t=triEtat(cle);
+  if(action==='rec'){t.o=(t.o==='rec')?'':'rec';}
+  else if(t.c===action&&(t.o==='az'||t.o==='za')){t.o=(t.o==='az')?'za':'';}
+  else{t.c=action;t.o='az';}
+  D.parametres[cle]=t;save();renderCompta();
+}
+function triBarHtml(cle,wCode){
+  var t=triEtat(cle),fl=function(c){return (t.c===c&&(t.o==='az'||t.o==='za'))?(t.o==='az'?' &#9650;':' &#9660;'):'';};
+  var on=function(c){return (t.c===c&&(t.o==='az'||t.o==='za'))?'color:var(--gold2);':'';};
+  return '<div style="display:flex;align-items:center;gap:10px;padding:0 12px 6px;font-size:calc(11px*var(--fscale));letter-spacing:.06em;color:var(--text2)">'+
+    '<span onclick="triClic(\''+cle+'\',\'code\')" style="width:'+wCode+'px;flex-shrink:0;cursor:pointer;'+on('code')+'">CODE'+fl('code')+'</span>'+
+    '<span onclick="triClic(\''+cle+'\',\'nom\')" style="flex:1;cursor:pointer;'+on('nom')+'">INTITULE'+fl('nom')+'</span>'+
+    '<span onclick="triClic(\''+cle+'\',\'rec\')" style="cursor:pointer;padding:2px 7px;border-radius:6px;border:1px solid '+(t.o==='rec'?'var(--gold2)':'var(--border)')+';'+(t.o==='rec'?'color:var(--gold2)':'')+'">r&eacute;cent</span></div>';
+}
+function triAppliquer(arr,etat,gCode,gNom){
+  var a=arr.map(function(x,i){return {x:x,i:i};});
+  if(!etat||!etat.o)return a;
+  if(etat.o==='rec'){a.sort(function(p,q){return q.i-p.i;});return a;}
+  var g=etat.c==='nom'?gNom:gCode;
+  a.sort(function(p,q){
+    var r=String(g(p.x)).localeCompare(String(g(q.x)),'fr',{sensitivity:'base',numeric:true});
+    return etat.o==='za'?-r:r;
+  });
+  return a;
+}
 function renderCompta(){
   if(curComptaTab==='plan'){
     var el=G('compta-plan-list');if(!el)return;
     var classes={};
     PLAN_COMPTES_ARR.forEach(function(p){if(!classes[p.classe])classes[p.classe]=[];classes[p.classe].push(p);});
     el.innerHTML='';
+    var planBar=G('plan-tri');if(planBar)planBar.innerHTML=triBarHtml('triPlan',52);
+    var etPlan=triEtat('triPlan');
+    Object.keys(classes).forEach(function(k){
+      if(etPlan.o==='rec'){
+        // plus recent : comptes crees par l'utilisateur d'abord (le dernier cree en premier), puis le plan de base
+        var cust=classes[k].filter(function(p){return p.personnalise;}).reverse(),base=classes[k].filter(function(p){return !p.personnalise;});
+        classes[k]=cust.concat(base);
+      }else classes[k]=triAppliquer(classes[k],etPlan,function(p){return p.code;},function(p){return p.lib;}).map(function(o){return o.x;});
+    });
     Object.entries(classes).forEach(function(e){
       var wrap=document.createElement('div');
       wrap.style.cssText='margin-bottom:15px';
@@ -10544,7 +11631,9 @@ function renderCompta(){
     var el=G('tiers-list');if(!el)return;
     if(!(D.tiers||[]).length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucun tiers - cliquez + pour creer</div></div>';return;}
     el.innerHTML='';
-    (D.tiers||[]).forEach(function(t,i){
+    var tiersBar=G('tiers-tri');if(tiersBar)tiersBar.innerHTML=triBarHtml('triTiers',85);
+    triAppliquer(D.tiers||[],triEtat('triTiers'),function(t){return t.code;},function(t){return t.nom;}).forEach(function(o){
+      var t=o.x,i=o.i;
       var net=tiersSoldeNet(t.code);
       var soldeHtml=net===0?
         '<span style="font-size:calc(14px*var(--fscale));font-weight:700;color:var(--text2)">0 F</span>':
@@ -10556,7 +11645,7 @@ function renderCompta(){
       div.innerHTML='<span style="font-size:calc(13px*var(--fscale));font-weight:800;color:var(--gold2);width:85px;flex-shrink:0;word-break:break-all">'+escHtml(t.code)+'</span>'+
         '<div style="flex:1"><div style="font-size:calc(14px*var(--fscale));font-weight:600">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+escHtml(t.categorie)+(t.tel?' - '+escHtml(t.tel):'')+'</div></div>'+
         '<div style="text-align:right">'+soldeHtml+'</div>'+
-        (t.code===TIERS_PASSAGE_CODE||t.code===TIERS_MAISON_CODE?'':'<span class="bdg br" style="margin-left:7px" data-i="'+i+'">Suppr.</span>');
+        (estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE?'':'<span class="bdg br" style="margin-left:7px" data-i="'+i+'">Suppr.</span>');
       div.addEventListener('click',function(){ouvrirDetailTiers(t.code);});
       var supprBtn=div.querySelector('[data-i]');
       if(supprBtn)supprBtn.addEventListener('click',function(e){e.stopPropagation();supprimerTiers(Number(this.getAttribute('data-i')));});
@@ -10651,7 +11740,7 @@ function calculerEpargneReellePeriode(debut,fin){
 function couleurTaux(t){return t>=15?'var(--green)':(t>=5?'var(--orange)':'var(--red)');}
 
 // ---- Rubriques repliables du tableau de bord (accordeons) ----
-var DASH_ACC_DEFAULT={pilotage:true,revdep:false,alertes:false,echeances:false,rapEvolution:true,rapClotures:false,rapExport:false,rapDrive:false,rapPwaDiag:false,rapSecurite:false,rapApparence:false,rapRegularisation:false,rapDanger:false,pertesCaisse:false};
+var DASH_ACC_DEFAULT={pilotage:true,revdep:false,alertes:false,echeances:false,rapEvolution:true,rapClotures:false,rapExport:false,rapDrive:false,rapPwaDiag:false,rapSecurite:false,rapApparence:false,rapRegularisation:false,rapDanger:false,pertesCaisse:false,caisseManq:true,caisseExc:true};
 function loadDashAccState(){try{return JSON.parse(localStorage.getItem('mp_dash_acc')||'{}');}catch(e){return {};}}
 function saveDashAccState(st){try{localStorage.setItem('mp_dash_acc',JSON.stringify(st));}catch(e){}}
 function initDashAccordions(){
@@ -11135,6 +12224,7 @@ function renderAll(){
     else if(curPage==='prets')renderPrets();
     else if(curPage==='promesses')renderPromesses();
     else if(curPage==='tontines')renderTontines();
+    else if(curPage==='manquants')renderManquants();
     else if(curPage==='projets')renderProjets();
     else if(curPage==='famille')renderFamille();
     else if(curPage==='fiscal')calcFiscal();
