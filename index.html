@@ -1053,7 +1053,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     <div id="pg-famille" style="display:none">
       <div class="sec">Famille et Foyer</div>
       <div class="card">
-        <div class="sr"><span>Charges totales</span><span id="fam-tot" style="color:var(--red)">0 F</span></div>
+        <div class="sr"><span>Charges totales (equivalent par mois)</span><span id="fam-tot" style="color:var(--red)">0 F</span></div>
         <div class="sr"><span>Membres</span><span id="fam-nb">0</span></div>
       </div>
       <div id="fam-list"></div>
@@ -2259,7 +2259,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="fg"><label class="fl">Nom / Libelle</label><input class="fc" type="text" id="fam-nom" placeholder="ex: Maman / Loyer"></div>
   <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="fam-tiers" onchange="fillNomFromTiers('fam-tiers','fam-nom')"><option value="">- Aucun tiers -</option></select></div>
   <div class="fg"><label class="fl">Role / Categorie</label><input class="fc" type="text" id="fam-role" placeholder="ex: Mere / Electricite"></div>
-  <div class="fg"><label class="fl">Charge mensuelle (FCFA)</label><input class="fc" type="number" id="fam-charge"></div>
+  <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="fam-charge"></div>
+  <div class="fg"><label class="fl">Periodicite</label><select class="fc" id="fam-per"><option value="quotidien">Chaque jour</option><option value="hebdomadaire">Chaque semaine</option><option value="quinzaine">Chaque quinzaine</option><option value="mensuel" selected>Chaque mois</option><option value="trimestriel">Chaque trimestre</option><option value="semestriel">Chaque semestre</option><option value="annuel">Chaque annee</option></select></div></div>
   <button class="btn-p btn-gold" onclick="saveFam()">Enregistrer</button><button class="btn-s" onclick="closeOv('ov-fam')">Annuler</button>
 </div></div>
 
@@ -2425,7 +2426,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <option value="salaire">Retenu sur mon salaire</option>
       <option value="mixte">Une partie de ma poche, le reste sur mon salaire</option>
       <option value="absorbe">Absorbe par la societe</option>
+      <option value="excedent">Ajuste par un excedent de caisse</option>
     </select></div>
+  <div class="fg" id="mq-exc-row" style="display:none"><label class="fl">Excedent utilise pour ajuster</label><select class="fc" id="mq-exc" onchange="majManquantForm()"></select></div>
   <div class="fg" id="mq-poche-row" style="display:none"><label class="fl">Part completee de ma poche (FCFA)</label><input class="fc" type="number" id="mq-poche" oninput="majManquantForm()"></div>
   <div class="fg" id="mq-cpt-row"><label class="fl">Compte utilise pour completer</label>
     <select class="fc" id="mq-cpt"><option value="Especes">Especes</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option></select></div>
@@ -2782,7 +2785,7 @@ function ouvrirNouvelleDette(){ouvrirNouvelleSaisie('ov-dette',['det-cred','det-
 function ouvrirNouveauPret(){ouvrirNouvelleSaisie('ov-pret',['pret-deb','pret-obj','pret-amt','pret-ech','pret-frais'],['pret-tiers'],['pret-date']);}
 function ouvrirNouvellePromesse(){ouvrirNouvelleSaisie('ov-prom',['prom-pers','prom-desc','prom-amt'],['prom-tiers'],['prom-date']);}
 function ouvrirNouvelleReg(){ouvrirNouvelleSaisie('ov-regularisation',['reg-lib','reg-amt'],['reg-tiers'],['reg-date']);}
-function ouvrirNouvelleFam(){ouvrirNouvelleSaisie('ov-fam',['fam-nom','fam-charge'],['fam-tiers'],[]);}
+function ouvrirNouvelleFam(){ouvrirNouvelleSaisie('ov-fam',['fam-nom','fam-charge'],['fam-tiers'],[]);var fp=G('fam-per');if(fp)fp.value='mensuel';}
 function ouvrirNouvelleTontine(){toggleTonCategorie();var tv=G('ton-type-valeur');if(tv)tv.value='especes';ouvrirNouvelleSaisie('ov-ton',['ton-nom','ton-mise','ton-nb','ton-tour','ton-commission'],['ton-tiers'],['ton-debut','ton-debut2']);}
 function closeOv(id){var el=G(id);if(el)el.classList.remove('on');}
 function openFab(){renderMenuRapide(false);openOv('ov-menu');}
@@ -5933,14 +5936,14 @@ function impDataFamille(f){
   // Corrige au passage 2 anomalies preexistantes : le titre annoncait "Famille / Foyer" mais D.foyer
   // n'etait jamais lu, et la colonne "charge" affichait juste Oui/Non au lieu du montant reel.
   var lignesM=(D.famille||[]).filter(function(m){return impTiersOk(m.tiers,f);}).map(function(m){
-    return {type:'Membre',nom:m.nom,role:m.role||'',tiers:m.tiers?impNomTiers(m.tiers):'',charge:m.charge,totalPaye:totalPayeCharge(m.id)};
+    return {type:'Membre',nom:m.nom,role:m.role||'',tiers:m.tiers?impNomTiers(m.tiers):'',charge:m.charge,per:'par '+famPerLbl(m),mensuel:famMensuel(m),totalPaye:totalPayeCharge(m.id)};
   });
   var lignesF=(D.foyer||[]).filter(function(fo){return impTiersOk(fo.tiers,f);}).map(function(fo){
-    return {type:'Foyer',nom:fo.nom,role:fo.role||'',tiers:fo.tiers?impNomTiers(fo.tiers):'',charge:fo.charge,totalPaye:totalPayeCharge(fo.id)};
+    return {type:'Foyer',nom:fo.nom,role:fo.role||'',tiers:fo.tiers?impNomTiers(fo.tiers):'',charge:fo.charge,per:'par '+famPerLbl(fo),mensuel:famMensuel(fo),totalPaye:totalPayeCharge(fo.id)};
   });
   var lignes=lignesM.concat(lignesF);
-  return {titre:'Famille / Foyer',sousTitre:lignes.length+' ligne(s) - charge mensuelle prevue et total reellement paye',
-    sections:[{titre:null,colonnes:[impCol('type','Type','left'),impCol('nom','Nom','left'),impCol('role','Role','left'),impCol('tiers','Tiers','left'),impCol('charge','Charge/mois','right','montant'),impCol('totalPaye','Total paye','right','montant')],
+  return {titre:'Famille / Foyer',sousTitre:lignes.length+' ligne(s) - montant prevu, periodicite, equivalent mensuel et total reellement paye',
+    sections:[{titre:null,colonnes:[impCol('type','Type','left'),impCol('nom','Nom','left'),impCol('role','Role','left'),impCol('tiers','Tiers','left'),impCol('charge','Montant','right','montant'),impCol('per','Periodicite','left'),impCol('mensuel','Equiv./mois','right','montant'),impCol('totalPaye','Total paye','right','montant')],
       lignes:lignes}]};
 }
 // ---- Modules : FISCALITE / SOCIAL (instantanes - lecture du simulateur courant) ----
@@ -10253,9 +10256,24 @@ function telechargerRapportProjet(i){
 }
 
 // ============ FAMILLE ============
+// Periodicite d'une charge : le montant saisi est celui d'UNE periode (un jour, une semaine...). Les totaux
+// affichent l'equivalent mensuel (jour x 30, semaine x 52/12...). Les charges sans periodicite (anciennes
+// donnees) sont mensuelles.
+var FAM_PER={
+  quotidien:{lbl:'jour',f:30},hebdomadaire:{lbl:'semaine',f:52/12},quinzaine:{lbl:'quinzaine',f:2},
+  mensuel:{lbl:'mois',f:1},trimestriel:{lbl:'trimestre',f:1/3},semestriel:{lbl:'semestre',f:1/6},annuel:{lbl:'an',f:1/12}
+};
+function famPerCle(e){return (e&&FAM_PER[e.periodicite])?e.periodicite:'mensuel';}
+function famPerLbl(e){return FAM_PER[famPerCle(e)].lbl;}
+function famMensuel(e){return Math.round(Number(e&&e.charge||0)*FAM_PER[famPerCle(e)].f);}
+function famMontantHtml(e){
+  var s=fmt(e.charge)+' F/'+famPerLbl(e);
+  if(famPerCle(e)!=='mensuel')s+='<div style="font-size:calc(11px*var(--fscale));font-weight:400;color:var(--text2)">soit environ '+fmt(famMensuel(e))+' F/mois</div>';
+  return s;
+}
 function renderFamille(){
-  var tm=(D.famille||[]).reduce(function(a,f){return a+Number(f.charge);},0);
-  var tf=(D.foyer||[]).reduce(function(a,f){return a+Number(f.charge);},0);
+  var tm=(D.famille||[]).reduce(function(a,f){return a+famMensuel(f);},0);
+  var tf=(D.foyer||[]).reduce(function(a,f){return a+famMensuel(f);},0);
   var et=G('fam-tot'),en=G('fam-nb');
   if(et)et.textContent=fmt(tm+tf)+' F';if(en)en.textContent=(D.famille||[]).length;
   var avs=['Pere','Mere','Fils','Fille','Cousin','Oncle','Tante','Enfant'];
@@ -10270,7 +10288,7 @@ function renderFamille(){
           '<div class="fm-av" style="font-size:calc(11px*var(--fscale));font-weight:700">'+escHtml((m.nom||'').charAt(0).toUpperCase())+'</div>'+
           '<div style="flex:1;min-width:0"><div style="font-size:calc(14px*var(--fscale));font-weight:600">'+escHtml(m.nom)+'</div>'+
           '<div style="font-size:calc(12px*var(--fscale));color:var(--text2)">'+escHtml(m.role)+(m.tiers?' - '+escHtml(m.tiers):'')+'</div></div>'+
-          '<div style="font-size:calc(15px*var(--fscale));font-weight:700;color:var(--red);white-space:nowrap;text-align:right">'+fmt(m.charge)+' F/mois</div></div>'+
+          '<div style="font-size:calc(15px*var(--fscale));font-weight:700;color:var(--red);white-space:nowrap;text-align:right">'+famMontantHtml(m)+'</div></div>'+
           '<div style="display:flex;justify-content:flex-end;gap:7px;margin-top:9px;width:100%">'+
           '<span class="bdg bg" data-pay="'+m.id+'">Payer</span>'+
           '<span class="bdg br" data-del="'+m.id+'">Suppr.</span></div>';
@@ -10296,7 +10314,7 @@ function renderFamille(){
         div.innerHTML='<div style="display:flex;align-items:center;gap:10px;width:100%">'+
           '<div class="tx-ico idb">F</div>'+
           '<div class="tx-inf" style="flex:1;min-width:0"><div class="tx-lib">'+escHtml(f.nom)+'</div><div class="tx-meta">'+escHtml(f.role)+(f.tiers?' - '+escHtml(f.tiers):'')+'</div></div>'+
-          '<div class="tx-amt adb" style="white-space:nowrap;text-align:right">'+fmt(f.charge)+' F/mois</div></div>'+
+          '<div class="tx-amt adb" style="white-space:nowrap;text-align:right">'+famMontantHtml(f)+'</div></div>'+
           '<div style="display:flex;justify-content:flex-end;gap:7px;margin-top:9px;width:100%">'+
           '<span class="bdg bg" data-pay="'+f.id+'">Payer</span>'+
           '<span class="bdg br" data-del="'+f.id+'">Suppr.</span></div>';
@@ -11166,13 +11184,16 @@ function mqEditRetirer(){
 // retenue sur salaire est un SUIVI seulement (le salaire enregistre est deja le net recu - une ecriture
 // compterait la perte deux fois) ; la part absorbee par la societe n'a aucun impact sur ses comptes.
 function manqReteRetenu(m){return (m.deductions||[]).reduce(function(a,d){return a+Number(d.montant||0);},0);}
-function manqResteRetenir(m){return Math.max(0,Number(m.partRetenue||0)-manqReteRetenu(m));}
+function manqCompense(m){return (m.compensations||[]).reduce(function(a,c){return a+Number(c.montant||0);},0);}
+function manqResteRetenir(m){return Math.max(0,Number(m.partRetenue||0)-manqReteRetenu(m)-manqCompense(m));}
+function excedentsDisponibles(){return (D.excedents||[]).filter(function(e){return exReste(e)>0.5;});}
 function repartitionManquant(montant,trait,poche){
   montant=Math.round(Number(montant)||0);poche=Math.round(Number(poche)||0);
-  var r={montant:montant,poche:0,retenu:0,absorbe:0};
+  var r={montant:montant,poche:0,retenu:0,absorbe:0,excedent:0};
   if(trait==='poche')r.poche=montant;
   else if(trait==='salaire')r.retenu=montant;
   else if(trait==='absorbe')r.absorbe=montant;
+  else if(trait==='excedent')r.excedent=montant;
   else if(trait==='mixte'){r.poche=Math.max(0,Math.min(montant,poche));r.retenu=montant-r.poche;}
   return r;
 }
@@ -11187,6 +11208,15 @@ function majManquantForm(){
   var tr=(G('mq-trait')||{}).value||'poche';
   var pr=G('mq-poche-row');if(pr)pr.style.display=tr==='mixte'?'block':'none';
   var cr=G('mq-cpt-row');if(cr)cr.style.display=(tr==='poche'||tr==='mixte')?'block':'none';
+  var er=G('mq-exc-row');if(er)er.style.display=tr==='excedent'?'block':'none';
+  if(tr==='excedent'){
+    var xs=G('mq-exc');
+    if(xs){
+      var prev=xs.value;
+      xs.innerHTML=excedentsDisponibles().map(function(e){return '<option value="'+escHtml(e.id)+'">'+escHtml(e.motif)+' - reste '+fmt(exReste(e))+' F ('+fmtD(e.date)+')</option>';}).join('')||'<option value="">Aucun excedent disponible</option>';
+      if(prev)xs.value=prev;
+    }
+  }
   var ap=G('mq-apercu');if(!ap)return;
   var r=repartitionManquant((G('mq-montant')||{}).value,tr,(G('mq-poche')||{}).value);
   if(!r.montant){ap.textContent='';return;}
@@ -11194,6 +11224,7 @@ function majManquantForm(){
   if(r.poche>0)l.push('Complete de ma poche : <b>'+fmt(r.poche)+' F</b> (ecriture comptable)');
   if(r.retenu>0)l.push('A retenir sur mon salaire : <b>'+fmt(r.retenu)+' F</b> (suivi, sans ecriture)');
   if(r.absorbe>0)l.push('Absorbe par la societe : <b>'+fmt(r.absorbe)+' F</b> (aucun impact)');
+  if(r.excedent>0)l.push('Couvert par un excedent de caisse : <b>'+fmt(r.excedent)+' F</b> (suivi, sans ecriture, rien ne sort de ma poche)');
   ap.innerHTML=l.join('<br>');
 }
 function saveManquant(){
@@ -11209,14 +11240,26 @@ function saveManquant(){
   if(tr==='mixte'&&(pocheSaisie<=0||pocheSaisie>=montant)){notif('Pour un reglement mixte, la part de ta poche doit etre entre 0 et le montant du manquant',true);return;}
   var r=repartitionManquant(montant,tr,pocheSaisie);
   if(r.poche>0&&!COMPTES_TRES.includes(cptVal)){notif('Choisissez le compte utilise pour completer',true);return;}
+  var excUsed=null;
+  if(r.excedent>0){
+    var exId=(G('mq-exc')||{}).value||'';
+    excUsed=(D.excedents||[]).find(function(x){return x.id===exId;});
+    if(!excUsed){notif('Choisissez l\'excedent utilise pour ajuster ce manquant',true);return;}
+    if(r.excedent>exReste(excUsed)+0.5){notif('Cet excedent ne couvre pas tout le manquant (reste '+fmt(exReste(excUsed))+' F). Choisis un autre reglement pour la difference, puis ajuste le reste depuis la carte du manquant.',true);return;}
+  }
   var nomT=tiers?nomEffectifTiers('mq-tiers'):'';
   var rec={id:'MQ'+Date.now()+Math.floor(Math.random()*1000),date:date,montant:montant,motif:motif,tiers:tiers,tiersNom:nomT,
-    traitement:tr,partPoche:r.poche,partRetenue:r.retenu,partAbsorbe:r.absorbe,compte:r.poche>0?cptVal:'',ref:'',deductions:[],
+    traitement:tr,partPoche:r.poche,partRetenue:r.retenu,partAbsorbe:r.absorbe,partExcedent:r.excedent,excedentId:excUsed?excUsed.id:'',compte:r.poche>0?cptVal:'',ref:'',deductions:[],compensations:[],
     statut:r.retenu>0?'en_cours':'solde'};
   if(rec.statut==='solde')rec.dateCloture=date;
   function finaliser(){
     if(!D.manquants)D.manquants=[];
     D.manquants.push(rec);
+    if(excUsed){
+      if(!excUsed.usages)excUsed.usages=[];
+      excUsed.usages.push({date:date,montant:r.excedent,pour:'manquant',manquantId:rec.id,compte:'',ref:''});
+      if(exReste(excUsed)<=0.5){excUsed.statut='solde';excUsed.dateCloture=date;}
+    }
     save();closeOv('ov-manquant');
     notif('Manquant enregistre'+(r.retenu>0?' - '+fmt(r.retenu)+' F a retenir sur salaire':''));
     clr('mq-montant','mq-motif','mq-poche');
@@ -11236,6 +11279,46 @@ function saveManquant(){
   } else {
     finaliser();
   }
+}
+// Ajuste (en tout ou partie) un manquant encore a retenir avec un excedent de caisse : aucune ecriture (les
+// deux ecarts restent dans la caisse, rien ne sort de ma poche ni de mon salaire). Le reste a retenir baisse,
+// le reste de l'excedent aussi.
+function compenserManquant(mid,eid,v,date){
+  var m=(D.manquants||[]).find(function(x){return x.id===mid;});
+  var e=(D.excedents||[]).find(function(x){return x.id===eid;});
+  v=Math.round(Number(v)||0);
+  if(!m||!e){notif('Manquant ou excedent introuvable',true);return false;}
+  if(!v||v<=0){notif('Montant de l\'ajustement obligatoire',true);return false;}
+  if(v>manqResteRetenir(m)+0.5){notif('Le montant depasse ce qu\'il reste a regler sur ce manquant ('+fmt(manqResteRetenir(m))+' F)',true);return false;}
+  if(v>exReste(e)+0.5){notif('Le montant depasse le reste de l\'excedent ('+fmt(exReste(e))+' F)',true);return false;}
+  date=date||today();
+  if(!m.compensations)m.compensations=[];
+  if(!e.usages)e.usages=[];
+  m.compensations.push({date:date,montant:v,excId:eid});
+  e.usages.push({date:date,montant:v,pour:'manquant',manquantId:mid,compte:'',ref:''});
+  if(manqResteRetenir(m)<=0.5){m.statut='solde';m.dateCloture=date;}
+  if(exReste(e)<=0.5){e.statut='solde';e.dateCloture=date;}
+  return true;
+}
+function ajusterManquantAvecExcedent(mid){
+  var eid=(G('mq-xe-'+mid)||{}).value||'';
+  var v=(G('mq-xm-'+mid)||{}).value;
+  var m=(D.manquants||[]).find(function(x){return x.id===mid;});
+  if(!eid){notif('Choisissez un excedent',true);return;}
+  if((v===''||v==null)&&m){var e0=(D.excedents||[]).find(function(x){return x.id===eid;});v=Math.min(manqResteRetenir(m),e0?exReste(e0):0);}
+  if(compenserManquant(mid,eid,v,today())){save();notif('Manquant ajuste avec l\'excedent');renderManquants();}
+}
+function annulerAjustementManquant(mid){
+  var m=(D.manquants||[]).find(function(x){return x.id===mid;});
+  if(!m||!(m.compensations||[]).length)return;
+  var c=m.compensations.pop();
+  var e=(D.excedents||[]).find(function(x){return x.id===c.excId;});
+  if(e&&e.usages){
+    for(var i=e.usages.length-1;i>=0;i--){if(e.usages[i].pour==='manquant'&&e.usages[i].manquantId===mid&&Number(e.usages[i].montant)===Number(c.montant)){e.usages.splice(i,1);break;}}
+    if(exReste(e)>0.5){e.statut='en_cours';delete e.dateCloture;}
+  }
+  if(manqResteRetenir(m)>0.5){m.statut='en_cours';delete m.dateCloture;}
+  save();notif('Ajustement annule');renderManquants();
 }
 function enregistrerRetenueManquant(id){
   var m=(D.manquants||[]).find(function(x){return x.id===id;});if(!m)return;
@@ -11261,21 +11344,26 @@ function demanderSupprManquant(id){_mqSupprId=id;openOv('ov-confirm-suppr-manqua
 function confirmerSupprManquant(){
   var m=(D.manquants||[]).find(function(x){return x.id===_mqSupprId;});
   if(m&&m.ref){notif('Ce manquant a une ecriture comptable ('+m.ref+') : extournez-la dans le Journal pour corriger.',true);closeOv('ov-confirm-suppr-manquant');return;}
+  (D.excedents||[]).forEach(function(e){
+    var avant=(e.usages||[]).length;
+    e.usages=(e.usages||[]).filter(function(u){return !(u.pour==='manquant'&&u.manquantId===_mqSupprId);});
+    if(e.usages.length!==avant&&exReste(e)>0.5){e.statut='en_cours';delete e.dateCloture;}
+  });
   D.manquants=(D.manquants||[]).filter(function(x){return x.id!==_mqSupprId;});
   _mqSupprId='';closeOv('ov-confirm-suppr-manquant');
   save();notif('Manquant supprime');renderManquants();
 }
 function totauxManquants(){
-  var t={nb:0,total:0,poche:0,absorbe:0,aRetenir:0,dejaRetenu:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
+  var t={nb:0,total:0,poche:0,absorbe:0,excedent:0,aRetenir:0,dejaRetenu:0,reste:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
   var now=new Date(),y=now.getFullYear(),mo=now.getMonth();
   (D.manquants||[]).forEach(function(m){
     var mt=Number(m.montant||0);
     t.nb++;t.total+=mt;t.poche+=Number(m.partPoche||0);t.absorbe+=Number(m.partAbsorbe||0);
-    t.aRetenir+=Number(m.partRetenue||0);t.dejaRetenu+=manqReteRetenu(m);
+    t.excedent+=Number(m.partExcedent||0)+manqCompense(m);
+    t.aRetenir+=Number(m.partRetenue||0)-manqCompense(m);t.dejaRetenu+=manqReteRetenu(m);t.reste+=manqResteRetenir(m);
     var d=new Date(m.date);
     if(d.getFullYear()===y){t.annee+=mt;t.nbAnnee++;if(d.getMonth()===mo){t.mois+=mt;t.nbMois++;}}
   });
-  t.reste=Math.max(0,t.aRetenir-t.dejaRetenu);
   return t;
 }
 function renderManquants(){
@@ -11290,19 +11378,22 @@ function renderManquants(){
     carte('Ce mois-ci',fmt(t.mois)+' F',t.nbMois+' manquant(s)')+
     carte('Complete de ma poche',fmt(t.poche)+' F','')+
     carte('Absorbe par la societe',fmt(t.absorbe)+' F','')+
+    carte('Ajuste par un excedent',fmt(t.excedent)+' F','')+
     carte('Deja retenu sur salaire',fmt(t.dejaRetenu)+' F','sur '+fmt(t.aRetenir)+' F a retenir','var(--green)')+
     carte('Reste a retenir',fmt(t.reste)+' F','',t.reste>0?'var(--red)':'var(--green)')+
     '</div>';
   var el=G('mq-liste');if(!el)return;
   var liste=(D.manquants||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
   if(!liste.length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucun manquant enregistre</div></div>';return;}
-  var TRL={poche:'Complete de ma poche',salaire:'Retenu sur salaire',mixte:'Poche + salaire',absorbe:'Absorbe par la societe'};
+  var TRL={poche:'Complete de ma poche',salaire:'Retenu sur salaire',mixte:'Poche + salaire',absorbe:'Absorbe par la societe',excedent:'Ajuste par un excedent'};
   el.innerHTML=liste.map(function(m){
     var enCours=m.statut!=='solde',ret=manqReteRetenu(m),reste=manqResteRetenir(m),aRet=Number(m.partRetenue||0);
     var lignes=[];
     if(m.partPoche>0)lignes.push('Poche : '+fmt(m.partPoche)+' F ('+escHtml(m.compte)+(m.ref?' - '+escHtml(m.ref):'')+')');
-    if(aRet>0)lignes.push('Salaire : '+fmt(ret)+' / '+fmt(aRet)+' F retenus');
+    if(aRet>0)lignes.push('Salaire : '+fmt(ret)+' / '+fmt(aRet-manqCompense(m))+' F retenus');
     if(m.partAbsorbe>0)lignes.push('Societe : '+fmt(m.partAbsorbe)+' F absorbes');
+    if(m.partExcedent>0)lignes.push('Excedent : '+fmt(m.partExcedent)+' F (couvert a la saisie)');
+    var cmp=manqCompense(m);if(cmp>0)lignes.push('Ajuste par excedent : '+fmt(cmp)+' F');
     var detRet='';
     if(aRet>0){
       var pct=Math.min(100,Math.round(ret/Math.max(1,aRet)*100));
@@ -11311,7 +11402,16 @@ function renderManquants(){
       if(enCours)detRet+='<div class="fr" style="margin-top:8px"><div class="fg"><input class="fc" type="number" id="mq-m-'+m.id+'" placeholder="Retenue ce mois (F)"></div><div class="fg"><input class="fc" type="date" id="mq-d-'+m.id+'" value="'+today()+'"></div></div>'+
         '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="enregistrerRetenueManquant(\''+m.id+'\')">Enregistrer une retenue</button>';
     }
-    var actions='<div style="display:flex;gap:8px;margin-top:8px">'+
+    var ajuste='';
+    var exDispo=excedentsDisponibles();
+    if(enCours&&reste>0.5&&exDispo.length){
+      ajuste='<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)"><div style="font-size:calc(11.5px*var(--fscale));color:var(--text2);margin-bottom:6px">Ajuster avec un excedent de caisse (sans ecriture)</div>'+
+        '<div class="fg"><select class="fc" id="mq-xe-'+m.id+'">'+exDispo.map(function(e){return '<option value="'+escHtml(e.id)+'">'+escHtml(e.motif)+' - reste '+fmt(exReste(e))+' F</option>';}).join('')+'</select></div>'+
+        '<div class="fg"><input class="fc" type="number" id="mq-xm-'+m.id+'" placeholder="Montant (vide = le maximum possible)"></div>'+
+        '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="ajusterManquantAvecExcedent(\''+m.id+'\')">Ajuster avec cet excedent</button></div>';
+    }
+    var actions=ajuste+'<div style="display:flex;gap:8px;margin-top:8px">'+
+      ((m.compensations||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerAjustementManquant(\''+m.id+'\')">Annuler l\'ajustement</button>':'')+
       ((m.deductions||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerDerniereRetenueManquant(\''+m.id+'\')">Annuler la derniere retenue</button>':'')+
       (m.ref?'':'<button class="btn-s" style="flex:1;color:var(--red)" onclick="demanderSupprManquant(\''+m.id+'\')">Supprimer</button>')+'</div>';
     return '<div class="card" style="border-left:3px solid '+(enCours?'var(--red)':'var(--green)')+';margin-bottom:8px">'+
@@ -11342,7 +11442,7 @@ function migrerRetenuesVersManquants(){
 //  - transport / petit dejeuner : charge (61 / 60) au debit, aucun mouvement de tresorerie ;
 //  - argent de poche : tresorerie choisie au debit (l'argent entre dans ma poche).
 // Le 479 se compense avec les manquants completes de sa poche (479 au debit).
-var EX_POUR={transport:'Transport',petitdej:'Petit dejeuner',poche:'Argent de poche'};
+var EX_POUR={transport:'Transport',petitdej:'Petit dejeuner',poche:'Argent de poche',manquant:'Ajustement de manquant'};
 function solde479(){
   var s=0;
   (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){
@@ -11373,6 +11473,7 @@ function saveExcedent(){
 function exMajPour(id){
   var v=(G('ex-p-'+id)||{}).value;var r=G('ex-cr-'+id);
   if(r)r.style.display=v==='poche'?'block':'none';
+  var mr=G('ex-mqr-'+id);if(mr)mr.style.display=v==='manquant'?'block':'none';
 }
 function utiliserExcedent(id){
   var e=(D.excedents||[]).find(function(x){return x.id===id;});if(!e)return;
@@ -11384,6 +11485,12 @@ function utiliserExcedent(id){
   var reste=exReste(e);
   if(v>reste+0.5){notif('Ce montant depasse le reste de l\'excedent ('+fmt(reste)+' F)',true);return;}
   if(pour==='poche'&&!COMPTES_TRES.includes(cpt)){notif('Choisissez le compte qui recoit l\'argent de poche',true);return;}
+  if(pour==='manquant'){
+    var mid=(G('ex-mq-'+id)||{}).value||'';
+    if(!mid){notif('Aucun manquant a ajuster : choisissez un manquant en cours',true);return;}
+    if(compenserManquant(mid,id,v,date)){save();notif('Manquant ajuste avec l\'excedent'+(e.statut==='solde'?' - excedent solde':''));try{renderAll();}catch(er0){}}
+    return;
+  }
   var lib='Excedent de caisse - '+EX_POUR[pour].toLowerCase()+' ('+e.motif+')';
   var lignes;
   if(pour==='poche')lignes=[{compte:cptCode(cpt),lib:cpt,sens:'D',montant:v,tiers:''},{compte:'479',lib:'Ecarts de regularisation',sens:'C',montant:v,tiers:''}];
@@ -11413,13 +11520,13 @@ var _exSupprId='';
 function demanderSupprExcedent(id){_exSupprId=id;openOv('ov-confirm-suppr-excedent');}
 function confirmerSupprExcedent(){
   var e=(D.excedents||[]).find(function(x){return x.id===_exSupprId;});
-  if(e&&(e.usages||[]).length){notif('Cet excedent a des utilisations avec ecritures comptables : extournez-les dans le Journal pour corriger.',true);closeOv('ov-confirm-suppr-excedent');return;}
+  if(e&&(e.usages||[]).length){notif('Cet excedent a deja ete utilise : annulez ou extournez ses utilisations pour le supprimer.',true);closeOv('ov-confirm-suppr-excedent');return;}
   D.excedents=(D.excedents||[]).filter(function(x){return x.id!==_exSupprId;});
   _exSupprId='';closeOv('ov-confirm-suppr-excedent');
   save();notif('Excedent supprime');renderExcedents();
 }
 function totauxExcedents(){
-  var t={nb:0,total:0,transport:0,petitdej:0,poche:0,reverse:0,reste:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
+  var t={nb:0,total:0,transport:0,petitdej:0,poche:0,manquant:0,reverse:0,reste:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
   var now=new Date(),y=now.getFullYear(),mo=now.getMonth();
   (D.excedents||[]).forEach(function(e){
     var mt=Number(e.montant||0);t.nb++;t.total+=mt;t.reverse+=Number(e.reverse||0);t.reste+=exReste(e);
@@ -11427,7 +11534,7 @@ function totauxExcedents(){
     var d=new Date(e.date);
     if(d.getFullYear()===y){t.annee+=mt;t.nbAnnee++;if(d.getMonth()===mo){t.mois+=mt;t.nbMois++;}}
   });
-  t.utilise=t.transport+t.petitdej+t.poche;
+  t.utilise=t.transport+t.petitdej+t.poche+(t.manquant||0);
   return t;
 }
 function renderExcedents(){
@@ -11443,6 +11550,7 @@ function renderExcedents(){
       carte('Transport',fmt(t.transport)+' F','')+
       carte('Petit dejeuner',fmt(t.petitdej)+' F','')+
       carte('Argent de poche',fmt(t.poche)+' F','')+
+      carte('Ajuste des manquants',fmt(t.manquant)+' F','')+
       carte('Reverse a la societe',fmt(t.reverse)+' F','')+
       '<div style="grid-column:1/-1">'+carte('Reste non utilise',fmt(t.reste)+' F','sur '+fmt(t.total)+' F au total',t.reste>0?'var(--gold2)':'var(--green)')+'</div>'+
       '</div>'+
@@ -11454,6 +11562,7 @@ function renderExcedents(){
   var liste=(D.excedents||[]).slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
   if(!liste.length){el.innerHTML='<div class="empty"><div class="empty-txt">Aucun excedent enregistre</div></div>';return;}
   var opts=COMPTES_TRES.map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');
+  var mqOptions=(D.manquants||[]).filter(function(m){return m.statut!=='solde'&&manqResteRetenir(m)>0.5;}).map(function(m){return '<option value="'+escHtml(m.id)+'">'+escHtml(m.motif)+' - reste '+fmt(manqResteRetenir(m))+' F ('+fmtD(m.date)+')</option>';}).join('')||'<option value="">Aucun manquant en cours</option>';
   el.innerHTML=liste.map(function(e){
     var enCours=e.statut!=='solde',reste=exReste(e),ut=exUtilise(e);
     var pct=Math.min(100,Math.round((ut+Number(e.reverse||0))/Math.max(1,e.montant)*100));
@@ -11461,7 +11570,8 @@ function renderExcedents(){
     var form='';
     if(enCours){
       form='<div class="fr" style="margin-top:8px"><div class="fg"><input class="fc" type="number" id="ex-m-'+e.id+'" placeholder="Montant utilise (F)"></div><div class="fg"><input class="fc" type="date" id="ex-d-'+e.id+'" value="'+today()+'"></div></div>'+
-        '<div class="fg"><select class="fc" id="ex-p-'+e.id+'" onchange="exMajPour(\''+e.id+'\')"><option value="transport">Pour mon transport</option><option value="petitdej">Pour mon petit dejeuner</option><option value="poche">Comme argent de poche</option></select></div>'+
+        '<div class="fg"><select class="fc" id="ex-p-'+e.id+'" onchange="exMajPour(\''+e.id+'\')"><option value="transport">Pour mon transport</option><option value="petitdej">Pour mon petit dejeuner</option><option value="poche">Comme argent de poche</option><option value="manquant">Pour ajuster un manquant</option></select></div>'+
+        '<div class="fg" id="ex-mqr-'+e.id+'" style="display:none"><label class="fl">Manquant a ajuster</label><select class="fc" id="ex-mq-'+e.id+'">'+mqOptions+'</select></div>'+
         '<div class="fg" id="ex-cr-'+e.id+'" style="display:none"><label class="fl">Compte qui recoit l\'argent de poche</label><select class="fc" id="ex-c-'+e.id+'">'+opts+'</select></div>'+
         '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="utiliserExcedent(\''+e.id+'\')">Enregistrer l\'utilisation</button>';
     }
@@ -13449,7 +13559,7 @@ function ouvrirDetailCharge(id){
   var totalPaye=totalPayeCharge(entry.id);
   var html='<div style="font-size:calc(12.5px*var(--fscale));color:var(--text2);margin-bottom:10px">'+escHtml(entry.role||'')+(entry.tiers?' - '+escHtml(impNomTiers(entry.tiers)):'')+'</div>';
   html+='<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);margin-bottom:12px">'+
-    '<div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">Charge mensuelle</div><div style="font-weight:800;color:var(--red)">'+fmt(entry.charge)+' F</div></div>'+
+    '<div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">Charge par '+famPerLbl(entry)+'</div><div style="font-weight:800;color:var(--red)">'+fmt(entry.charge)+' F</div>'+(famPerCle(entry)!=='mensuel'?'<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">soit environ '+fmt(famMensuel(entry))+' F/mois</div>':'')+'</div>'+
     '<div style="text-align:right"><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">Total paye ('+paiements.length+')</div><div style="font-weight:800;color:var(--green)">'+fmt(totalPaye)+' F</div></div></div>';
   html+='<button class="btn-p btn-gold" style="padding:10px;font-size:calc(13px*var(--fscale));margin-bottom:14px" onclick="closeOv(\'ov-charge-detail\');payerCharge(\''+entry.id+'\')">Payer maintenant</button>';
   if(paiements.length){
@@ -13469,11 +13579,12 @@ function saveFam(){
   var type=(G('fam-type')||{}).value||'membre',nom=(G('fam-nom')||{}).value||'';
   var tiers=(G('fam-tiers')||{}).value||'',role=(G('fam-role')||{}).value||'';
   var charge=Number((G('fam-charge')||{}).value||0);
-  if(!nom||!charge){notif('Nom et charge obligatoires',true);return;}
+  var per=(G('fam-per')||{}).value||'mensuel';if(!FAM_PER[per])per='mensuel';
+  if(!nom||!charge){notif('Nom et montant obligatoires',true);return;}
   var id=(type==='membre'?'FAM':'FOY')+Date.now()+Math.floor(Math.random()*1000);
-  if(type==='membre')D.famille.push({id:id,nom:nom,tiers:tiers,role:role,charge:charge});
-  else D.foyer.push({id:id,nom:nom,tiers:tiers,role:role,charge:charge});
-  save();closeOv('ov-fam');notif('Enregistre');clr('fam-nom','fam-charge');
+  if(type==='membre')D.famille.push({id:id,nom:nom,tiers:tiers,role:role,charge:charge,periodicite:per});
+  else D.foyer.push({id:id,nom:nom,tiers:tiers,role:role,charge:charge,periodicite:per});
+  save();closeOv('ov-fam');notif('Enregistre');clr('fam-nom','fam-charge');var fpr=G('fam-per');if(fpr)fpr.value='mensuel';
   try{renderAll();}catch(e){}
 }
 function saveRegularisation(){
