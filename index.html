@@ -142,6 +142,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 @media (prefers-reduced-motion:reduce){.mq-edit .mi-grid-item[data-id]{animation:none;}}
 .mq-bar{align-items:center;justify-content:space-between;gap:10px;background:rgba(212,160,23,.1);border:1px solid var(--border2);border-radius:12px;padding:8px 10px;margin-bottom:10px;font-size:calc(11.5px*var(--fscale));color:var(--text2);}
 .mq-done{background:var(--gold);color:#0A1628;border:0;border-radius:10px;padding:7px 12px;font-weight:700;cursor:pointer;display:block;}
+.mq-close-bas{display:block;width:100%;margin-top:14px;padding:11px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:12px;font-size:13px;cursor:pointer;}
+.mq-edit .mq-close-bas{display:none;}
 .mq-edit-btn{background:transparent;border:1px solid var(--border2);color:var(--gold2);border-radius:10px;padding:5px 10px;font-size:12px;cursor:pointer;}
 .mq-reset{width:100%;margin-top:18px;background:transparent;border:1px dashed var(--border2);color:var(--text2);border-radius:12px;padding:10px;cursor:pointer;}
 .mq-items{max-height:260px;overflow-y:auto;border:1px solid var(--border2);border-radius:12px;padding:6px 10px;}
@@ -2340,6 +2342,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="info-box" id="so-confirm-body" style="margin-bottom:10px"></div>
   <button class="btn-p btn-gold" onclick="confirmerSoldeOuverture()">Confirmer</button><button class="btn-s" onclick="closeOv('ov-confirm-so')">Retour</button>
 </div></div>
+<!-- MODAL MODIFIER TIERS -->
+<div class="ov" id="ov-tiers-edit"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Modifier le tiers</div>
+  <input type="hidden" id="te-orig">
+  <div class="info-box" id="te-info" style="margin-bottom:10px"></div>
+  <div class="fg"><label class="fl">Code tiers (unique)</label><input class="fc" type="text" id="te-code"></div>
+  <div class="fg"><label class="fl">Nom complet</label><input class="fc" type="text" id="te-nom"></div>
+  <div class="fg"><label class="fl">Categorie</label><select class="fc" id="te-cat"></select></div>
+  <div class="fg"><label class="fl">Telephone (optionnel)</label><input class="fc" type="tel" id="te-tel"></div>
+  <div class="fg"><label class="fl">Notes</label><input class="fc" type="text" id="te-notes"></div>
+  <button class="btn-p btn-gold" onclick="saveTiersEdit()">Enregistrer</button><button class="btn-s" onclick="closeOv('ov-tiers-edit')">Annuler</button>
+</div></div>
 <!-- MODAL TIERS -->
 <div class="ov" id="ov-tiers"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Nouveau tiers</div>
@@ -2427,6 +2441,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <div class="ov" id="ov-tiers-detail"><div class="modal" style="max-width:520px;max-height:82vh;overflow-y:auto" onclick="event.stopPropagation()">
   <div class="card-hd" id="td-titre">Tiers</div>
   <div id="td-body"></div>
+  <button class="btn-s" id="td-modif" style="width:100%;margin-top:10px" onclick="ouvrirModifierTiers(_tdCode)">Modifier ce tiers (code, nom...)</button>
   <button class="btn-s" style="margin-top:12px" onclick="closeOv('ov-tiers-detail')">Fermer</button>
 </div></div>
 
@@ -4291,9 +4306,12 @@ function buildTiersOpts(){
 // TOUTES les operations le concernant, du plus recent au plus ancien - reutilise relCalculerMouvements()
 // (deja utilise par le Releve de tiers) pour rester coherent avec le reste de l'application : le solde net
 // et le detail affiches ici sont toujours recalcules depuis le Journal, jamais depuis une valeur stockee.
+var _tdCode='';
 function ouvrirDetailTiers(code){
   var t=(D.tiers||[]).find(function(x){return x.code===code;});
   if(!t)return;
+  _tdCode=code;
+  var tdm=G('td-modif');if(tdm)tdm.style.display=(estTiersNomLibre(code)||code===TIERS_MAISON_CODE)?'none':'';
   var tt=G('td-titre');if(tt)tt.textContent=t.code+' - '+t.nom;
   var net=tiersSoldeNet(code);
   var ecrTri=(D.ecritures||[]).slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'')||(a.ref||'').localeCompare(b.ref||'');});
@@ -4609,6 +4627,74 @@ function saveTiers(){
   ['ti-code','ti-nom','ti-tel','ti-notes'].forEach(function(id){var el=G(id);if(el)el.value='';});
   populateTiersSelects();
   if(curPage==='compta')renderCompta();
+}
+// ---------- Modification d'un tiers (code et/ou nom) : synchronise tout l'historique ----------
+var TIERS_NOM_CHAMPS=['creancier','debiteur','deposant','pers','personne','tiersNom','preteur','beneficiaire','payeur','contact'];
+var TIERS_TEXTE_CHAMPS=['libelle','lib','objet','motif','description','desc','titre'];
+var TIERS_EXCLUS=['tiers','iaHistorique','iaConversationsArchivees','journalAudit','historiqueImpressions','menuRapide','ddm'];
+// Remplace partout l'ancien code (et l'ancien nom) du tiers par le nouveau. Retourne le nombre d'elements modifies.
+function tiersRenommerPartout(ancienCode,nouveauCode,ancienNom,nouveauNom){
+  var n=0,nomChange=ancienNom!==nouveauNom&&String(ancienNom||'').length>0;
+  function remplacerTexte(o,champs){
+    champs.forEach(function(k){
+      if(typeof o[k]==='string'&&o[k].indexOf(ancienNom)>-1&&ancienNom.length>=3){o[k]=o[k].split(ancienNom).join(nouveauNom);n++;}
+    });
+  }
+  function visiter(o,prof){
+    if(!o||typeof o!=='object'||prof>8)return;
+    if(Array.isArray(o)){o.forEach(function(x){visiter(x,prof+1);});return;}
+    var parCode=o.tiers===ancienCode;
+    var parNom=nomChange&&!o.tiers&&TIERS_NOM_CHAMPS.some(function(f){return o[f]===ancienNom;});
+    var ecritureLiee=Array.isArray(o.lignes)&&o.lignes.some(function(l){return l&&l.tiers===ancienCode;});
+    if(parCode&&ancienCode!==nouveauCode){o.tiers=nouveauCode;n++;}
+    if(nomChange&&(parCode||parNom)){
+      TIERS_NOM_CHAMPS.concat(parCode?['nom']:[]).forEach(function(k){if(o[k]===ancienNom){o[k]=nouveauNom;n++;}});
+      remplacerTexte(o,TIERS_TEXTE_CHAMPS);
+    }
+    if(nomChange&&ecritureLiee)remplacerTexte(o,TIERS_TEXTE_CHAMPS);
+    if(Array.isArray(o.participants)&&ancienCode!==nouveauCode){
+      o.participants=o.participants.map(function(p){if(p===ancienCode){n++;return nouveauCode;}return p;});
+    }
+    Object.keys(o).forEach(function(k){
+      if(TIERS_EXCLUS.indexOf(k)>-1||k==='participants')return;
+      var v=o[k];if(v&&typeof v==='object')visiter(v,prof+1);
+    });
+  }
+  Object.keys(D).forEach(function(k){
+    if(TIERS_EXCLUS.indexOf(k)>-1)return;
+    var v=D[k];if(v&&typeof v==='object')visiter(v,0);
+  });
+  return n;
+}
+function ouvrirModifierTiers(code){
+  var t=(D.tiers||[]).find(function(x){return x.code===code;});if(!t)return;
+  if(estTiersNomLibre(code)||code===TIERS_MAISON_CODE){notif('Ce tiers est permanent dans l\'application : il ne peut pas etre modifie.',true);return;}
+  G('te-orig').value=code;G('te-code').value=t.code;G('te-nom').value=t.nom;
+  var sel=G('te-cat'),src=G('ti-cat');
+  if(sel&&src){sel.innerHTML=src.innerHTML;
+    if(t.categorie&&!Array.prototype.some.call(sel.options,function(o){return o.value===t.categorie;})){var op=document.createElement('option');op.value=t.categorie;op.textContent=t.categorie;sel.appendChild(op);}
+    sel.value=t.categorie||'Autre';}
+  G('te-tel').value=t.tel||'';G('te-notes').value=t.notes||'';
+  var refs=tiersReferences(code),mods=Object.keys(refs);
+  G('te-info').textContent=mods.length?'Ce tiers est utilise dans : '+mods.map(function(m){return m+' ('+refs[m]+')';}).join(', ')+'. Si tu changes le code ou le nom, tout l\'historique est mis a jour automatiquement.':'Ce tiers n\'est encore utilise nulle part.';
+  closeOv('ov-tiers-detail');openOv('ov-tiers-edit');
+}
+function saveTiersEdit(){
+  var orig=(G('te-orig')||{}).value||'';
+  var t=(D.tiers||[]).find(function(x){return x.code===orig;});if(!t){closeOv('ov-tiers-edit');return;}
+  var code=((G('te-code')||{}).value||'').trim(),nom=((G('te-nom')||{}).value||'').trim();
+  if(!code||!nom){notif('Code et nom obligatoires',true);return;}
+  if(code!==orig&&(D.tiers||[]).some(function(x){return x.code===code;})){notif('Ce code tiers existe deja',true);return;}
+  if(code!==orig&&(estTiersNomLibre(code)||code===TIERS_MAISON_CODE)){notif('Ce code est reserve a un tiers permanent de l\'application',true);return;}
+  var ancienNom=t.nom,n=0;
+  if(code!==orig||nom!==ancienNom)n=tiersRenommerPartout(orig,code,ancienNom,nom);
+  t.code=code;t.nom=nom;
+  t.categorie=(G('te-cat')||{}).value||t.categorie;t.tel=(G('te-tel')||{}).value||'';t.notes=(G('te-notes')||{}).value||'';
+  if(code!==orig||nom!==ancienNom)auditLog('Modification tiers','Contacts (tiers)',orig+' - '+ancienNom,code+' - '+nom,n+' element(s) mis a jour dans l\'historique');
+  save();closeOv('ov-tiers-edit');
+  notif('Tiers modifie'+((code!==orig||nom!==ancienNom)?' - '+n+' element(s) mis a jour dans l\'historique':''));
+  try{populateTiersSelects();}catch(e){}
+  try{renderAll();}catch(e){}
 }
 function tiersReferences(code){
   var refs={};
@@ -11017,11 +11103,12 @@ function renderMenuRapide(keepEdit){
   body.classList.toggle('mq-edit',_mqEdit);
   var addT=function(sec){return '<div class="mi-add" data-act="add" data-sec="'+sec+'"><span class="mgi-plus">+</span>Ajouter</div>';};
   var h='<div class="mq-bar"><span>Maintiens une icone puis glisse-la pour la deplacer. Touche-la pour la modifier.</span><button class="mq-done" data-act="done">Termine</button></div>';
-  h+='<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">Ajout rapide<button class="mq-edit-btn" data-act="edit">Organiser</button></div>';
+  h+='<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">Ajout rapide<span style="display:flex;gap:6px"><button class="mq-edit-btn" data-act="edit">Organiser</button><button class="mq-edit-btn" data-act="close" aria-label="Fermer" title="Fermer">&#x2715;</button></span></div>';
   h+='<div class="mi-grid" data-sec="saisie">'+m.saisie.map(function(id){return mqTuile(id,cat);}).join('')+addT('saisie')+'</div>';
   h+='<div class="modal-title" style="margin-top:20px">Outils</div>';
   h+='<div class="mi-grid" data-sec="outils">'+m.outils.map(function(id){return mqTuile(id,cat);}).join('')+addT('outils')+'</div>';
   h+='<button class="mq-reset" data-act="reset">Reinitialiser le menu</button>';
+  h+='<button class="mq-close-bas" data-act="close">Fermer</button>';
   body.innerHTML=h;
   mqInitEvents(body);
 }
@@ -11137,6 +11224,7 @@ function mqInitEvents(body){
     var a=e.target.closest?e.target.closest('[data-act]'):null;
     if(a){
       var act=a.getAttribute('data-act');
+      if(act==='close'){closeOv('ov-menu');return;}
       if(act==='edit'){mqEntrerEdition();}
       else if(act==='done'){mqQuitterEdition();}
       else if(act==='add'){ouvrirEditMenu('add',a.getAttribute('data-sec'),null);}
@@ -12244,8 +12332,10 @@ function renderCompta(){
       div.innerHTML='<span style="font-size:calc(13px*var(--fscale));font-weight:800;color:var(--gold2);width:85px;flex-shrink:0;word-break:break-all">'+escHtml(t.code)+'</span>'+
         '<div style="flex:1"><div style="font-size:calc(14px*var(--fscale));font-weight:600">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+escHtml(t.categorie)+(t.tel?' - '+escHtml(t.tel):'')+'</div></div>'+
         '<div style="text-align:right">'+soldeHtml+'</div>'+
-        (estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE?'':'<span class="bdg br" style="margin-left:7px" data-i="'+i+'">Suppr.</span>');
+        (estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE?'':'<span class="bdg bo" style="margin-left:7px" data-modif="'+escHtml(t.code)+'">Modif.</span><span class="bdg br" style="margin-left:5px" data-i="'+i+'">Suppr.</span>');
       div.addEventListener('click',function(){ouvrirDetailTiers(t.code);});
+      var modifBtn=div.querySelector('[data-modif]');
+      if(modifBtn)modifBtn.addEventListener('click',function(e){e.stopPropagation();ouvrirModifierTiers(this.getAttribute('data-modif'));});
       var supprBtn=div.querySelector('[data-i]');
       if(supprBtn)supprBtn.addEventListener('click',function(e){e.stopPropagation();supprimerTiers(Number(this.getAttribute('data-i')));});
       el.appendChild(div);
