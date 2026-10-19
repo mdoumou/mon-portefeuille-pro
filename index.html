@@ -1824,7 +1824,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="fg"><label class="fl">Type de dette</label><select class="fc" id="det-type"><option value="16|Emprunt bancaire">16 - Emprunt bancaire</option><option value="401|Pret personne physique" selected>401 - Pret d'une personne physique</option><option value="40|Dette fournisseur">40 - Dette fournisseur</option><option value="476|Charge a payer">476 - Charge a payer</option></select></div>
   <div class="fg"><label class="fl">Contrepartie a l'emprunt</label><select class="fc" id="det-contrepartie"><option value="tresorerie">Tresorerie (argent recu)</option><option value="nature">En nature (bien, service recu)</option></select></div>
   <div class="fg" id="det-cpt-row"><label class="fl">Compte tresorerie recu</label><select class="fc" id="det-cpt-rec"><option value="">- Pas encore recu -</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Especes">Especes</option></select></div>
-  <div class="fg" id="det-nature-row" style="display:none"><label class="fl">Description de la nature recue</label><input class="fc" type="text" id="det-nature-desc" placeholder="ex: Materiel, marchandises, services..."></div>
+  <div class="fg" id="det-nature-row" style="display:none"><label class="fl">Description de la nature recue</label><input class="fc" type="text" id="det-nature-desc" placeholder="ex: Materiel, marchandises, services..."><label class="fl" style="margin-top:8px">Categorie de la depense</label><select class="fc" id="det-nature-cpt"><option value="">- Choisir -</option><option value="60">Alimentation</option><option value="66">Habillement</option><option value="659">Cadeaux</option><option value="63">Sante</option><option value="61">Transport</option><option value="65">Communication</option><option value="67">Loisirs</option><option value="64">Education</option><option value="622">Depenses domestiques</option><option value="69">Charges familiales</option></select></div>
   <div class="fg"><label class="fl">Objet</label><input class="fc" type="text" id="det-obj" placeholder="ex: Pret personnel pour frais medicaux"></div>
   <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="det-amt"></div><div class="fg"><label class="fl">Echeance (vide=Non definie)</label><input class="fc" type="date" id="det-ech"></div></div>
   <div class="fg"><label class="fl">Frais (optionnel)</label><input class="fc" type="number" id="det-frais" placeholder="ex: 100 (frais de transaction)"></div>
@@ -2341,6 +2341,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="modal-hd"></div><div class="modal-title">Confirmer les soldes d'ouverture</div>
   <div class="info-box" id="so-confirm-body" style="margin-bottom:10px"></div>
   <button class="btn-p btn-gold" onclick="confirmerSoldeOuverture()">Confirmer</button><button class="btn-s" onclick="closeOv('ov-confirm-so')">Retour</button>
+</div></div>
+<!-- MODAL CATEGORIE DETTE NATURE -->
+<div class="ov" id="ov-det-cat"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Categorie de la depense</div>
+  <div class="info-box" id="dc-info" style="margin-bottom:10px"></div>
+  <div class="fg"><label class="fl">Categorie</label><select class="fc" id="dc-cpt"><option value="">- Choisir -</option><option value="60">Alimentation</option><option value="66">Habillement</option><option value="659">Cadeaux</option><option value="63">Sante</option><option value="61">Transport</option><option value="65">Communication</option><option value="67">Loisirs</option><option value="64">Education</option><option value="622">Depenses domestiques</option><option value="69">Charges familiales</option></select></div>
+  <button class="btn-p btn-gold" onclick="saveCatDetteNature()">Enregistrer</button><button class="btn-s" onclick="closeOv('ov-det-cat')">Annuler</button>
 </div></div>
 <!-- MODAL MODIFIER TIERS -->
 <div class="ov" id="ov-tiers-edit"><div class="modal" onclick="event.stopPropagation()">
@@ -2872,7 +2879,7 @@ function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-f
 function ouvrirNouveauRev(){ouvrirNouvelleSaisie('ov-rev',['rev-lib','rev-amt','rev-frais'],['rev-tiers'],['rev-date']);}
 function ouvrirNouvelleDep(){ouvrirNouvelleSaisie('ov-dep',['dep-lib','dep-amt','dep-frais'],['dep-tiers'],['dep-date']);}
 function ouvrirNouveauDepot(){ouvrirNouvelleSaisie('ov-depot',['dpt-dep','dpt-obj','dpt-amt','dpt-rest','dpt-frais'],['dpt-tiers'],['dpt-date']);}
-function ouvrirNouvelleDette(){ouvrirNouvelleSaisie('ov-dette',['det-cred','det-obj','det-amt','det-ech','det-nature-desc','det-frais'],['det-tiers'],[]);}
+function ouvrirNouvelleDette(){ouvrirNouvelleSaisie('ov-dette',['det-cred','det-obj','det-amt','det-ech','det-nature-desc','det-frais'],['det-tiers'],[]);var _nc=G('det-nature-cpt');if(_nc)_nc.value='';}
 function ouvrirNouveauPret(){ouvrirNouvelleSaisie('ov-pret',['pret-deb','pret-obj','pret-amt','pret-ech','pret-frais'],['pret-tiers'],['pret-date']);}
 function ouvrirNouvellePromesse(){ouvrirNouvelleSaisie('ov-prom',['prom-pers','prom-desc','prom-amt'],['prom-tiers'],['prom-date']);}
 function ouvrirNouvelleReg(){ouvrirNouvelleSaisie('ov-regularisation',['reg-lib','reg-amt'],['reg-tiers'],['reg-date']);}
@@ -8298,6 +8305,7 @@ function renderDettes(){
       (d.autoType==='decouvert_bancaire'?'':
       '<div class="pd-actions">'+
         '<span class="bdg bg" data-action="remb" data-i="'+ri+'">Rembourser</span>'+
+        (d.contrepartie==='nature'?'<span class="bdg bs" data-action="cat" data-i="'+ri+'">Categorie</span>':'')+
         (lienDette?'':'<span class="bdg bs" data-action="ardoise" data-i="'+ri+'">&#x1F9F9; Effacer l\'ardoise</span>')+
       '</div>');
     div.querySelectorAll('[data-action]').forEach(function(btn){
@@ -8305,6 +8313,7 @@ function renderDettes(){
         var ac=this.getAttribute('data-action'),ix=Number(this.getAttribute('data-i'));
         if(ac==='remb')ouvrirRembourser(ix);
         else if(ac==='ardoise')ouvrirArdoise('dette',ix);
+        else if(ac==='cat')ouvrirCatDetteNature(ix);
       });
     });
     el.appendChild(div);
@@ -12328,11 +12337,13 @@ function renderCompta(){
           '<span style="font-size:calc(15px*var(--fscale));font-weight:800;color:var(--green)">'+fmt(net)+' F</span>':
           '<span style="font-size:calc(15px*var(--fscale));font-weight:800;color:var(--red)">'+fmt(Math.abs(net))+' F</span>');
       var div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;gap:10px;padding:11px;background:rgba(0,0,0,.3);border-radius:9px;margin-bottom:7px;border:1px solid var(--border);cursor:pointer';
-      div.innerHTML='<span style="font-size:calc(13px*var(--fscale));font-weight:800;color:var(--gold2);width:85px;flex-shrink:0;word-break:break-all">'+escHtml(t.code)+'</span>'+
-        '<div style="flex:1"><div style="font-size:calc(14px*var(--fscale));font-weight:600">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+escHtml(t.categorie)+(t.tel?' - '+escHtml(t.tel):'')+'</div></div>'+
-        '<div style="text-align:right">'+soldeHtml+'</div>'+
-        (estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE?'':'<span class="bdg bo" style="margin-left:7px" data-modif="'+escHtml(t.code)+'">Modif.</span><span class="bdg br" style="margin-left:5px" data-i="'+i+'">Suppr.</span>');
+      div.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:11px;background:rgba(0,0,0,.3);border-radius:9px;margin-bottom:7px;border:1px solid var(--border);cursor:pointer';
+      var protege=estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE;
+      div.innerHTML='<span style="font-size:calc(12.5px*var(--fscale));font-weight:800;color:var(--gold2);width:74px;flex-shrink:0;word-break:break-word;line-height:1.25">'+escHtml(t.code)+'</span>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:calc(14px*var(--fscale));font-weight:600;line-height:1.25">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">'+escHtml(t.categorie)+(t.tel?' &middot; '+escHtml(t.tel):'')+'</div></div>'+
+        '<div style="text-align:right;flex-shrink:0;white-space:nowrap">'+soldeHtml+
+        (protege?'':'<div style="display:flex;gap:5px;justify-content:flex-end;margin-top:6px"><span class="bdg bo" style="margin:0" data-modif="'+escHtml(t.code)+'">Modif.</span><span class="bdg br" style="margin:0" data-i="'+i+'">Suppr.</span></div>')+
+        '</div>';
       div.addEventListener('click',function(){ouvrirDetailTiers(t.code);});
       var modifBtn=div.querySelector('[data-modif]');
       if(modifBtn)modifBtn.addEventListener('click',function(e){e.stopPropagation();ouvrirModifierTiers(this.getAttribute('data-modif'));});
@@ -14055,13 +14066,15 @@ function saveDette(){
   var cptRec=(G('det-cpt-rec')||{}).value||'';
   var natureDesc=(G('det-nature-desc')||{}).value||'';
   var frais=Number((G('det-frais')||{}).value||0);
+  var cptCharge=(G('det-nature-cpt')||{}).value||'';
   if(!cred||!amt){notif('Creancier et montant obligatoires',true);return;}
+  if(contrep==='nature'&&!cptCharge){notif('Choisissez la categorie de la depense (habillement, cadeaux...)',true);return;}
   var cpDette=type.split('|')[0];
   var refDet;
   if(contrep==='tresorerie'&&cptRec&&COMPTES_TRES.includes(cptRec)){
     refDet=passerEcriture('DE',today(),'Dette - '+cred,[{compte:cptCode(cptRec),lib:cptRec,sens:'D',montant:amt,tiers:tiers||''},{compte:cpDette,lib:'Dette '+cred,sens:'C',montant:amt,tiers:tiers||''}],'');
   } else if(contrep==='nature'){
-    refDet=passerEcriture('DE',today(),'Dette en nature - '+cred+(natureDesc?' ('+natureDesc+')':''),[{compte:'60',lib:'Nature recue: '+(natureDesc||'divers'),sens:'D',montant:amt,tiers:tiers||''},{compte:cpDette,lib:'Dette '+cred,sens:'C',montant:amt,tiers:tiers||''}],'');
+    refDet=passerEcriture('DE',today(),'Dette en nature - '+cred+(natureDesc?' ('+natureDesc+')':''),[{compte:cptCharge,lib:'Nature recue: '+(natureDesc||'divers'),sens:'D',montant:amt,tiers:tiers||''},{compte:cpDette,lib:'Dette '+cred,sens:'C',montant:amt,tiers:tiers||''}],'');
   } else {
     refDet=passerEcriture('DE',today(),'Dette enregistree - '+cred,[{compte:'481',lib:'Charge en attente',sens:'D',montant:amt,tiers:tiers||''},{compte:cpDette,lib:'Dette '+cred,sens:'C',montant:amt,tiers:tiers||''}],'');
   }
@@ -14072,7 +14085,7 @@ function saveDette(){
   // plus jamais apres la creation).
   var res=fusionnerOuAjouter(D.dettes,function(d){
     return memeTiers(tiers,cred,d.tiers,d.creancier)&&detteEstActive(d)&&(d.compteOrigine||(d.type||'').split('|')[0])===cpDette;
-  },{id:'DET'+Date.now()+Math.floor(Math.random()*1000),creancier:cred,tiers:tiers,type:type,compteOrigine:cpDette,objet:obj,montant:amt,echeance:ech,contrepartie:contrep,natureDesc:natureDesc,date:today()});
+  },{id:'DET'+Date.now()+Math.floor(Math.random()*1000),creancier:cred,tiers:tiers,type:type,compteOrigine:cpDette,objet:obj,montant:amt,echeance:ech,contrepartie:contrep,natureDesc:natureDesc,compteCharge:contrep==='nature'?cptCharge:'',date:today()});
   if(!D.dettes[res.idx].contributions)D.dettes[res.idx].contributions={};
   D.dettes[res.idx].contributions[refDet]=amt;
   if(contrep==='tresorerie'&&cptRec&&COMPTES_TRES.includes(cptRec)){
@@ -14082,6 +14095,42 @@ function saveDette(){
   save();closeOv('ov-dette');
   notif((res.fusionne?'Dette cumulee - '+cred+' : '+fmt(D.dettes[res.idx].montant)+' F au total':'Dette enregistree')+(frais>0?' (frais: '+fmt(frais)+' F)':''));
   clr('det-cred','det-amt','det-frais');
+  try{renderAll();}catch(e){}
+}
+var _dcIdx=-1;
+function dcRefsNature(d){
+  var refs=Object.keys(d.contributions||{});
+  return refs.filter(function(r){
+    var e=(D.ecritures||[]).find(function(x){return x.ref===r;});
+    return e&&e.journal==='DE'&&/^Dette en nature/.test(e.libelle||'');
+  });
+}
+function ouvrirCatDetteNature(i){
+  var d=D.dettes[i];if(!d)return;
+  _dcIdx=i;
+  var refs=dcRefsNature(d);
+  if(!refs.length){notif('Aucune ecriture en nature trouvee pour cette dette',true);return;}
+  var cur='';
+  var e=(D.ecritures||[]).find(function(x){return x.ref===refs[0];});
+  if(e){var l=(e.lignes||[]).find(function(x){return x.sens==='D';});if(l)cur=l.compte;}
+  var nom=PLAN_COMPTES[cur]||cur;
+  G('dc-info').innerHTML='Dette : <b>'+escHtml(d.creancier)+'</b>'+(d.natureDesc?' ('+escHtml(d.natureDesc)+')':'')+'<br>Categorie actuelle : <b>'+escHtml(cur+' - '+(typeof nom==='string'?nom:(nom&&nom.lib)||''))+'</b><br>Seul le compte de charge change : montants, dette et tiers restent identiques.';
+  G('dc-cpt').value='';
+  openOv('ov-det-cat');
+}
+function saveCatDetteNature(){
+  var d=D.dettes[_dcIdx];if(!d)return;
+  var nv=(G('dc-cpt')||{}).value||'';
+  if(!nv){notif('Choisissez une categorie',true);return;}
+  var n=0,ancien='';
+  dcRefsNature(d).forEach(function(r){
+    var e=(D.ecritures||[]).find(function(x){return x.ref===r;});
+    (e.lignes||[]).forEach(function(l){if(l.sens==='D'&&l.compte!==nv){ancien=l.compte;l.compte=nv;n++;}});
+  });
+  d.compteCharge=nv;
+  auditLog('Changement categorie dette en nature','Dettes',ancien,nv,d.creancier);
+  save();closeOv('ov-det-cat');
+  notif(n?'Categorie corrigee ('+n+' ecriture'+(n>1?'s':'')+')':'Categorie deja a jour');
   try{renderAll();}catch(e){}
 }
 function saveProm(){
