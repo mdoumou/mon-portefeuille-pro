@@ -13315,13 +13315,50 @@ function showDetailEcriture(ref){
       var bg=coul==='var(--green)'?'rgba(16,185,129,.08)':'rgba(239,68,68,.08)';
       return '<div style="display:grid;grid-template-columns:55px 1fr 90px;gap:7px;padding:7px;border-radius:7px;margin-bottom:5px;background:'+bg+'">'+
         '<span style="font-weight:700;color:var(--gold2)">'+escHtml(l.compte)+'</span>'+
-        '<span style="font-size:calc(12px*var(--fscale));color:var(--text2)">'+escHtml(l.lib||'')+(l.tiers?' - '+escHtml(l.tiers):'')+'</span>'+
+        '<span style="font-size:calc(12px*var(--fscale));color:var(--text2)">'+escHtml(l.lib||'')+(l.tiers?' - '+escHtml(l.tiers)+(nomLigneTiers(l)?' / '+escHtml(nomLigneTiers(l)):''):'')+'</span>'+
         '<span style="text-align:right;font-weight:700;color:'+coul+'">'+l.sens+' '+fmt(l.montant)+'</span>'+
       '</div>';
     }).join('')+
     '<div style="display:flex;justify-content:space-between;margin-top:13px;font-size:calc(13px*var(--fscale));color:var(--text2)">'+
-    '<span>Total D: '+fmt(e.totD||0)+' F</span><span>Total C: '+fmt(e.totC||0)+' F</span></div>';
+    '<span>Total D: '+fmt(e.totD||0)+' F</span><span>Total C: '+fmt(e.totC||0)+' F</span></div>'+
+    '<button class="btn-s" style="margin-top:12px" data-ref="'+escHtml(e.ref)+'" onclick="formModifierEcriture(this.getAttribute(\'data-ref\'))">Modifier le libelle / les noms</button>';
   openOv('ov-detail-ecriture');
+}
+// Correction non comptable d'une ecriture validee : libelle et nom des tiers a nom libre uniquement.
+// Montants, comptes, sens et dates ne changent jamais (pour cela : extourne). Trace dans le journal d'audit.
+function formModifierEcriture(ref){
+  var e=(D.ecritures||[]).find(function(x){return x.ref===ref;});if(!e)return;
+  var ec=G('detail-ecr-content');if(!ec)return;
+  var h='<div class="info-box" style="margin-bottom:10px">Seuls le libelle et le nom des personnes (Collegue, Passage...) sont modifiables. Montants et comptes restent inchanges.</div>'+
+    '<div class="fg"><label class="fl">Libelle</label><input class="fc" type="text" id="me-lib" value="'+escHtml(e.libelle)+'"></div>';
+  var nomsDeja=0;
+  e.lignes.forEach(function(l,i){
+    if(!l.tiers||!estTiersNomLibre(l.tiers))return;
+    nomsDeja++;
+    h+='<div class="fg"><label class="fl">Nom ('+escHtml(l.tiers)+' - compte '+escHtml(l.compte)+', '+l.sens+' '+fmt(l.montant)+' F)</label><input class="fc me-nom" type="text" data-i="'+i+'" value="'+escHtml(l.tiersNom||'')+'" placeholder="Nom de la personne"></div>';
+  });
+  h+='<button class="btn-p btn-gold" data-ref="'+escHtml(ref)+'" onclick="enregistrerModifEcriture(this.getAttribute(\'data-ref\'))">Enregistrer</button>'+
+     '<button class="btn-s" data-ref="'+escHtml(ref)+'" onclick="showDetailEcriture(this.getAttribute(\'data-ref\'))">Annuler</button>';
+  ec.innerHTML=h;
+}
+function enregistrerModifEcriture(ref){
+  var e=(D.ecritures||[]).find(function(x){return x.ref===ref;});if(!e)return;
+  var lib=((G('me-lib')||{}).value||'').trim();
+  if(!lib){notif('Le libelle ne peut pas etre vide',true);return;}
+  var chg=[];
+  if(lib!==e.libelle){chg.push('libelle');auditLog('Modification libelle','Ecritures',ref+' : '+e.libelle,lib,'Correction du libelle (montants inchanges)');e.libelle=lib;}
+  document.querySelectorAll('#detail-ecr-content .me-nom').forEach(function(inp){
+    var l=e.lignes[Number(inp.getAttribute('data-i'))];if(!l)return;
+    var n=inp.value.trim().replace(/\s+/g,' '),av=String(l.tiersNom||'').trim();
+    if(n===av)return;
+    chg.push('nom');
+    auditLog('Modification nom tiers','Ecritures',ref+' : '+(av||'(sans nom)'),n||'(sans nom)','Nom de la personne sur '+l.tiers);
+    if(n)l.tiersNom=n;else delete l.tiersNom;
+  });
+  if(!chg.length){showDetailEcriture(ref);return;}
+  save();notif('Ecriture '+ref+' mise a jour');
+  try{renderAll();}catch(x){}
+  showDetailEcriture(ref);
 }
 
 // ============ RECHERCHE GLOBALE ============
