@@ -4075,6 +4075,19 @@ function passerEcriture(journal,date,lib,lignes,piece){
   // par journal (Journal, Grand Livre) sans jamais rejeter l'ecriture.
   if(!journal||!JOURNAUX_LIST.some(function(j){return j.code===journal;})){notif('Ecriture rejetee : journal '+(journal||'?')+' inexistant',true);return false;}
   lignes.forEach(function(l){if(l.tiers)l.tiers=resolveTiersKey(l.tiers);});
+  // Nom reel des tiers a nom libre (Collegue, Passage...) : 1) deja fourni par l'appelant, 2) tape dans le
+  // formulaire ouvert, 3) retrouve dans le libelle parmi les noms deja connus (ex. remboursement).
+  var _connusNoms={};
+  lignes.forEach(function(l){
+    if(l.tiers&&estTiersNomLibre(l.tiers)){
+      var _n=String(l.tiersNom||'').trim()||nomLibreSaisiVisible(l.tiers);
+      if(!_n){
+        if(!_connusNoms[l.tiers])_connusNoms[l.tiers]=nomsConnusTiers(l.tiers);
+        _n=deduireNomDepuisTexte(l.tiers,lib+' '+lignes.map(function(x){return x.lib||'';}).join(' '),_connusNoms[l.tiers]);
+      }
+      if(_n)l.tiersNom=_n;else delete l.tiersNom;
+    } else if(l.tiersNom!==undefined){delete l.tiersNom;}
+  });
   for(var _ci=0;_ci<lignes.length;_ci++){
     var _cl=lignes[_ci];
     if(!_cl.compte){notif('Ecriture rejetee : compte manquant sur une ligne',true);return false;}
@@ -4174,7 +4187,28 @@ function migrerTiersEcritures(){
     });
   });
   if(changed)save();
+  migrerNomsTiersEcritures();
   migrerStatutsDettesPrets();
+}
+// Reprise des ecritures deja saisies : retrouve le nom reel (tiers a nom libre : Collegue, Passage...) a
+// partir du libelle de l'ecriture, parmi les noms deja connus (fiches dettes/prets/depots/manquants...
+// et autres ecritures nommees). Ne devine jamais : si aucun nom ou plusieurs noms differents apparaissent,
+// la ligne reste "sans nom" (a nommer a la main depuis la fiche du tiers, bouton "Nommer").
+function migrerNomsTiersEcritures(){
+  var nb=0,cache={};
+  (D.ecritures||[]).forEach(function(e){
+    var txt=null;
+    (e.lignes||[]).forEach(function(l){
+      if(!l.tiers||!estTiersNomLibre(l.tiers)||String(l.tiersNom||'').trim())return;
+      if(!cache[l.tiers])cache[l.tiers]=nomsConnusTiers(l.tiers);
+      if(!cache[l.tiers].length)return;
+      if(txt===null)txt=(e.libelle||'')+' '+(e.lignes||[]).map(function(x){return x.lib||'';}).join(' ');
+      var n=deduireNomDepuisTexte(l.tiers,txt,cache[l.tiers]);
+      if(n){l.tiersNom=n;nb++;}
+    });
+  });
+  if(nb){save();try{notif(nb+' ancienne(s) ligne(s) d\'ecriture rattachee(s) a un nom de tiers');}catch(x){}}
+  return nb;
 }
 // Migration one-shot pour les dettes/prets enregistres avant l'introduction des statuts/historique de
 // cloture (fonctionnalite "Effacer l'ardoise"). Comme l'ancien schema ne conservait pas le montant initial
@@ -4277,13 +4311,111 @@ var TIERS_NOM_LIBRE={PASSAGE:{nom:'Tiers de passage',ph:'Nom de la personne pour
   SOCIETE:{nom:'Societe',ph:'Nom de la societe (ex: celle ou je travaille, ou celle qui me paie)'},
   CLIENT:{nom:'Client',ph:'Nom du client'}};
 function estTiersNomLibre(code){return !!code&&Object.prototype.hasOwnProperty.call(TIERS_NOM_LIBRE,code);}
+// ---- Nom reel porte par la ligne d'ecriture (tiers a nom libre : Collegue, Passage, Societe, Client) ----
+// Une ligne d'ecriture garde le code technique dans "tiers" ET le nom saisi dans "tiersNom" : sans cela,
+// toutes les personnes "Collegue" (ou "Passage"...) se melangeaient dans un seul solde/historique.
+// Cle de regroupement = code seul (tiers normal) ou "CODE::nom normalise" (tiers a nom libre).
+function normNomTiers(n){return String(n||'').trim().replace(/\s+/g,' ').toLowerCase();}
+function nomLigneTiers(l){return (l&&l.tiers&&estTiersNomLibre(l.tiers))?String(l.tiersNom||'').trim():'';}
+function cleTiers(code,nom){return code+'::'+normNomTiers(nom);}
+function cleTiersLigne(l){
+  if(!l||!l.tiers)return '';
+  return estTiersNomLibre(l.tiers)?cleTiers(l.tiers,l.tiersNom):l.tiers;
+}
+// cle sans "::" = tout le code (toutes personnes confondues) ; cle avec "::" = une personne precise
+// (ou "sans nom" si la partie nom est vide).
+function ligneDansCle(l,cle){
+  if(!l||!l.tiers||!cle)return false;
+  return String(cle).indexOf('::')<0?(l.tiers===cle):(cleTiersLigne(l)===cle);
+}
+function parseCleTiers(cle){
+  var s=String(cle||''),i=s.indexOf('::');
+  return i<0?{code:s,nom:'',precis:false}:{code:s.slice(0,i),nom:s.slice(i+2),precis:true};
+}
+// Libelle lisible d'une cle : "COLLEGUE - Collegue / Mamadou" (nom d'origine retrouve dans les ecritures)
+function libelleCleTiers(cle){
+  var p=parseCleTiers(cle);
+  var t=(D.tiers||[]).find(function(x){return x.code===p.code;});
+  var base=p.code+' - '+(t?t.nom:p.code);
+  if(!p.precis)return base;
+  if(!p.nom)return base+' / (sans nom)';
+  var aff=p.nom;
+  (D.ecritures||[]).some(function(e){return (e.lignes||[]).some(function(l){
+    if(l.tiers===p.code&&normNomTiers(l.tiersNom)===p.nom){aff=String(l.tiersNom).trim();return true;}
+    return false;
+  });});
+  return base+' / '+aff;
+}
+// Liste des personnes distinctes (et des operations sans nom) d'un tiers a nom libre, avec leurs cles.
+function listerPersonnesTiers(code){
+  var map={},sansNom=0;
+  (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){
+    if(l.tiers!==code)return;
+    var n=nomLigneTiers(l);
+    if(!n){sansNom++;return;}
+    var k=cleTiers(code,n);
+    if(!map[k])map[k]={cle:k,nom:n};
+  });});
+  var arr=Object.keys(map).sort().map(function(k){return map[k];});
+  return {personnes:arr,sansNom:sansNom};
+}
+var TIERS_SELECT_IDS=['tx-tiers','rev-tiers','dep-tiers','dpt-tiers','det-tiers','prom-tiers','ton-tiers','fam-tiers','reg-tiers','pret-tiers','tg-tiers','tv-tiers','pdp-tiers','emp-tiers','rach-tiers','popr-tiers','mq-tiers','ex-tiers'];
+// Nom tape dans un formulaire actuellement OUVERT pour ce code (un formulaire ferme est ignore : sa valeur
+// pourrait dater d'une saisie precedente).
+function nomLibreSaisiVisible(code){
+  for(var i=0;i<TIERS_SELECT_IDS.length;i++){
+    var id=TIERS_SELECT_IDS[i],sel=G(id);
+    if(!sel||sel.value!==code||!sel.getClientRects().length)continue;
+    var inp=G(id+'-nom'),v=((inp||{}).value||'').trim();
+    if(v)return v;
+  }
+  return '';
+}
+// Noms reels deja connus pour un tiers a nom libre : ceux deja portes par des lignes + ceux des fiches
+// (dettes, prets, depots, manquants...) qui referencent ce code. Sert a retrouver le nom d'une ecriture
+// qui n'a pas pu le recevoir directement (remboursement, ecriture ancienne...).
+function nomsConnusTiers(code){
+  var set={},def=normNomTiers((TIERS_NOM_LIBRE[code]||{}).nom);
+  function add(n){
+    n=String(n||'').trim();
+    var k=normNomTiers(n);
+    if(!k||k.length<3||k===def||k==='tiers de passage'||k==='collegue'||k==='societe'||k==='client'||k==='passage')return;
+    if(!set[k])set[k]=n;
+  }
+  (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){if(l.tiers===code)add(l.tiersNom);});});
+  Object.keys(D||{}).forEach(function(cle){
+    var arr=D[cle];
+    if(cle==='ecritures'||!Array.isArray(arr))return;
+    arr.forEach(function(o){
+      if(!o||typeof o!=='object'||o.tiers!==code)return;
+      TIERS_NOM_CHAMPS.forEach(function(ch){if(typeof o[ch]==='string')add(o[ch]);});
+    });
+  });
+  return Object.keys(set).map(function(k){return set[k];});
+}
+function _escRegNom(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+// Cherche, parmi les noms connus, celui qui apparait dans le texte (libelle de l'ecriture). Retourne le nom
+// uniquement s'il est sans ambiguite (un seul nom, ou un nom qui contient les autres trouves).
+function deduireNomDepuisTexte(code,texte,connus){
+  var h=' '+String(texte||'').toLowerCase()+' ',trouves=[];
+  (connus||nomsConnusTiers(code)).forEach(function(n){
+    var re=new RegExp('(^|[^a-z0-9À-ÿ])'+_escRegNom(normNomTiers(n))+'($|[^a-z0-9À-ÿ])','i');
+    if(re.test(h))trouves.push(n);
+  });
+  if(!trouves.length)return '';
+  trouves.sort(function(a,b){return b.length-a.length;});
+  var best=trouves[0],bk=normNomTiers(best);
+  var ok=trouves.every(function(n){return bk.indexOf(normNomTiers(n))>-1;});
+  return ok?best:'';
+}
 function tiersSoldeNet(code){
   // Solde net sur les comptes de nature "tiers" uniquement (classe 4) : positif = on me doit (creance), negatif = je dois (dette).
   // Les lignes de tresorerie/charges/produits parfois taguees avec ce meme tiers (pour tracabilite) sont ignorees ici.
+  // "code" peut etre une cle personne ("COLLEGUE::mamadou") pour un tiers a nom libre.
   var net=0;
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
-      if(l.tiers!==code)return;
+      if(!ligneDansCle(l,code))return;
       if(TIERS_ACCOUNTS.indexOf(l.compte)===-1)return;
       net+=(l.sens==='D'?1:-1)*Number(l.montant||0);
     });
@@ -4294,7 +4426,7 @@ function tiersSoldeDetail(code){
   var map={};
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
-      if(l.tiers!==code)return;
+      if(!ligneDansCle(l,code))return;
       if(TIERS_ACCOUNTS.indexOf(l.compte)===-1)return;
       if(!map[l.compte])map[l.compte]={deb:0,cred:0};
       if(l.sens==='D')map[l.compte].deb+=Number(l.montant||0);else map[l.compte].cred+=Number(l.montant||0);
@@ -4313,16 +4445,35 @@ function buildTiersOpts(){
 // TOUTES les operations le concernant, du plus recent au plus ancien - reutilise relCalculerMouvements()
 // (deja utilise par le Releve de tiers) pour rester coherent avec le reste de l'application : le solde net
 // et le detail affiches ici sont toujours recalcules depuis le Journal, jamais depuis une valeur stockee.
-var _tdCode='';
-function ouvrirDetailTiers(code){
+var _tdCode='',_tdCle='';
+// Attribue un nom a une operation ancienne restee "sans nom" (tiers a nom libre) : nomme toutes les lignes
+// de cette ecriture qui portent ce meme code tiers.
+function nommerOperationTiers(ref,code){
+  var e=(D.ecritures||[]).find(function(x){return x.ref===ref;});
+  if(!e)return;
+  var connus=nomsConnusTiers(code);
+  var n=prompt('Nom de la personne pour l\'operation '+ref+(connus.length?'\n(deja connus : '+connus.join(', ')+')':''),'');
+  if(n===null)return;
+  n=String(n).trim();
+  if(!n){notif('Nom vide - rien modifie',true);return;}
+  var cnt=0;
+  (e.lignes||[]).forEach(function(l){if(l.tiers===code&&!String(l.tiersNom||'').trim()){l.tiersNom=n;cnt++;}});
+  if(!cnt)return;
+  save();notif('Operation '+ref+' attribuee a '+n);
+  try{renderAll();}catch(x){}
+  ouvrirDetailTiers(_tdCle||code);
+}
+function ouvrirDetailTiers(codeOuCle){
+  var pc=parseCleTiers(codeOuCle);
+  var code=pc.code;
   var t=(D.tiers||[]).find(function(x){return x.code===code;});
   if(!t)return;
-  _tdCode=code;
+  _tdCode=code;_tdCle=codeOuCle;
   var tdm=G('td-modif');if(tdm)tdm.style.display=(estTiersNomLibre(code)||code===TIERS_MAISON_CODE)?'none':'';
-  var tt=G('td-titre');if(tt)tt.textContent=t.code+' - '+t.nom;
-  var net=tiersSoldeNet(code);
+  var tt=G('td-titre');if(tt)tt.textContent=pc.precis?libelleCleTiers(codeOuCle):(t.code+' - '+t.nom);
+  var net=tiersSoldeNet(codeOuCle);
   var ecrTri=(D.ecritures||[]).slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'')||(a.ref||'').localeCompare(b.ref||'');});
-  var res=relCalculerMouvements(function(l){return l.tiers===code&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},'',today(),ecrTri);
+  var res=relCalculerMouvements(function(l){return ligneDansCle(l,codeOuCle)&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},'',today(),ecrTri);
   var html='<div style="font-size:calc(12.5px*var(--fscale));color:var(--text2);margin-bottom:10px">'+escHtml(t.categorie||'')+(t.tel?' - '+escHtml(t.tel):'')+'</div>';
   var netColor=net>0?'var(--green)':(net<0?'var(--red)':'var(--text2)');
   var netLabel=net>0?' (creance - on me doit)':(net<0?' (dette - je dois)':'');
@@ -4333,7 +4484,7 @@ function ouvrirDetailTiers(code){
   // deux modules restent normalement separes - voir totalDettesActives/totalCreancesActives - une
   // compensation cree une vraie ecriture tracee plutot que de fusionner silencieusement les deux).
   var totD=totalDettesActives(code), totC=totalCreancesActives(code);
-  if(totD>0&&totC>0){
+  if(totD>0&&totC>0&&!estTiersNomLibre(code)){
     var compMontant=Math.min(totD,totC);
     html+='<div class="info-box" style="font-size:calc(12px*var(--fscale));margin-bottom:10px">Ce tiers a une dette active de '+fmt(totD)+' F et une creance active de '+fmt(totC)+' F. Vous pouvez les compenser : '+fmt(compMontant)+' F seront eteints des deux cotes par une ecriture unique, sans mouvement de tresorerie.</div>'+
       '<button class="btn-p" style="padding:10px;font-size:calc(13px*var(--fscale));margin-bottom:12px" onclick="compenserDetteCreance(\''+code+'\')">Compenser '+fmt(compMontant)+' F</button>';
@@ -4344,7 +4495,8 @@ function ouvrirDetailTiers(code){
       var sensColor=m.sens==='D'?'var(--green)':'var(--red)';
       html+='<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'+
         '<div style="min-width:0"><div style="font-size:calc(12.5px*var(--fscale));font-weight:600">'+escHtml(m.libelle)+'</div>'+
-        '<div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:2px">'+fmtD(m.date)+' - '+escHtml(m.ref)+' - '+escHtml(m.compte)+' - '+escHtml(m.journal||'')+'</div></div>'+
+        '<div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:2px">'+fmtD(m.date)+' - '+escHtml(m.ref)+' - '+escHtml(m.compte)+' - '+escHtml(m.journal||'')+
+        (estTiersNomLibre(code)?(m.tiersNom?' - <b>'+escHtml(m.tiersNom)+'</b>':' - <span style="color:var(--red)">sans nom</span> <span class="bdg bo" style="margin:0 0 0 4px;cursor:pointer" onclick="nommerOperationTiers(\''+escHtml(m.ref)+'\',\''+escHtml(code)+'\')">Nommer</span>'):'')+'</div></div>'+
         '<div style="font-weight:700;color:'+sensColor+';white-space:nowrap">'+(m.sens==='D'?'+':'-')+fmt(m.montant)+' F</div></div>';
     });
   } else {
@@ -4428,7 +4580,7 @@ function fillNomFromTiers(selId,nomId){
   if(t)nomEl.value=t.nom;
 }
 function populateTiersSelects(){
-  var ids=['tx-tiers','rev-tiers','dep-tiers','dpt-tiers','det-tiers','prom-tiers','ton-tiers','fam-tiers','reg-tiers','pret-tiers','tg-tiers','tv-tiers','pdp-tiers','emp-tiers','rach-tiers','popr-tiers','mq-tiers','ex-tiers'];
+  var ids=TIERS_SELECT_IDS;
   var opts=buildTiersOpts();
   ids.forEach(function(id){var el=G(id);if(el)el.innerHTML=opts;});
   wireTiersPassageOverride(ids);
@@ -5139,7 +5291,17 @@ function initReleve(){
       tl.querySelectorAll('input[type=checkbox]').forEach(function(cb){prevChecked[cb.value]=cb.checked;});
       tl.innerHTML=(D.tiers||[]).map(function(t){
         var chk=prevChecked[t.code]?' checked':'';
-        return '<label style="display:flex;align-items:center;gap:9px;padding:5px 0;font-size:calc(13px*var(--fscale))"><input type="checkbox" value="'+escHtml(t.code)+'"'+chk+' style="width:17px;height:17px"> '+escHtml(t.code)+' - '+escHtml(t.nom)+'</label>';
+        var h='<label style="display:flex;align-items:center;gap:9px;padding:5px 0;font-size:calc(13px*var(--fscale))"><input type="checkbox" value="'+escHtml(t.code)+'"'+chk+' style="width:17px;height:17px"> '+escHtml(t.code)+' - '+escHtml(t.nom)+'</label>';
+        // Tiers a nom libre : une case par personne (le releve de chaque personne est separe)
+        if(estTiersNomLibre(t.code)){
+          var lp=listerPersonnesTiers(t.code),subs=lp.personnes.slice();
+          if(subs.length&&lp.sansNom)subs.push({cle:cleTiers(t.code,''),nom:'(sans nom)'});
+          subs.forEach(function(sp){
+            var c2=prevChecked[sp.cle]?' checked':'';
+            h+='<label style="display:flex;align-items:center;gap:9px;padding:4px 0 4px 26px;font-size:calc(12.5px*var(--fscale))"><input type="checkbox" value="'+escHtml(sp.cle)+'"'+c2+' style="width:16px;height:16px"> &#8627; '+escHtml(sp.nom)+'</label>';
+          });
+        }
+        return h;
       }).join('');
     }
   }
@@ -5157,7 +5319,7 @@ function relCalculerMouvements(matchFn,debut,fin,ecrTri){
       if(!matchFn(l))return;
       var signe=(l.sens==='D'?1:-1)*Number(l.montant||0);
       if((e.date||'')<debut)soldeOuv+=signe;
-      else if((e.date||'')<=fin)mvts.push({date:e.date,ref:e.ref,journal:e.journal,libelle:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||'',compte:l.compte});
+      else if((e.date||'')<=fin)mvts.push({date:e.date,ref:e.ref,journal:e.journal,libelle:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||'',tiersNom:nomLigneTiers(l),compte:l.compte});
     });
   });
   var totD=mvts.filter(function(m){return m.sens==='D';}).reduce(function(a,m){return a+m.montant;},0);
@@ -5201,9 +5363,8 @@ function genererReleve(){
   if(tiersSel.length){
     html+='<div style="font-size:calc(13px*var(--fscale));color:var(--gold2);font-weight:700;margin:10px 0 4px">Tiers</div>';
     tiersSel.forEach(function(code){
-      var tiersObj=(D.tiers||[]).find(function(t){return t.code===code;});
-      var res=relCalculerMouvements(function(l){return l.tiers===code&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},debut,fin,ecrTri);
-      html+=carteHtml(code+' - '+(tiersObj?tiersObj.nom:code),res,true);
+      var res=relCalculerMouvements(function(l){return ligneDansCle(l,code)&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},debut,fin,ecrTri);
+      html+=carteHtml(libelleCleTiers(code),res,true);
     });
   }
   var header='<div class="card rel-card" id="rel-header"><div style="text-align:center"><div style="font-size:calc(19px*var(--fscale));font-weight:800">Mon Portefeuille Pro</div>'+
@@ -5370,9 +5531,8 @@ function construireDocPdf(){
     doc.text(sec.label,15,y);y+=7;doc.setTextColor(0);
     sec.items.forEach(function(code){
       if(sec.tiers){
-        var tiersObj=(D.tiers||[]).find(function(t){return t.code===code;});
-        var res=relCalculerMouvements(function(l){return l.tiers===code&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},debut,fin,ecrTri);
-        dessinerCarte(code+' - '+(tiersObj?tiersObj.nom:code),res,true);
+        var res=relCalculerMouvements(function(l){return ligneDansCle(l,code)&&TIERS_ACCOUNTS_HISTORIQUE.indexOf(l.compte)>-1;},debut,fin,ecrTri);
+        dessinerCarte(libelleCleTiers(code),res,true);
       } else {
         var res=relCalculerMouvements(function(l){return l.compte===code;},debut,fin,ecrTri);
         dessinerCarte(code+' - '+(PLAN_COMPTES[code]||code),res,false);
@@ -5451,8 +5611,8 @@ function calculerBalanceComplete(){
     (e.lignes||[]).forEach(function(l){
       if(!l.compte)return;
       var key=l.compte;
-      if(l.tiers&&l.compte.charAt(0)==='4')key=l.compte+'/'+l.tiers;
-      if(!soldes[key])soldes[key]={compte:l.compte,tiers:l.tiers||'',deb:0,cred:0};
+      if(l.tiers&&l.compte.charAt(0)==='4')key=l.compte+'/'+cleTiersLigne(l);
+      if(!soldes[key])soldes[key]={compte:l.compte,tiers:l.tiers||'',nom:nomLigneTiers(l),deb:0,cred:0};
       if(l.sens==='D')soldes[key].deb+=Number(l.montant||0);else soldes[key].cred+=Number(l.montant||0);
     });
   });
@@ -5461,7 +5621,7 @@ function calculerBalanceComplete(){
     var lib=PLAN_COMPTES[s.compte]||('Compte '+s.compte);
     if(s.tiers){
       var tInfo=(D.tiers||[]).find(function(t){return t.code===s.tiers;});
-      lib+=' - '+(tInfo?tInfo.nom:s.tiers);
+      lib+=' - '+(tInfo?tInfo.nom:s.tiers)+(s.nom?' / '+s.nom:'');
     }
     return {code:s.compte,lib:lib,deb:s.deb,cred:s.cred,solde:s.deb-s.cred};
   });
@@ -5473,7 +5633,7 @@ function calculerGrandLivreComplet(){
     (e.lignes||[]).forEach(function(l){
       if(!l.compte)return;
       if(!comptes[l.compte])comptes[l.compte]=[];
-      comptes[l.compte].push({date:e.date,journal:e.journal,ref:e.ref,libelle:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||''});
+      comptes[l.compte].push({date:e.date,journal:e.journal,ref:e.ref,libelle:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||'',tiersNom:nomLigneTiers(l)});
     });
   });
   return Object.keys(comptes).sort().map(function(code){
@@ -7521,9 +7681,9 @@ function renderBalance(){
       var key=l.compte;
       // Si tiers present, on cree une sous-ligne par code tiers pour comptes de tiers (classe 4)
       if(l.tiers && l.compte && l.compte.charAt(0)==='4'){
-        key=l.compte+'/'+l.tiers;
+        key=l.compte+'/'+cleTiersLigne(l);
       }
-      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:l.tiers||''};
+      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:l.tiers||'',cle:(l.tiers&&l.compte&&l.compte.charAt(0)==='4')?cleTiersLigne(l):'',nom:nomLigneTiers(l)};
       if(l.sens==='D')soldes[key].deb+=Number(l.montant||0);
       else soldes[key].cred+=Number(l.montant||0);
     });
@@ -7538,7 +7698,7 @@ function renderBalance(){
     var lib=PLAN_COMPTES[code]||('Compte '+code);
     if(s.tiers){
       var tInfo=(D.tiers||[]).find(function(t){return t.code===s.tiers;});
-      lib=lib+' - '+escHtml(tInfo?tInfo.nom:s.tiers);
+      lib=lib+' - '+escHtml(tInfo?tInfo.nom:s.tiers)+(s.nom?' / '+escHtml(s.nom):'');
     }
     var row=document.createElement('div');
     row.className='bal-row';
@@ -7547,7 +7707,7 @@ function renderBalance(){
       '<span style="font-size:calc(12px*var(--fscale))">'+lib+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'D')+'">'+fmt(s.deb)+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'C')+'">'+fmt(s.cred)+'</span>';
-    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.tiers);});
+    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers);});
     el.appendChild(row);
   });
   var bd=G('bal-detail');if(bd)bd.style.display='none';
@@ -7556,7 +7716,7 @@ function showBalanceDetail(code,lib,tiersFilter){
   var lines=[];
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
-      if(l.compte===code && (!tiersFilter || l.tiers===tiersFilter))lines.push({ref:e.ref,date:e.date,lib:e.libelle,sens:l.sens,montant:l.montant,tiers:l.tiers||''});
+      if(l.compte===code && (!tiersFilter || ligneDansCle(l,tiersFilter)))lines.push({ref:e.ref,date:e.date,lib:e.libelle,sens:l.sens,montant:l.montant,tiers:l.tiers||'',nom:nomLigneTiers(l)});
     });
   });
   var bd=G('bal-detail'),bt=G('bal-detail-title'),bl=G('bal-detail-list');
@@ -7565,7 +7725,7 @@ function showBalanceDetail(code,lib,tiersFilter){
   if(bt)bt.textContent='Compte '+code+' - '+lib;
   if(bl)bl.innerHTML=lines.length?lines.map(function(l){
     return '<div class="je"><div class="je-hd"><span class="je-ref">'+l.ref+'</span><span class="je-date">'+fmtD(l.date)+'</span></div>'+
-      '<div class="je-lib">'+escHtml(l.lib)+(l.tiers?' - '+escHtml(l.tiers):'')+'</div>'+
+      '<div class="je-lib">'+escHtml(l.lib)+(l.tiers?' - '+escHtml(l.tiers)+(l.nom?' / '+escHtml(l.nom):''):'')+'</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:calc(13px*var(--fscale));margin-top:4px">'+
       '<span style="color:'+couleurSens(code,l.sens)+'">'+l.sens+'</span>'+
       '<span style="font-weight:700">'+fmt(l.montant)+' F</span></div></div>';
@@ -7589,8 +7749,8 @@ function construireLignesGrandLivre(code,tiersFilter){
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
       if(l.compte!==code)return;
-      if(tiersFilter && l.tiers!==tiersFilter)return;
-      lines.push({date:e.date,journal:e.journal,ref:e.ref,lib:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||''});
+      if(tiersFilter && !ligneDansCle(l,tiersFilter))return;
+      lines.push({date:e.date,journal:e.journal,ref:e.ref,lib:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||'',nom:nomLigneTiers(l)});
     });
   });
   lines.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
@@ -7606,7 +7766,7 @@ function construireHtmlGrandLivreCompte(code,tiersFilter){
     return '<div class="gl-row">'+
       '<span>'+fmtD(l.date)+'</span>'+
       '<span style="color:var(--gold2);font-weight:700">'+l.journal+'</span>'+
-      '<span style="font-size:calc(12px*var(--fscale))">'+escHtml(l.lib)+(l.tiers&&!tiersFilter?' <span style="opacity:.6">- '+escHtml(l.tiers)+'</span>':'')+'</span>'+
+      '<span style="font-size:calc(12px*var(--fscale))">'+escHtml(l.lib)+(l.tiers&&!tiersFilter?' <span style="opacity:.6">- '+escHtml(l.tiers)+(l.nom?' / '+escHtml(l.nom):'')+'</span>':'')+'</span>'+
       '<span style="text-align:right;color:'+(l.sens==='D'?'var(--green)':'var(--text2)')+'">'+(l.sens==='D'?fmt(l.montant):'')+'</span>'+
       '<span style="text-align:right;color:'+(l.sens==='C'?'var(--red)':'var(--text2)')+'">'+(l.sens==='C'?fmt(l.montant):'')+'</span>'+
       '<span style="text-align:right;font-weight:700;color:'+couleurSolde(code,solde)+'">'+fmt(solde)+'</span>'+
@@ -7645,11 +7805,16 @@ function renderGrandLivre(){
   if(hasTiers && tiersSel){
     var curT=tiersSel.value;
     var tiersCodes={};
-    (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){if(l.compte===code&&l.tiers)tiersCodes[l.tiers]=1;});});
+    (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){if(l.compte===code&&l.tiers){
+      tiersCodes[l.tiers]=1;
+      if(estTiersNomLibre(l.tiers))tiersCodes[cleTiersLigne(l)]=1;
+    }});});
     var opts='<option value="">Tous les tiers</option>';
     Object.keys(tiersCodes).sort().forEach(function(tc){
-      var tInfo=(D.tiers||[]).find(function(t){return t.code===tc;});
-      opts+='<option value="'+escHtml(tc)+'">'+escHtml(tInfo?tInfo.nom:tc)+'</option>';
+      var pc=parseCleTiers(tc);
+      var tInfo=(D.tiers||[]).find(function(t){return t.code===pc.code;});
+      var libOpt=pc.precis?('\u21b3 '+libelleCleTiers(tc).replace(/^[^/]*\/ /,'')):(tInfo?tInfo.nom:tc);
+      opts+='<option value="'+escHtml(tc)+'">'+escHtml(libOpt)+'</option>';
     });
     tiersSel.innerHTML=opts;tiersSel.value=curT||'';
   }
@@ -7922,7 +8087,7 @@ function contrepasserEcriture(ref,motif){
   if(idx<0){notif('Ecriture '+ref+' non trouvee',true);return false;}
   var e=D.ecritures[idx];
   if(e.extourne){notif('Cette ecriture a deja ete contre-passee ('+e.extourne+')',true);return false;}
-  var inv=e.lignes.map(function(l){return {compte:l.compte,lib:l.lib||'',sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers||''};});
+  var inv=e.lignes.map(function(l){return {compte:l.compte,lib:l.lib||'',sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers||'',tiersNom:l.tiersNom};});
   var newRef=passerEcriture('OD',today(),'ANNULATION '+ref+' - '+(motif||'Annulation'),inv,'ANN-'+ref);
   if(newRef){
     e.extourne=newRef;
@@ -7995,7 +8160,7 @@ function confirmerExtourne(){
   if(idx<0){_extourneCtx=null;return;}
   var e=D.ecritures[idx];
   // Genere les lignes miroir : Debit <-> Credit inverses
-  var inv=e.lignes.map(function(l){return {compte:l.compte,lib:(l.lib||'')+' [Extourne]',sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers||''};});
+  var inv=e.lignes.map(function(l){return {compte:l.compte,lib:(l.lib||'')+' [Extourne]',sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers||'',tiersNom:l.tiersNom};});
   var newRef=passerEcriture(e.journal,date,'EXTOURNE '+ref+' - '+motif,inv,'EXT-'+ref);
   if(newRef){
     // Mettre a jour les soldes de tresorerie impactes par les lignes extournees
@@ -10175,7 +10340,7 @@ function confirmerAnnulOperationProjet(){
   function contrepasserEcriture(ref){
     var orig=null;(D.ecritures||[]).forEach(function(e){if(e.ref===ref)orig=e;});
     if(!orig)return true;
-    var lignesInv=orig.lignes.map(function(l){return {compte:l.compte,lib:'Annulation - '+l.lib,sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers,projet:l.projet};});
+    var lignesInv=orig.lignes.map(function(l){return {compte:l.compte,lib:'Annulation - '+l.lib,sens:l.sens==='D'?'C':'D',montant:l.montant,tiers:l.tiers,tiersNom:l.tiersNom,projet:l.projet};});
     return !!passerEcriture(orig.journal,today(),'Annulation - '+op.libelle,lignesInv,'');
   }
   var refsAAnnuler=(op.ecritureRefs&&op.ecritureRefs.length)?op.ecritureRefs.filter(function(r){return r;}):(op.ecritureRef?[op.ecritureRef]:[]);
@@ -10929,7 +11094,7 @@ function saveTrajet(){
     var libC=libBase+' (offert'+(nomCol?' par '+nomCol:'')+')';
     var refC=passerEcriture('OD',date,libC,[
       {compte:tc.code,lib:tc.lib,sens:'D',montant:r.recu,tiers:''},
-      {compte:'756',lib:'Dons et remises de dettes recus',sens:'C',montant:r.recu,tiers:TIERS_COLLEGUE_CODE}
+      {compte:'756',lib:'Dons et remises de dettes recus',sens:'C',montant:r.recu,tiers:TIERS_COLLEGUE_CODE,tiersNom:nomCol}
     ],'');
     if(refC===false){notif('Depense annulee - l\'ecriture correspondante a echoue',true);return;}
     D.depenses.push({categorie:tc.lib,libelle:libC,montant:r.recu,date:date,tiers:'',compte:'Offert par un collegue'});
@@ -10950,8 +11115,8 @@ function saveTrajet(){
   execDebitAvecConfirmation(cptVal,amt,{objet:'Depense partagee - '+libBase},function(){
     var lignes=[];
     if(r.maPart>0)lignes.push({compte:tc.code,lib:tc.lib,sens:'D',montant:r.maPart,tiers:''});
-    if(r.offertCol>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertCol,tiers:TIERS_COLLEGUE_CODE});
-    if(r.offertPas>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertPas,tiers:TIERS_PASSAGE_CODE});
+    if(r.offertCol>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertCol,tiers:TIERS_COLLEGUE_CODE,tiersNom:nomCol});
+    if(r.offertPas>0)lignes.push({compte:'659',lib:'Cadeaux offerts',sens:'D',montant:r.offertPas,tiers:TIERS_PASSAGE_CODE,tiersNom:nomPas});
     lignes.push({compte:cptC,lib:cptVal,sens:'C',montant:amt,tiers:''});
     var ref=passerEcriture('AC',date,libBase,lignes,'');
     if(ref===false){
@@ -12350,6 +12515,20 @@ function renderCompta(){
       var supprBtn=div.querySelector('[data-i]');
       if(supprBtn)supprBtn.addEventListener('click',function(e){e.stopPropagation();supprimerTiers(Number(this.getAttribute('data-i')));});
       el.appendChild(div);
+      if(estTiersNomLibre(t.code)){
+        var lp=listerPersonnesTiers(t.code);
+        var subs=lp.personnes.slice();
+        if(subs.length&&lp.sansNom)subs.push({cle:cleTiers(t.code,''),nom:'(sans nom)'});
+        subs.forEach(function(sp){
+          var n2=tiersSoldeNet(sp.cle);
+          var sub=document.createElement('div');
+          sub.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 11px 8px 30px;background:rgba(0,0,0,.18);border-radius:9px;margin:-3px 0 7px 14px;border:1px solid var(--border);cursor:pointer';
+          sub.innerHTML='<span style="flex:1;min-width:0;font-size:calc(13px*var(--fscale));word-break:break-word">&#8627; '+escHtml(sp.nom)+'</span>'+
+            '<span style="font-size:calc(13.5px*var(--fscale));font-weight:800;white-space:nowrap;color:'+(n2>0?'var(--green)':(n2<0?'var(--red)':'var(--text2)'))+'">'+fmt(Math.abs(n2))+' F</span>';
+          sub.addEventListener('click',function(){ouvrirDetailTiers(sp.cle);});
+          el.appendChild(sub);
+        });
+      }
     });
   }
   if(curComptaTab==='journaux'){
