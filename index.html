@@ -215,7 +215,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .pd-nom{font-size:calc(15px*var(--fscale));font-weight:600;}
 .pd-sub{font-size:calc(12px*var(--fscale));color:var(--text2);margin-top:3px;}
 .pd-tiers{font-size:calc(11px*var(--fscale));color:var(--gold2);background:rgba(212,160,23,.1);padding:2px 7px;border-radius:6px;display:inline-block;margin-top:3px;}
-.pd-amt{font-size:calc(16px*var(--fscale));font-weight:700;flex-shrink:0;}
+.pd-amt{font-size:calc(16px*var(--fscale));font-weight:700;flex-shrink:0;white-space:nowrap;}
+.pd-row>div:first-child{min-width:0;flex:1 1 auto;overflow-wrap:anywhere;}
 .pd-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
 
 /* PROGRESS */
@@ -325,6 +326,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 /* MODAL */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:9500;display:none;align-items:flex-end;}
 .ov.on{display:flex;}
+#ov-confirm-fonds-tiers,#ov-remb-source{z-index:9800;}
 .modal{background:var(--bg2);border-radius:24px 24px 0 0;padding:22px;width:100%;max-height:92vh;overflow-y:auto;border-top:1px solid var(--border2);box-shadow:0 -8px 40px rgba(0,0,0,.5);animation:up .28s ease;}
 @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-hd{width:36px;height:4px;background:var(--glass2);border-radius:2px;margin:0 auto 15px;}
@@ -996,7 +998,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <div class="sec">Depenses</div>
       <div class="card"><div class="card-hd">Repartition</div><div class="ch"><canvas id="ch-dep"></canvas></div></div>
       <div class="card"><div class="card-hd">Par categorie</div><div id="dep-cats"></div></div>
-      <div class="card"><div class="card-hd">Historique</div><div id="dep-list"></div></div>
+      <div class="card" id="dep-hist-card"><div class="card-hd" id="dep-hist-hd">Historique</div><div id="dep-list"></div></div>
     </div>
 
     <!-- DEPOTS AUTRUI -->
@@ -1007,7 +1009,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div class="sr"><span>Total en garde</span><span id="dp-tot" style="color:var(--purple);font-weight:700">0 F</span></div>
         <div class="sr"><span>Depots actifs</span><span id="dp-nb">0</span></div>
       </div>
-      <div id="dp-regul" style="display:none;margin:8px 0"><button class="btn-s" onclick="ouvrirRegularisationFondsTiers()">Regulariser l'argent de tiers utilise</button></div>
+      <div id="dp-regul" style="margin:8px 0"><button class="btn-s" onclick="ouvrirRegularisationFondsTiers()">Regulariser l'argent de tiers utilise</button></div>
       <div id="dp-list"></div>
     </div>
 
@@ -1615,25 +1617,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <button class="btn-p btn-red" style="margin-top:9px" onclick="repondreSyncAnomalies(true)">Restaurer quand meme</button>
     </div></div>
 
-    <!-- MODAL CONFIRMATION UTILISATION FONDS DE TIERS (globale, utilisee par toute operation debitant la tresorerie) -->
-    <div class="ov" id="ov-confirm-fonds-tiers"><div class="modal" onclick="event.stopPropagation()">
-      <div class="card-hd">Fonds de tiers</div>
-      <p id="cft-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px"></p>
-      <button class="btn-p btn-gold" onclick="confirmerFondsTiers()">Continuer</button>
-      <button class="btn-s" style="margin-top:9px" onclick="annulerFondsTiers()">Annuler</button>
-    </div></div>
-
-    <!-- MODAL : compte a reapprovisionner / repartition pour un remboursement -->
-    <div class="ov" id="ov-remb-source"><div class="modal" onclick="event.stopPropagation()">
-      <div class="card-hd">Compte non reapprovisionne</div>
-      <p id="rs-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0"></p>
-      <div class="fg"><label class="fl">Que voulez-vous faire ?</label><select class="fc" id="rs-choix" onchange="rsToggle()"><option value="transfert">Transfert compte a compte puis remboursement</option><option value="repartir">Repartir sur plusieurs comptes (total inchange)</option></select></div>
-      <div id="rs-transfert"><div class="fg"><label class="fl">Compte a debiter pour le transfert</label><select class="fc" id="rs-src"></select></div></div>
-      <div id="rs-repartir" style="display:none"><div id="rs-rows"></div><div id="rs-total" style="font-size:calc(12.5px*var(--fscale));margin:6px 0"></div></div>
-      <button class="btn-p btn-gold" onclick="rsValider()">Continuer</button>
-      <button class="btn-s" style="margin-top:9px" onclick="rsAnnuler()">Annuler</button>
-    </div></div>
-
     <!-- IA -->
     <div id="pg-ia" style="display:none">
       <div class="sec">Conseiller IA - Claude</div>
@@ -1688,19 +1671,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     <div id="pg-conv" style="display:none">
       <div class="sec">Convertisseur FCFA</div>
       <div class="card">
-        <div class="card-hd">Taux BCEAO</div>
-        <div class="sr"><span>1 EUR</span><span>= 655,96 FCFA (fixe)</span></div>
-        <div class="sr"><span>1 USD</span><span>&#x2248; 601,84 FCFA</span></div>
-        <div class="sr"><span>1 GBP</span><span>&#x2248; 762,5 FCFA</span></div>
-        <div class="sr"><span>1 CNY</span><span>&#x2248; 83,1 FCFA</span></div>
-        <div class="sr"><span>1 MAD</span><span>&#x2248; 60,2 FCFA</span></div>
+        <div class="card-hd">Taux de change</div>
+        <div id="cv-taux"></div>
+        <div id="cv-maj" style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:8px"></div>
+        <button class="btn-s" style="margin-top:8px" onclick="majTauxDevises(true)">Actualiser les taux</button>
       </div>
       <div class="card">
-        <div class="fg"><label class="fl">Montant FCFA</label><input class="fc" type="number" id="cv-fcfa" placeholder="ex: 100000" oninput="conv('fcfa')"></div>
-        <div class="cv-row"><span class="cv-flag">&#x1F1EA;&#x1F1FA;</span><input class="cv-val" id="cv-eur" type="number" placeholder="EUR" oninput="conv('eur')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">EUR</span></div>
-        <div class="cv-row"><span class="cv-flag">&#x1F1FA;&#x1F1F8;</span><input class="cv-val" id="cv-usd" type="number" placeholder="USD" oninput="conv('usd')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">USD</span></div>
-        <div class="cv-row"><span class="cv-flag">&#x1F1EC;&#x1F1E7;</span><input class="cv-val" id="cv-gbp" type="number" placeholder="GBP" oninput="conv('gbp')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">GBP</span></div>
-        <div class="cv-row"><span class="cv-flag">&#x1F1E8;&#x1F1F3;</span><input class="cv-val" id="cv-cny" type="number" placeholder="CNY" oninput="conv('cny')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">CNY</span></div>
+        <div class="fg"><label class="fl">Montant FCFA</label><input class="fc" type="text" inputmode="decimal" id="cv-fcfa" placeholder="ex: 100 000" oninput="conv('fcfa')"></div>
+        <div class="cv-row"><span class="cv-flag">&#x1F1EA;&#x1F1FA;</span><input class="cv-val" id="cv-eur" type="text" inputmode="decimal" placeholder="EUR" oninput="conv('eur')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">EUR</span></div>
+        <div class="cv-row"><span class="cv-flag">&#x1F1FA;&#x1F1F8;</span><input class="cv-val" id="cv-usd" type="text" inputmode="decimal" placeholder="USD" oninput="conv('usd')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">USD</span></div>
+        <div class="cv-row"><span class="cv-flag">&#x1F1EC;&#x1F1E7;</span><input class="cv-val" id="cv-gbp" type="text" inputmode="decimal" placeholder="GBP" oninput="conv('gbp')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">GBP</span></div>
+        <div class="cv-row"><span class="cv-flag">&#x1F1E8;&#x1F1F3;</span><input class="cv-val" id="cv-cny" type="text" inputmode="decimal" placeholder="CNY" oninput="conv('cny')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">CNY</span></div>
+        <div class="cv-row"><span class="cv-flag">&#x1F1F2;&#x1F1E6;</span><input class="cv-val" id="cv-mad" type="text" inputmode="decimal" placeholder="MAD" oninput="conv('mad')"><span style="font-size:calc(12px*var(--fscale));color:var(--text2);width:38px">MAD</span></div>
       </div>
     </div>
 
@@ -2623,6 +2605,26 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-annul-ecriture')">Annuler</button>
 </div></div>
 
+    <!-- MODAL CONFIRMATION UTILISATION FONDS DE TIERS (globale, utilisee par toute operation debitant la tresorerie) -->
+    <div class="ov" id="ov-confirm-fonds-tiers"><div class="modal" onclick="event.stopPropagation()">
+      <div class="card-hd">Fonds de tiers</div>
+      <p id="cft-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px"></p>
+      <button class="btn-p btn-gold" onclick="confirmerFondsTiers()">Continuer</button>
+      <button class="btn-s" style="margin-top:9px" onclick="annulerFondsTiers()">Annuler</button>
+    </div></div>
+
+    <!-- MODAL : compte a reapprovisionner / repartition pour un remboursement -->
+    <div class="ov" id="ov-remb-source"><div class="modal" onclick="event.stopPropagation()">
+      <div class="card-hd">Compte non reapprovisionne</div>
+      <p id="rs-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0"></p>
+      <div class="fg"><label class="fl">Que voulez-vous faire ?</label><select class="fc" id="rs-choix" onchange="rsToggle()"><option value="transfert">Transfert compte a compte puis remboursement</option><option value="repartir">Repartir sur plusieurs comptes (total inchange)</option></select></div>
+      <div id="rs-transfert"><div class="fg"><label class="fl">Compte a debiter pour le transfert</label><select class="fc" id="rs-src"></select></div></div>
+      <div id="rs-repartir" style="display:none"><div id="rs-rows"></div><div id="rs-total" style="font-size:calc(12.5px*var(--fscale));margin:6px 0"></div></div>
+      <button class="btn-p btn-gold" onclick="rsValider()">Continuer</button>
+      <button class="btn-s" style="margin-top:9px" onclick="rsAnnuler()">Annuler</button>
+    </div></div>
+
+
 <div class="ov" id="ov-remb-dette"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title" id="remb-dette-title">Rembourser une dette</div>
   <div class="fg"><label class="fl">Mode de remboursement</label><select class="fc" id="remb-mode" onchange="toggleRembMode()"><option value="tresorerie">Par tresorerie</option><option value="nature">En nature (biens, services)</option><option value="depot" id="remb-mode-opt-depot" style="display:none">Restituer sous forme de depot (467)</option></select></div>
@@ -2942,7 +2944,23 @@ function ouvrirNouvelleFam(){ouvrirNouvelleSaisie('ov-fam',['fam-nom','fam-charg
 function ouvrirNouvelleTontine(){ouvrirNouvelleSaisie('ov-ton',['ton-nom','ton-mise','ton-nb','ton-tour','ton-commission'],['ton-tiers'],['ton-debut','ton-debut2']);var tv=G('ton-type-valeur');if(tv)tv.value='especes';toggleTonCategorie();}
 function ouvrirNouveauTransfert(){ouvrirNouvelleSaisie('ov-transfert',[],[],[]);var d=G('tr-date');if(d)d.value=today();}
 function ouvrirNouveauTiersForm(){ouvrirNouvelleSaisie('ov-tiers',[],[],[]);}
-function closeOv(id){var el=G(id);if(el)el.classList.remove('on');}
+function closeOv(id){var el=G(id);if(el){var etaitOuvert=el.classList.contains('on');el.classList.remove('on');if(etaitOuvert)planifierReinitOv(id);}}
+// Un formulaire (fenetre de saisie) qui se ferme - operation terminee ou annulee - est remis a zero : la
+// saisie suivante ne herite jamais du compte, de la categorie, du mode ou du texte precedents. Differe de
+// 0,4 s pour ne pas gener le code qui lit encore les champs juste apres la fermeture, et annule si la
+// fenetre a ete rouverte entre-temps. Les dates sont remises a la date du jour.
+function planifierReinitOv(id){
+  if(id==='ov-menu'||id==='nav-drawer'||id==='ov-menu-groupe'||id.indexOf('confirm')>-1)return;
+  setTimeout(function(){
+    var el=G(id);if(!el||el.classList.contains('on'))return;
+    if(!el.querySelector('input,select,textarea'))return;
+    try{
+      var dates=[];el.querySelectorAll('input[type="date"]').forEach(function(d){if(d.value)dates.push(d);});
+      reinitialiserChampsOv(id);
+      dates.forEach(function(d){d.value=today();});
+    }catch(e){console.warn('reinit ov:',id,e);}
+  },400);
+}
 function openFab(){renderMenuRapide(false);openOv('ov-menu');}
 function refreshApp(){
   if(!currentDataKey){notif('Session verrouillee',true);return;}
@@ -4000,8 +4018,8 @@ function repartitionUsageTiers(cpt,montant){
   });
   return srcs.filter(function(s){return s.montant>0.005;});
 }
-function convertirFondsTiersEnDette(cpt,objet){
-  var utilise=fondsTiersSurCompte(cpt)-Math.max(0,D.comptes[cpt]||0);
+function convertirFondsTiersEnDette(cpt,objet,montantForce){
+  var utilise=montantForce!=null?montantForce:fondsTiersSurCompte(cpt)-Math.max(0,D.comptes[cpt]||0);
   if(utilise<=0.5)return 0;
   var parts=repartitionUsageTiers(cpt,utilise);
   if(!parts.length)return 0;
@@ -4391,7 +4409,58 @@ function migrerStatutsDettesPrets(){
 
 // ============ NAV ============
 var curPage='dashboard';
+// ---- Touche retour du telephone : ferme la fenetre ouverte, puis revient a la page precedente, puis a
+// l'Accueil ; depuis l'Accueil, un second appui (sous 2 s) quitte l'application ----
+var _pileNav=[],_navRetour=false,_quitArme=false,_quitTimer=null;
+function ovOuvertDuHaut(){
+  var best=null,bz=-1;
+  document.querySelectorAll('.ov.on').forEach(function(el){
+    var z=Number(getComputedStyle(el).zIndex)||0;
+    if(z>=bz){bz=z;best=el;}
+  });
+  return best;
+}
+function armerRetour(){try{history.pushState({mpp:'garde'},'');}catch(e){}}
+function initRetourTelephone(){
+  if(window._retourInit)return;window._retourInit=true;
+  try{history.replaceState({mpp:'base'},'');armerRetour();}catch(e){return;}
+  window.addEventListener('popstate',function(){
+    // application verrouillee : on ne navigue pas, on garde simplement la garde en place
+    var ov=ovOuvertDuHaut();
+    if(ov){
+      armerRetour();
+      var id=ov.id;
+      if(id==='ov-confirm-fonds-tiers')annulerFondsTiers();
+      else if(id==='ov-remb-source')rsAnnuler();
+      else closeOv(id);
+      return;
+    }
+    if(!currentDataKey){armerRetour();return;}
+    if(_pileNav.length){
+      armerRetour();
+      var prev=_pileNav.pop();
+      _navRetour=true;try{goPage(prev);}finally{_navRetour=false;}
+      return;
+    }
+    if(curPage!=='dashboard'){
+      armerRetour();
+      _navRetour=true;try{goPage('dashboard');}finally{_navRetour=false;}
+      return;
+    }
+    if(!_quitArme){
+      _quitArme=true;armerRetour();
+      try{notif('Appuyez encore sur Retour pour quitter');}catch(e){}
+      clearTimeout(_quitTimer);_quitTimer=setTimeout(function(){_quitArme=false;},2000);
+      return;
+    }
+    // second appui : on laisse le navigateur quitter (la garde n'est pas remise)
+    try{history.back();}catch(e){}
+  });
+}
+setTimeout(initRetourTelephone,300);
 function goPage(p,btn){
+  var _prevPg=curPage;
+  if(!_navRetour&&_prevPg&&_prevPg!==p){_pileNav.push(_prevPg);if(_pileNav.length>30)_pileNav.shift();}
   document.querySelectorAll('[id^="pg-"]').forEach(function(el){el.style.display='none';});
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
   var pg=G('pg-'+p);if(pg){pg.style.display='';curPage=p;}
@@ -4410,6 +4479,7 @@ function goPage(p,btn){
     }
   }catch(e){}
   try{renderAll();}catch(e){console.warn('renderAll:',p,e);}
+  if(p==='conv'){try{majTauxDevises(false);}catch(e){}}
   var fabBtn=G('fab');if(fabBtn){fabBtn.style.display=(p==='controles'||p==='impression'||p==='ia')?'none':'flex';fabBtn.classList.remove('fab-hidden');}
   closeOv('nav-drawer');
 }
@@ -8941,23 +9011,35 @@ function fondsTiersExcedents(){
   });
   return out;
 }
+// Reaffectations automatiques faites par la v119 (journal d'audit) : le depot a ete deplace vers un autre
+// compte sans aucun mouvement ni ecriture. On les transforme en dette envers le tiers.
+function reaffectationsEnAttente(){
+  var out=[];
+  (D.journalAudit||[]).forEach(function(l){
+    if(l.action!=='Fonds de tiers reaffectes'||l.regularise)return;
+    String(l.nouvelleValeur||'').split(', ').forEach(function(seg){
+      var m=seg.match(/^([\d\s\u00a0\u202f.,]+)\s*F vers (.+)$/);if(!m)return;
+      var mt=Number(m[1].replace(/\D/g,''));if(mt>0)out.push({log:l,compte:m[2].trim(),montant:mt});
+    });
+  });
+  return out;
+}
 function ouvrirRegularisationFondsTiers(){
-  var ex=fondsTiersExcedents();
-  if(!ex.length){notif('Rien a regulariser : aucun compte ne contient moins que l\'argent de tiers qui lui est rattache');return;}
-  var txt=ex.map(function(e){
-    var p=repartitionUsageTiers(e.compte,e.excedent).map(function(x){return x.nom+' '+fmt(Math.round(x.montant))+' F';}).join(', ');
-    return e.compte+' : '+fmt(Math.round(e.excedent))+' F ('+p+')';
-  }).join(' ; ');
+  var re=reaffectationsEnAttente(),ex=fondsTiersExcedents();
+  if(!re.length&&!ex.length){notif('Rien a regulariser : aucune utilisation d\'argent de tiers non tracee');return;}
+  var det=function(c,m){return repartitionUsageTiers(c,m).map(function(x){return x.nom+' '+fmt(Math.round(x.montant))+' F';}).join(', ');};
+  var txt=re.map(function(r){return fmt(r.montant)+' F deplaces vers '+r.compte+' ('+det(r.compte,r.montant)+')';}).concat(ex.map(function(e){return e.compte+' : '+fmt(Math.round(e.excedent))+' F manquants ('+det(e.compte,e.excedent)+')';})).join(' ; ');
   _fondsTiersPendingCtx={onConfirm:function(){
-    var tot=0;ex.forEach(function(e){tot+=convertirFondsTiersEnDette(e.compte,'Regularisation (operation anterieure)');});
+    var tot=0;
+    re.forEach(function(r){tot+=convertirFondsTiersEnDette(r.compte,'Regularisation (reaffectation anterieure)',r.montant);r.log.regularise=true;});
+    fondsTiersExcedents().forEach(function(e){tot+=convertirFondsTiersEnDette(e.compte,'Regularisation (operation anterieure)');});
     save();renderDepots();try{renderAll();}catch(e){}
     notif('Regularisation faite : '+fmt(Math.round(tot))+' F devenus dette envers les tiers concernes');
   }};
-  var t=G('cft-texte');if(t)t.textContent='Ces comptes contiennent moins que l\'argent de tiers qui leur est rattache : '+txt+'. Cet excedent sera retire du depot concerne et enregistre comme dette envers le tiers (ecriture 467 vers 401). Les soldes des comptes ne changent pas. Continuer ?';
+  var t=G('cft-texte');if(t)t.textContent='Argent de tiers utilise sans trace : '+txt+'. Ces montants seront retires du depot concerne et enregistres comme dette envers le tiers (ecriture 467 vers 401, visible dans Dettes). Les soldes des comptes ne changent pas. Continuer ?';
   openOv('ov-confirm-fonds-tiers');
 }
 function renderDepots(){
-  var rg=G('dp-regul');if(rg)rg.style.display=fondsTiersExcedents().length?'':'none';
   var tot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
   var e1=G('dp-tot'),e2=G('dp-nb');
   if(e1)e1.textContent=fmt(tot)+' F';if(e2)e2.textContent=(D.depots||[]).length;
@@ -8966,6 +9048,8 @@ function renderDepots(){
   el.innerHTML='';
   (D.depots||[]).forEach(function(d,i){
     var rep=depotRepartitions(d);
+    var dtI=-1,dtM=0;(D.dettes||[]).forEach(function(x,ix){if(x.autoType==='fonds_tiers_utilise'&&detteEstActive(x)&&x.creancier===(d.deposant||'Depot')&&(x.tiers||'')===(d.tiers||'')){if(dtI<0)dtI=ix;dtM+=Number(x.montant||0);}});
+    var detteTxt=dtM>0?'<div class="pd-sub" style="color:var(--orange)">Dette envers lui (argent utilise) : '+fmt(dtM)+' F - total du : '+fmt(Number(d.montant||0)+dtM)+' F</div>':'';
     var venti=rep.length>1?rep.map(function(r){return escHtml(r.compte)+': '+fmt(r.montant)+' F';}).join(' | '):escHtml(d.compte);
     var div=document.createElement('div');div.className='pd pd-dp';
     div.innerHTML=
@@ -8974,7 +9058,7 @@ function renderDepots(){
         (d.tiers?'<span class="pd-tiers">'+escHtml(d.tiers)+'</span>':'')+
         '<div class="pd-sub">'+escHtml(d.objet||'')+'</div>'+
         '<div class="pd-sub">Recu '+fmtD(d.date)+' - '+venti+'</div>'+
-        '<div class="pd-sub">Restitution: '+(d.restitution?fmtD(d.restitution):'Non definie')+'</div></div>'+
+        '<div class="pd-sub">Restitution: '+(d.restitution?fmtD(d.restitution):'Non definie')+'</div>'+detteTxt+'</div>'+
         '<div style="text-align:right"><div class="pd-amt" style="color:var(--purple)">'+fmt(d.montant)+' F</div></div>'+
       '</div>'+
       '<div class="pd-actions">'+
@@ -8983,6 +9067,7 @@ function renderDepots(){
         '<span class="bdg br" data-action="prel">Prelever</span>'+
         '<span class="bdg bo" data-action="pretdep">Pret accorde</span>'+
         (rep.length>0?'<span class="bdg bi" data-action="transf">Transferer</span>':'')+
+        (dtI>-1?'<span class="bdg br" data-action="rembdette">Rembourser la dette</span>':'')+
         '<span class="bdg bs" data-action="supp">Suppr.</span>'+
       '</div>';
     div.querySelectorAll('[data-action]').forEach(function(btn){
@@ -8993,6 +9078,7 @@ function renderDepots(){
         else if(ac==='prel')openPrelevDepot();
         else if(ac==='pretdep')openPretAccordeDepot(i);
         else if(ac==='transf')ouvrirDepotTransfert(i);
+        else if(ac==='rembdette')ouvrirRembourser(dtI);
         else if(ac==='supp')annulerDepot(i);
       });
     });
@@ -12810,6 +12896,15 @@ function historiqueTresorerieComplet(){
 function renderTxList(f,moisCourantSeulement){
   var hist=historiqueTresorerieComplet();
   var list=f==='tous'?hist:hist.filter(function(t){return t.compte===f||t.compteDest===f;});
+  if(f==='Frais Transfert'){
+    // Le compteur "Frais" n'a pas de mouvements propres : l'historique est lu dans les ecritures de frais (627).
+    list=[];
+    (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){
+      if(l.compte!=='627')return;
+      list.push({type:l.sens==='D'?'debit':'credit',compte:'Frais',libelle:e.libelle,montant:Number(l.montant||0),date:e.date,tiers:l.tiers||'',ref:e.ref});
+    });});
+    list.sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));});
+  }
   if(moisCourantSeulement){
     var y=new Date().getFullYear(),m=new Date().getMonth();
     list=list.filter(function(t){var d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
@@ -12844,16 +12939,34 @@ function renderRev(){
 }
 
 // ============ DEPENSES ============
+var _depFiltreCat='';
+function filtrerDepCat(cat){
+  _depFiltreCat=(_depFiltreCat===cat)?'':cat;
+  renderDep();
+  if(_depFiltreCat){var c=G('dep-hist-card');if(c&&c.scrollIntoView)c.scrollIntoView({behavior:'smooth',block:'start'});}
+}
 function renderDep(){
   var cats={};(D.depenses||[]).forEach(function(d){cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
+  if(_depFiltreCat&&!(_depFiltreCat in cats))_depFiltreCat='';
   var tot=(D.depenses||[]).reduce(function(a,d){return a+Number(d.montant);},0);
   var pfx=['pfg','pfb','pfo','pfr','pfp'];
   var ec=G('dep-cats');
-  if(ec)ec.innerHTML=Object.keys(cats).length?Object.entries(cats).sort(function(a,b){return b[1]-a[1];}).map(function(e,i){
-    return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:calc(13px*var(--fscale));margin-bottom:4px"><span>'+e[0]+'</span><span style="font-weight:600">'+fmt(e[1])+' F</span></div><div class="pb"><div class="pf '+pfx[i%pfx.length]+'" style="width:'+(tot?Math.round(e[1]/tot*100):0)+'%"></div></div></div>';
-  }).join(''):'<div class="empty"><div class="empty-txt">Aucune depense</div></div>';
+  var lstCats=Object.entries(cats).sort(function(a,b){return b[1]-a[1];});
+  if(ec){
+    ec.innerHTML=lstCats.length?lstCats.map(function(e,i){
+      var on=_depFiltreCat===e[0];
+      return '<div class="dep-cat-row" data-i="'+i+'" style="margin-bottom:10px;cursor:pointer;padding:6px 8px;border-radius:10px;'+(on?'background:rgba(212,160,23,.12);outline:1px solid var(--gold2)':'')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-size:calc(13px*var(--fscale));margin-bottom:4px"><span>'+escHtml(e[0])+(on?' &#10003;':'')+'</span><span style="font-weight:600;white-space:nowrap">'+fmt(e[1])+' F</span></div><div class="pb"><div class="pf '+pfx[i%pfx.length]+'" style="width:'+(tot?Math.round(e[1]/tot*100):0)+'%"></div></div></div>';
+    }).join(''):'<div class="empty"><div class="empty-txt">Aucune depense</div></div>';
+    ec.querySelectorAll('.dep-cat-row').forEach(function(r){r.addEventListener('click',function(){filtrerDepCat(lstCats[Number(this.getAttribute('data-i'))][0]);});});
+  }
+  var hd=G('dep-hist-hd');
+  if(hd){
+    hd.innerHTML=_depFiltreCat?'Historique - '+escHtml(_depFiltreCat)+' <span style="float:right;cursor:pointer;color:var(--gold2);font-size:calc(12px*var(--fscale))" id="dep-filtre-x">Tout afficher &#10005;</span>':'Historique';
+    var x=G('dep-filtre-x');if(x)x.addEventListener('click',function(){filtrerDepCat(_depFiltreCat);});
+  }
   var el=G('dep-list');if(!el)return;
-  el.innerHTML=(D.depenses||[]).length?[...(D.depenses||[])].reverse().map(function(d){
+  var liste=(D.depenses||[]).filter(function(d){return !_depFiltreCat||d.categorie===_depFiltreCat;});
+  el.innerHTML=liste.length?[...liste].reverse().map(function(d){
     return '<div class="tx"><div class="tx-ico idb">-</div><div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(d.tiers):'')+'</div><span class="tx-tag">'+escHtml(d.categorie)+' depuis '+escHtml(d.compte)+'</span></div><div class="tx-amt adb">-'+fmt(d.montant)+' F</div></div>';
   }).join(''):'<div class="empty"><div class="empty-txt">Aucune depense</div></div>';
   setTimeout(buildDepChart,100);
@@ -14164,11 +14277,57 @@ function buildRapChart(){
 }
 
 // ============ CONVERTISSEUR ============
-var rates={eur:655.96,usd:601.84,gbp:762.5,cny:83.1};
+var rates={eur:655.957,usd:601.84,gbp:762.5,cny:83.1,mad:60.2};
+var _tauxMaj='';
+function cvLire(el){
+  var v=String((el&&el.value)||'').replace(/[\s\u00a0\u202f]/g,'').replace(',','.');
+  var n=Number(v);return isFinite(n)?n:0;
+}
+function cvFormater(n,dec){
+  if(!n&&n!==0)return '';
+  return Number(n).toLocaleString('fr-FR',{maximumFractionDigits:dec==null?2:dec}).replace(/\u202f/g,' ').replace(/\u00a0/g,' ');
+}
+// Saisie : separe les milliers pendant la frappe (garde la partie decimale telle que tapee)
+function cvMiseEnForme(el){
+  var raw=String(el.value||'').replace(/[^\d.,]/g,'');
+  var sep=raw.search(/[.,]/),ent=sep<0?raw:raw.slice(0,sep),dec=sep<0?null:raw.slice(sep+1).replace(/[.,]/g,'');
+  ent=ent.replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+  el.value=dec===null?ent:(ent||'0')+','+dec;
+}
+function cvAfficherTaux(){
+  var el=G('cv-taux');if(!el)return;
+  var lbl={eur:'EUR',usd:'USD',gbp:'GBP',cny:'CNY',mad:'MAD'};
+  el.innerHTML=Object.keys(lbl).map(function(k){return '<div class="sr"><span>1 '+lbl[k]+'</span><span>'+(k==='eur'?'= ':'&#x2248; ')+cvFormater(rates[k],k==='eur'?3:2)+' FCFA'+(k==='eur'?' (fixe)':'')+'</span></div>';}).join('');
+  var m=G('cv-maj');if(m)m.textContent=_tauxMaj?'Taux mis a jour le '+_tauxMaj:'Taux de reference hors connexion (non actualises)';
+}
 function conv(src){
-  var fcfa=Number((G('cv-fcfa')||{}).value||0);
-  if(src==='fcfa'){Object.keys(rates).forEach(function(k){var el=G('cv-'+k);if(el)el.value=fcfa?+(fcfa/rates[k]).toFixed(2):'';});}
-  else{var val=Number((G('cv-'+src)||{}).value||0),f=Math.round(val*rates[src]);var ef=G('cv-fcfa');if(ef)ef.value=f||'';Object.keys(rates).filter(function(k){return k!==src;}).forEach(function(k){var el=G('cv-'+k);if(el)el.value=f?+(f/rates[k]).toFixed(2):'';});}
+  var ok=Object.keys(rates);
+  if(src!=='fcfa'&&ok.indexOf(src)<0)return;
+  var champ=G('cv-'+src);if(champ)cvMiseEnForme(champ);
+  if(src==='fcfa'){var fcfa=cvLire(G('cv-fcfa'));ok.forEach(function(k){var el=G('cv-'+k);if(el)el.value=fcfa?cvFormater(fcfa/rates[k],2):'';});}
+  else{
+    var val=cvLire(G('cv-'+src)),f=Math.round(val*rates[src]);
+    var ef=G('cv-fcfa');if(ef)ef.value=f?cvFormater(f,0):'';
+    ok.filter(function(k){return k!==src;}).forEach(function(k){var el=G('cv-'+k);if(el)el.value=f?cvFormater(f/rates[k],2):'';});
+  }
+}
+// Taux automatiques : API publique (base XOF), mis en cache ; EUR reste a la parite fixe 655,957.
+function majTauxDevises(manuel){
+  try{var c=D.parametres&&D.parametres.tauxDevises;if(c&&c.rates){Object.keys(c.rates).forEach(function(k){if(c.rates[k]>0)rates[k]=c.rates[k];});_tauxMaj=c.maj||'';}}catch(e){}
+  cvAfficherTaux();
+  var dernier=_tauxMaj?new Date(_tauxMaj.split('/').reverse().join('-')).getTime():0;
+  if(!manuel&&dernier&&Date.now()-dernier<6*3600*1000)return;
+  if(typeof fetch!=='function')return;
+  fetch('https://open.er-api.com/v6/latest/XOF').then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(j){
+    var r=j&&j.rates;if(!r||!r.USD)throw new Error('reponse invalide');
+    var nv={};['USD','GBP','CNY','MAD'].forEach(function(c){if(r[c]>0)nv[c.toLowerCase()]=1/r[c];});
+    Object.keys(nv).forEach(function(k){rates[k]=nv[k];});
+    _tauxMaj=new Date().toLocaleDateString('fr-FR')+' '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    if(!D.parametres)D.parametres={};
+    D.parametres.tauxDevises={maj:_tauxMaj,rates:nv};
+    try{save();}catch(e){}
+    cvAfficherTaux();if(manuel)notif('Taux actualises');
+  }).catch(function(e){if(manuel)notif('Impossible d\'actualiser les taux (connexion ?) - derniers taux conserves',true);});
 }
 
 // ============ EXPORT / IMPORT ============
