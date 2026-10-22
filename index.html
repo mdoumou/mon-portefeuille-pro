@@ -144,6 +144,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .mq-done{background:var(--gold);color:#0A1628;border:0;border-radius:10px;padding:7px 12px;font-weight:700;cursor:pointer;display:block;}
 .mq-close-bas{display:block;width:100%;margin-top:14px;padding:11px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:12px;font-size:13px;cursor:pointer;}
 .mq-edit .mq-close-bas{display:none;}
+.mq-grip{display:none;align-items:center;justify-content:center;min-width:30px;height:30px;border:1px dashed var(--border2);border-radius:8px;color:var(--gold2);font-size:16px;letter-spacing:-3px;touch-action:none;cursor:grab;user-select:none;}
+.mq-edit .mq-grip{display:inline-flex;}
+.mq-sec.dragging-sec{opacity:.6;transform:scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,.5);position:relative;z-index:6;background:var(--bg2);border-radius:14px;}
+.mq-ren{background:transparent;border:1px solid var(--border2);color:var(--gold2);border-radius:10px;padding:5px 10px;font-size:12px;cursor:pointer;}
 .mq-edit-btn{background:transparent;border:1px solid var(--border2);color:var(--gold2);border-radius:10px;padding:5px 10px;font-size:12px;cursor:pointer;}
 .mq-reset{width:100%;margin-top:18px;background:transparent;border:1px dashed var(--border2);color:var(--text2);border-radius:12px;padding:10px;cursor:pointer;}
 .mq-items{max-height:260px;overflow-y:auto;border:1px solid var(--border2);border-radius:12px;padding:6px 10px;}
@@ -389,6 +393,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .res-titre{font-size:calc(12px*var(--fscale));font-weight:700;color:var(--gold2);margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px;}
 .res-ligne{display:flex;justify-content:space-between;font-size:calc(14px*var(--fscale));padding:5px 0;border-bottom:1px solid var(--border);}
 .res-ligne:last-child{border-bottom:none;}
+/* Montants : jamais coupes sur deux lignes ("-31 150" / "F") ; c'est le libelle qui passe a la ligne.
+   S'applique aux lignes "libelle ... montant" des etats financiers, releves et cartes de chiffres. */
+.res-ligne>span:first-child,.sr>span:first-child{min-width:0;flex:1}
+.res-ligne>span:last-child,.sr>span:last-child{white-space:nowrap;flex-shrink:0;margin-left:10px;text-align:right}
+[style*="justify-content:space-between"]>span[style*="font-weight"]:last-child{white-space:nowrap;flex-shrink:0;margin-left:10px;text-align:right}
+[style*="justify-content:space-between"]>span:first-child:not(:last-child){min-width:0}
+.st-val,.pat-val,.hero-val,.pj-ind-val,.pv-val,.rap-val,.tx-amt{white-space:nowrap}
 
 /* OP LIGNE */
 .op-line{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:var(--r3);padding:11px;margin-bottom:7px;}
@@ -588,8 +599,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     </div>
   </div>
 
-  <div class="ov" id="nav-drawer"><div class="modal" onclick="event.stopPropagation()">
-    <div class="card-hd" style="margin-bottom:6px">Menu</div>
+  <div class="ov" id="nav-drawer" onclick="closeOv('nav-drawer')"><div class="modal" onclick="event.stopPropagation()">
+    <div style="position:sticky;top:-22px;z-index:2;margin:-22px -22px 6px;padding:16px 22px 10px;background:var(--bg2);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+      <div class="card-hd" style="margin:0;border:0;padding:0">Menu</div>
+      <button type="button" onclick="closeOv('nav-drawer')" aria-label="Fermer le menu" style="background:var(--glass2);border:1px solid var(--border2);color:var(--text);border-radius:20px;padding:7px 16px;font-size:calc(13px*var(--fscale));font-weight:700;cursor:pointer">&#x2715; Fermer</button>
+    </div>
     <div class="nav-grp">
       <div class="nav-grp-lbl">Vue d'ensemble</div>
       <button class="nb on" id="nb-dashboard" onclick="goPage('dashboard',this)"><span class="ni">&#x1F4CA;</span>Tableau</button>
@@ -638,6 +652,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <button class="nb" id="nb-ia" onclick="goPage('ia',this)"><span class="ni">&#x1F916;</span>IA</button>
       <button class="nb" id="nb-conv" onclick="goPage('conv',this)"><span class="ni">&#x1F4B1;</span>Devises</button>
     </div>
+    <button type="button" class="btn-s" style="width:100%;margin-top:10px" onclick="closeOv('nav-drawer')">Fermer le menu</button>
   </div></div>
 
   <div class="content">
@@ -1386,7 +1401,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div id="compta-plan-list"></div>
       </div>
       <div id="compta-tiers" style="display:none">
-        <button class="btn-p btn-gold" style="margin-bottom:11px;padding:11px;font-size:calc(14px*var(--fscale))" onclick="openOv('ov-tiers')">+ Nouveau tiers</button>
+        <button class="btn-p btn-gold" style="margin-bottom:11px;padding:11px;font-size:calc(14px*var(--fscale))" onclick="ouvrirNouveauTiersForm()">+ Nouveau tiers</button>
         <div id="tiers-tri"></div>
         <div id="tiers-list"></div>
       </div>
@@ -2864,7 +2879,35 @@ function notif(msg,err){
   clearTimeout(notif._t);notif._t=setTimeout(function(){el.classList.remove('on');},2800);
 }
 function openOv(id){var el=G(id);if(el)el.classList.add('on');}
+// Remet TOUS les champs d'un formulaire a leur etat d'origine (listes de comptes/categories/modes
+// ramenees a leur choix par defaut, cases decochees, champs vides) : une nouvelle ecriture ne doit jamais
+// heriter du choix de la precedente (compte de tresorerie, categorie de charge, mode...). Les champs
+// caches (etat interne) ne sont pas touches. Les listes/cases qui pilotent l'affichage (onchange) sont
+// notifiees pour que le formulaire reflete bien l'etat par defaut.
+function reinitialiserChampsOv(ovId){
+  var ov=G(ovId);if(!ov)return;
+  var notifs=[];
+  ov.querySelectorAll('select').forEach(function(sel){
+    var k=-1;
+    for(var i=0;i<sel.options.length;i++){if(sel.options[i].defaultSelected){k=i;break;}}
+    sel.selectedIndex=sel.options.length?(k>=0?k:0):-1;
+    if(sel.getAttribute('onchange'))notifs.push(sel);
+  });
+  ov.querySelectorAll('input,textarea').forEach(function(el){
+    var t=(el.type||'').toLowerCase();
+    if(t==='hidden'||t==='button'||t==='submit'||t==='file')return;
+    if(t==='checkbox'||t==='radio'){
+      if(el.checked!==el.defaultChecked){el.checked=el.defaultChecked;if(el.getAttribute('onchange')||el.getAttribute('onclick'))notifs.push(el);}
+      return;
+    }
+    el.value=(t==='date')?'':(el.defaultValue||'');
+  });
+  notifs.forEach(function(el){try{el.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}});
+  // champ "nom" des tiers a nom libre (Collegue, Passage...) : masque + vide si le tiers n'est plus choisi
+  TIERS_SELECT_IDS.forEach(function(id){var sel=G(id);if(sel&&ov.contains(sel)){try{toggleTiersPassageInput(id);}catch(e){}}});
+}
 function ouvrirNouvelleSaisie(ovId,textIds,tiersIds,dateIds){
+  reinitialiserChampsOv(ovId);
   // Reinitialise systematiquement les champs texte/nombre et surtout les selects "Code tiers"
   // avant chaque nouvelle saisie, pour eviter qu'une valeur laissee par une saisie precedente
   // (ex: un tiers choisi pour une autre personne) ne se retrouve attachee par erreur.
@@ -2877,14 +2920,16 @@ function ouvrirNouvelleSaisie(ovId,textIds,tiersIds,dateIds){
 }
 function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-frais'],['tx-tiers'],['tx-date']);}
 function ouvrirNouveauRev(){ouvrirNouvelleSaisie('ov-rev',['rev-lib','rev-amt','rev-frais'],['rev-tiers'],['rev-date']);}
-function ouvrirNouvelleDep(){ouvrirNouvelleSaisie('ov-dep',['dep-lib','dep-amt','dep-frais'],['dep-tiers'],['dep-date']);}
+function ouvrirNouvelleDep(){_chargeLinkIdPourDep='';ouvrirNouvelleSaisie('ov-dep',['dep-lib','dep-amt','dep-frais'],['dep-tiers'],['dep-date']);}
 function ouvrirNouveauDepot(){ouvrirNouvelleSaisie('ov-depot',['dpt-dep','dpt-obj','dpt-amt','dpt-rest','dpt-frais'],['dpt-tiers'],['dpt-date']);}
 function ouvrirNouvelleDette(){ouvrirNouvelleSaisie('ov-dette',['det-cred','det-obj','det-amt','det-ech','det-nature-desc','det-frais'],['det-tiers'],[]);var _nc=G('det-nature-cpt');if(_nc)_nc.value='';}
 function ouvrirNouveauPret(){ouvrirNouvelleSaisie('ov-pret',['pret-deb','pret-obj','pret-amt','pret-ech','pret-frais'],['pret-tiers'],['pret-date']);}
 function ouvrirNouvellePromesse(){ouvrirNouvelleSaisie('ov-prom',['prom-pers','prom-desc','prom-amt'],['prom-tiers'],['prom-date']);}
 function ouvrirNouvelleReg(){ouvrirNouvelleSaisie('ov-regularisation',['reg-lib','reg-amt'],['reg-tiers'],['reg-date']);}
 function ouvrirNouvelleFam(){ouvrirNouvelleSaisie('ov-fam',['fam-nom','fam-charge'],['fam-tiers'],[]);var fp=G('fam-per');if(fp)fp.value='mensuel';}
-function ouvrirNouvelleTontine(){toggleTonCategorie();var tv=G('ton-type-valeur');if(tv)tv.value='especes';ouvrirNouvelleSaisie('ov-ton',['ton-nom','ton-mise','ton-nb','ton-tour','ton-commission'],['ton-tiers'],['ton-debut','ton-debut2']);}
+function ouvrirNouvelleTontine(){ouvrirNouvelleSaisie('ov-ton',['ton-nom','ton-mise','ton-nb','ton-tour','ton-commission'],['ton-tiers'],['ton-debut','ton-debut2']);var tv=G('ton-type-valeur');if(tv)tv.value='especes';toggleTonCategorie();}
+function ouvrirNouveauTransfert(){ouvrirNouvelleSaisie('ov-transfert',[],[],[]);var d=G('tr-date');if(d)d.value=today();}
+function ouvrirNouveauTiersForm(){ouvrirNouvelleSaisie('ov-tiers',[],[],[]);}
 function closeOv(id){var el=G(id);if(el)el.classList.remove('on');}
 function openFab(){renderMenuRapide(false);openOv('ov-menu');}
 function refreshApp(){
@@ -3861,6 +3906,76 @@ function totalFondsTontinesGerees(){
 function totalFondsDeposantsAutrui(){
   return (D.depots||[]).reduce(function(a,d){return a+Number(d.montant||0);},0);
 }
+// ---- Fonds de tiers localises PAR COMPTE (depots recus, tontines gerees) ----
+// Chaque depot / tontine geree sait sur quel(s) compte(s) l'argent se trouve (repartitions). La verification
+// globale seule laissait passer une depense payee depuis un compte contenant surtout l'argent d'un
+// deposant des qu'il restait des fonds personnels ailleurs.
+function fondsTiersSurCompte(cpt){
+  var tot=0;
+  (D.depots||[]).forEach(function(d){depotRepartitions(d).forEach(function(r){if(r.compte===cpt)tot+=Number(r.montant||0);});});
+  (D.tontines||[]).forEach(function(t){if(t.categorie==='gere')tonRepartitions(t).forEach(function(r){if(r.compte===cpt)tot+=Number(r.montant||0);});});
+  return tot;
+}
+function detailFondsTiersSurCompte(cpt){
+  var out=[];
+  (D.depots||[]).forEach(function(d){var m=0;depotRepartitions(d).forEach(function(r){if(r.compte===cpt)m+=Number(r.montant||0);});if(m>0)out.push({nom:d.deposant||'Depot',montant:m});});
+  (D.tontines||[]).forEach(function(t){if(t.categorie!=='gere')return;var m=0;tonRepartitions(t).forEach(function(r){if(r.compte===cpt)m+=Number(r.montant||0);});if(m>0)out.push({nom:'Tontine '+(t.nom||''),montant:m});});
+  return out;
+}
+// Part qui m'appartient reellement sur un compte (solde moins l'argent d'autrui qui s'y trouve)
+function libreSurCompte(c){return Math.max(0,(D.comptes[c]||0)-fondsTiersSurCompte(c));}
+// Comptes ou l'argent d'autrui peut etre reaffecte (mes fonds personnels) : hors compteurs techniques et
+// hors Epargne (reservee aux projets)
+function comptesReaffectation(exclu){
+  return COMPTES_TRES.filter(function(c){return c!==exclu&&c!=='Frais Transfert'&&c!=='Transit 585'&&c!=='Banque Epargne';});
+}
+function libreAilleurs(cpt){
+  return comptesReaffectation(cpt).reduce(function(a,c){return a+libreSurCompte(c);},0);
+}
+// Apres un debit : si le compte contient moins que l'argent d'autrui qui lui est rattache, le depot (ou la
+// tontine geree) est reaffecte aux comptes ou j'ai des fonds personnels libres. Le passif envers le tiers
+// ne change pas (somme des repartitions inchangee) ; seul l'endroit ou se trouve son argent change.
+// Ce qui ne peut pas etre reaffecte (pas assez de fonds personnels ailleurs) reste traite par la dette de
+// tracabilite "fonds de tiers a regulariser". Retourne le montant reaffecte.
+function relocaliserFondsTiers(cpt){
+  var exces=fondsTiersSurCompte(cpt)-Math.max(0,D.comptes[cpt]||0);
+  if(exces<=0.5)return 0;
+  var cibles=comptesReaffectation(cpt).map(function(c){return {c:c,libre:libreSurCompte(c)};})
+    .filter(function(x){return x.libre>0.5;}).sort(function(a,b){return b.libre-a.libre;});
+  var deplace=0,vers={};
+  function prendre(max){
+    var res=[],reste=max;
+    cibles.forEach(function(x){if(reste<=0.0001||x.libre<=0.0001)return;var m=Math.min(reste,x.libre);x.libre-=m;reste-=m;res.push({c:x.c,m:m});});
+    return res;
+  }
+  function deplacerDans(rep){
+    var ligne=rep.find(function(r){return r.compte===cpt;});
+    if(!ligne||ligne.montant<=0||exces-deplace<=0.0001)return false;
+    var alloc=prendre(Math.min(ligne.montant,exces-deplace));
+    if(!alloc.length)return false;
+    alloc.forEach(function(a){
+      ligne.montant-=a.m;deplace+=a.m;vers[a.c]=(vers[a.c]||0)+a.m;
+      var ex=rep.find(function(r){return r.compte===a.c;});
+      if(ex)ex.montant+=a.m;else rep.push({compte:a.c,montant:a.m});
+    });
+    return true;
+  }
+  (D.depots||[]).forEach(function(d){
+    var rep=depotRepartitions(d).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
+    if(deplacerDans(rep)){d.repartitions=rep.filter(function(r){return r.montant>0.01;});depotSyncMontantEtCompte(d);}
+  });
+  (D.tontines||[]).forEach(function(t){
+    if(t.categorie!=='gere')return;
+    var rep=tonRepartitions(t).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
+    if(deplacerDans(rep))t.repartitions=rep.filter(function(r){return r.montant>0.01;});
+  });
+  if(deplace>0.5){
+    var txt=Object.keys(vers).map(function(c){return fmt(Math.round(vers[c]))+' F vers '+c;}).join(', ');
+    auditLog('Fonds de tiers reaffectes','Tresorerie',cpt,txt,'Depense payee depuis '+cpt+' : l\'argent d\'autrui qui s\'y trouvait a ete reaffecte aux comptes ou j\'ai des fonds personnels');
+    try{notif('Argent d\'autrui reaffecte : '+txt);}catch(e){}
+  }
+  return deplace;
+}
 function tresorerieDisponibleGlobale(){
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var soldeEpargne=(D.parametres&&D.parametres.epargneUrgence)?0:(D.comptes['Banque Epargne']||0);
@@ -3925,17 +4040,20 @@ function verifierDebit(cpt,montant,opts){
       return {ok:false};
     }
   }
-  var manqueFondsTiers=0;
+  var manqueFondsTiers=0,entameCompte=0;
   if(!opts.allowFondsTiers){
     var dispo=tresorerieDisponibleGlobale();
-    if(dispo<montant){
-      manqueFondsTiers=montant-Math.max(0,dispo);
-      // Remplace l'ancien confirm() natif : au lieu de bloquer la fonction en attendant une reponse
-      // synchrone, on signale au niveau superieur (execDebitAvecConfirmation) qu'une confirmation
-      // asynchrone est necessaire, sans jamais creer d'ecriture ni modifier de solde ici.
-      if(!opts.silent&&!opts.fondsTiersConfirme){
-        return {ok:false,annule:false,needsConfirmFondsTiers:true,manqueFondsTiers:manqueFondsTiers};
-      }
+    if(dispo<montant)manqueFondsTiers=montant-Math.max(0,dispo);
+    // Verification PAR COMPTE : l'argent d'autrui range sur ce compte (depots, tontines gerees) n'est pas
+    // a moi, meme si j'ai des fonds personnels sur d'autres comptes.
+    var resCpt=fondsTiersSurCompte(cpt),libreCpt=Math.max(0,solde-resCpt);
+    entameCompte=Math.min(resCpt,Math.max(0,montant-libreCpt));
+    // Remplace l'ancien confirm() natif : au lieu de bloquer la fonction en attendant une reponse
+    // synchrone, on signale au niveau superieur (execDebitAvecConfirmation) qu'une confirmation
+    // asynchrone est necessaire, sans jamais creer d'ecriture ni modifier de solde ici.
+    if((manqueFondsTiers>0||entameCompte>0.5)&&!opts.silent&&!opts.fondsTiersConfirme){
+      return {ok:false,annule:false,needsConfirmFondsTiers:true,manqueFondsTiers:manqueFondsTiers,
+        entameCompte:entameCompte>0.5?entameCompte:0,compte:cpt,libreCompte:libreCpt,reserveCompte:resCpt};
     }
   }
   return {ok:true,decouvert:apres<0,manqueFondsTiers:manqueFondsTiers};
@@ -3946,6 +4064,10 @@ function _appliquerDebitTresorerie(cpt,montant,chk,opts){
   D.comptes[cpt]=(D.comptes[cpt]||0)-montant;
   if(chk.manqueFondsTiers>0)enregistrerDetteFondsTiers(chk.manqueFondsTiers,opts.objet||('Operation sur '+cpt));
   if(cpt==='Banque Courant')syncDecouvertBancaire();
+  // Argent d'autrui range sur ce compte : reaffecte aux comptes ou j'ai des fonds libres. Pas pour les
+  // operations qui restituent legitimement l'argent d'autrui (allowFondsTiers : restitution, tontines),
+  // qui mettent deja a jour leurs propres repartitions ; les frais accessoires l'activent explicitement.
+  if(!opts.allowFondsTiers||opts.relocaliserFondsTiers){try{relocaliserFondsTiers(cpt);}catch(e){console.warn('relocaliserFondsTiers:',e);}}
 }
 // Debit "tout-en-un" : verifie puis applique sur D.comptes. Retourne true si effectue, false si bloque/annule.
 // A utiliser en tete de chaque fonction qui debite un compte de tresorerie, a la place de la
@@ -3971,9 +4093,17 @@ var _fondsTiersPendingCtx=null;
 // l'appelant de le faire dans onConfirm(). Utilisee par execDebitAvecConfirmation() (cas a un seul
 // compte) ET par validerOp() (operation libre pouvant toucher plusieurs comptes de tresorerie a la
 // fois), pour eviter de dupliquer la logique d'affichage/attente de la modale.
-function demanderConfirmationFondsTiers(manqueFondsTiers,onConfirm){
+function demanderConfirmationFondsTiers(manqueFondsTiers,onConfirm,info){
   _fondsTiersPendingCtx={onConfirm:onConfirm};
-  var txtFt=G('cft-texte');if(txtFt)txtFt.textContent='Cette operation utiliserait '+fmt(manqueFondsTiers)+' F de fonds appartenant a des tiers (depots recus / tontines gerees). Continuer et enregistrer une dette de tracabilite envers ces tiers ?';
+  var texte='Cette operation utiliserait '+fmt(manqueFondsTiers)+' F de fonds appartenant a des tiers (depots recus / tontines gerees). Continuer et enregistrer une dette de tracabilite envers ces tiers ?';
+  if(info&&info.entameCompte>0){
+    var cpt=info.compte,det=detailFondsTiersSurCompte(cpt).map(function(x){return x.nom+' ('+fmt(x.montant)+' F)';}).join(', ');
+    var ailleurs=libreAilleurs(cpt),reaff=Math.min(info.entameCompte,ailleurs);
+    texte='Le compte '+cpt+' contient '+fmt(info.reserveCompte)+' F qui appartiennent a des tiers : '+det+'. Votre part libre sur ce compte est de '+fmt(info.libreCompte)+' F. Cette operation utilise '+fmt(info.entameCompte)+' F de leur argent. ';
+    if(reaff>=info.entameCompte-0.5)texte+='Vous avez assez de fonds personnels sur vos autres comptes : le depot sera reaffecte a ces comptes, sans dette. Continuer ?';
+    else texte+=(reaff>0.5?fmt(Math.round(reaff))+' F seront reaffectes a vos autres comptes ; ':'')+'Pour le reste ('+fmt(Math.round(info.entameCompte-reaff))+' F), une dette de tracabilite sera enregistree envers ces tiers. Continuer ?';
+  }
+  var txtFt=G('cft-texte');if(txtFt)txtFt.textContent=texte;
   openOv('ov-confirm-fonds-tiers');
 }
 function confirmerFondsTiers(){
@@ -3995,7 +4125,7 @@ function execDebitAvecConfirmation(cpt,montant,opts,actionFn){
       var opts2={};for(var k in opts){if(opts.hasOwnProperty(k))opts2[k]=opts[k];}
       opts2.fondsTiersConfirme=true;
       execDebitAvecConfirmation(cpt,montant,opts2,actionFn);
-    });
+    },chk);
     return false;
   }
   if(!chk.ok)return false;
@@ -4135,7 +4265,7 @@ function appliquerFrais(cpt,frais,libelle,date,tiers){
   // Le frais suit la meme decision (epargne/decouvert) que l'operation principale qu'il accompagne :
   // on ne re-demande pas confirmation pour un frais accessoire, mais le plafond de decouvert reste respecte.
   if(!frais||frais<=0)return;
-  if(!debiterTresorerie(cpt,frais,{allowEpargne:true,allowFondsTiers:true,objet:'Frais - '+libelle}))return;
+  if(!debiterTresorerie(cpt,frais,{allowEpargne:true,allowFondsTiers:true,relocaliserFondsTiers:true,objet:'Frais - '+libelle}))return;
   var refFrais=passerEcriture('FR',date||today(),'Frais - '+libelle,[
     {compte:'627',lib:'Frais operation - '+libelle,sens:'D',montant:frais,tiers:tiers||''},
     {compte:cptCode(cpt),lib:cpt,sens:'C',montant:frais,tiers:tiers||''}
@@ -4189,6 +4319,9 @@ function migrerTiersEcritures(){
   if(changed)save();
   migrerNomsTiersEcritures();
   migrerStatutsDettesPrets();
+  // Remet en coherence les depots / tontines dont l'argent est rattache a un compte qui en contient moins
+  // (ex. depense deja payee depuis ce compte) : reaffectation aux comptes ou j'ai des fonds libres.
+  try{COMPTES_TRES.forEach(function(c){if(c!=='Frais Transfert'&&c!=='Transit 585')relocaliserFondsTiers(c);});}catch(e){console.warn('migration fonds tiers:',e);}
 }
 // Reprise des ecritures deja saisies : retrouve le nom reel (tiers a nom libre : Collegue, Passage...) a
 // partir du libelle de l'ecriture, parmi les noms deja connus (fiches dettes/prets/depots/manquants...
@@ -4435,6 +4568,14 @@ function tiersSoldeDetail(code){
   return Object.keys(map).sort().map(function(c){
     return {compte:c,lib:PLAN_COMPTES[c]||('Compte '+c),deb:map[c].deb,cred:map[c].cred,solde:map[c].deb-map[c].cred};
   });
+}
+// Etat plie/deplie des sous-lignes (personnes) d'un tiers a nom libre : memorise par navigateur, plie par defaut.
+function tiersSousLignesOuvertes(code){
+  try{return localStorage.getItem('mp_tiers_open_'+code)==='1';}catch(e){return false;}
+}
+function basculerTiersSousLignes(code){
+  try{localStorage.setItem('mp_tiers_open_'+code,tiersSousLignesOuvertes(code)?'0':'1');}catch(e){}
+  try{renderAll();}catch(e){}
 }
 function buildTiersOpts(){
   var o='<option value="">- Aucun tiers -</option>';
@@ -5005,6 +5146,7 @@ function validerOp(){
       });
       Object.keys(checks).forEach(function(c){if(checks[c].manqueFondsTiers>0)enregistrerDetteFondsTiers(checks[c].manqueFondsTiers,'Operation manuelle - '+lib);});
       if('Banque Courant' in debitsParCompte)syncDecouvertBancaire();
+      Object.keys(debitsParCompte).forEach(function(c){try{relocaliserFondsTiers(c);}catch(e){}});
       save();
       notif('Operation '+ok+' validee');resetOp();
     }
@@ -5021,7 +5163,7 @@ function validerOp(){
       demanderConfirmationFondsTiers(chk.manqueFondsTiers,function(){
         checks[cptChk]=verifierDebit(cptChk,debitsParCompte[cptChk],{objet:'Operation manuelle - '+lib,fondsTiersConfirme:true});
         verifierCompteSuivant(idx+1);
-      });
+      },chk);
       return;
     }
     if(!chk.ok)return;
@@ -8191,6 +8333,7 @@ function confirmerExtourne(){
 
 // ============ PRELEVEMENT DEPOT ============
 function openPrelevDepot(){
+  reinitialiserChampsOv('ov-prelev-depot');
   var sel=G('prel-depot-sel');if(!sel)return;
   sel.innerHTML=(D.depots||[]).length?
     (D.depots||[]).map(function(d,i){var rep=depotRepartitions(d);var lbl=rep.length>1?'plusieurs comptes':d.compte;return '<option value="'+i+'">'+escHtml(d.deposant)+' - '+fmt(d.montant)+' F ('+escHtml(lbl)+')</option>';}).join(''):
@@ -8229,6 +8372,7 @@ function openPretAccordeDepot(i){
     (D.depots||[]).map(function(d,idx){return '<option value="'+idx+'"'+(idx===i?' selected':'')+'>'+escHtml(d.deposant)+' - '+fmt(d.montant)+' F</option>';}).join(''):
     '<option value="">Aucun depot disponible</option>';
   populateTiersSelects();
+  reinitialiserChampsOv('ov-pret-depot');
   var ptiers=G('pdp-tiers');if(ptiers)ptiers.value='';
   var pa=G('pdp-amt'),po=G('pdp-obj'),pd_=G('pdp-deb'),pe=G('pdp-ech');
   if(pa)pa.value='';if(po)po.value='';if(pd_)pd_.value='';if(pe)pe.value='';
@@ -8279,6 +8423,7 @@ var _detteIdx=-1;
 var _excedentRembPending=null;
 function ouvrirRembourser(i){
   _detteIdx=i;var d=(D.dettes||[])[i];if(!d)return;
+  reinitialiserChampsOv('ov-remb-dette');
   var rt=G('remb-dette-title');if(rt)rt.textContent='Rembourser - '+d.creancier;
   var ra=G('remb-amt');if(ra)ra.value='';
   var rm=G('remb-mode');if(rm)rm.value='tresorerie';
@@ -8491,6 +8636,7 @@ var _promIdx=-1,_promAction='';
 function ouvrirRealiserProm(i,action){
   _promIdx=i;_promAction=action;
   var p=(D.promesses||[])[i];if(!p)return;
+  reinitialiserChampsOv('ov-real-prom');
   var ra=G('real-prom-amt');if(ra)ra.value='';
   var rt=G('real-prom-title'),rb=G('real-prom-btn');
   if(action==='encaisser'){if(rt)rt.textContent='Encaisser la promesse de '+p.personne;if(rb)rb.textContent='Encaisser';}
@@ -8618,6 +8764,7 @@ var _depotRembIdx=-1;
 function ouvrirRembDepot(i){
   _depotRembIdx=i;
   var d=(D.depots||[])[i];if(!d)return;
+  reinitialiserChampsOv('ov-remb-depot');
   var rt=G('remb-depot-title'),ra=G('remb-depot-amt'),rc=G('remb-depot-cpt'),rf=G('remb-depot-frais');
   if(rt)rt.textContent='Restitution a '+d.deposant;
   if(ra)ra.value='';
@@ -8770,6 +8917,7 @@ function calculerMontantNatureEncaiss(){
 function ouvrirEncaissementPret(i,partiel){
   _pretIdx=i;
   var p=D.prets[i];if(!p)return;
+  reinitialiserChampsOv('ov-encaiss-pret');
   var rt=G('encaiss-pret-title'),ra=G('encaiss-pret-amt');
   if(rt)rt.textContent=(partiel?'Remboursement partiel':'Encaissement complet')+' - '+p.debiteur;
   if(ra)ra.value=partiel?'':pretReste(p);
@@ -9262,7 +9410,7 @@ function renderTontines(){
         } else if(a==='participants'){
           ouvrirTonParticipants(curTonIdx);
         } else if(a==='prelever'){
-          var g2=G('tp-amt');if(g2)g2.value='';var m2=G('tp-motif');if(m2)m2.value='';openOv('ov-ton-prelev');
+          reinitialiserChampsOv('ov-ton-prelev');var g2=G('tp-amt');if(g2)g2.value='';var m2=G('tp-motif');if(m2)m2.value='';openOv('ov-ton-prelev');
         } else if(a==='historique'){
           ouvrirHistoriqueTontine(curTonIdx);
         }
@@ -9415,6 +9563,7 @@ var _tonTransfertIdx=-1;
 function ouvrirTonTransfert(idx){
   var t=D.tontines[idx];if(!t)return;
   _tonTransfertIdx=idx;
+  reinitialiserChampsOv('ov-ton-transfert');
   var rep=tonRepartitions(t);
   var fromSel=G('tnt-from');
   if(fromSel)fromSel.innerHTML=rep.map(function(r){return '<option value="'+r.compte+'">'+r.compte+' ('+fmt(r.montant)+' F)</option>';}).join('');
@@ -10083,6 +10232,7 @@ function ouvrirProjOp(i,presetType){
   _projOpIdx=i;
   var p=(D.projets||[])[i];if(!p)return;
   if(p.statut==='Realise'||p.statut==='Annule'){notif('Projet cloture : reouvrez-le (modifier > statut) pour ajouter une operation',true);return;}
+  reinitialiserChampsOv('ov-proj-op');
   var ty=G('popr-type');if(ty)ty.value=presetType||'epargne';
   G('popr-lib').value='';G('popr-amt').value='';G('popr-tiers').value='';G('popr-echeance').value='';
   G('popr-frais').value='';G('popr-frais-payeur').value='moi';
@@ -10720,7 +10870,7 @@ function calJourClick(date){
   var evs=[];
   (D.revenus||[]).filter(function(r){return r.date===date;}).forEach(function(r){evs.push({txt:r.libelle,amt:'+'+fmt(r.montant)+' F',cr:true});});
   (D.depenses||[]).filter(function(d){return d.date===date;}).forEach(function(d){evs.push({txt:d.libelle,amt:'-'+fmt(d.montant)+' F',cr:false});});
-  (D.transactions||[]).filter(function(t){return t.date===date;}).forEach(function(t){evs.push({txt:t.libelle,amt:(t.type==='credit'?'+':'-')+fmt(t.montant)+' F',cr:t.type==='credit'});});
+  historiqueTresorerieComplet().filter(function(t){return t.date===date;}).forEach(function(t){evs.push({txt:t.libelle,amt:(t.type==='credit'?'+':'-')+fmt(t.montant)+' F',cr:t.type==='credit'});});
   (D.dettes||[]).filter(function(d){return d.echeance===date&&detteEstActive(d);}).forEach(function(d){evs.push({txt:'Echeance: '+d.creancier,amt:fmt(d.montant)+' F',cr:false});});
   (D.emprunts||[]).forEach(function(em){(em.echeancier||[]).filter(function(ech){return ech.date===date;}).forEach(function(ech){evs.push({txt:'Emprunt '+em.organisme+' - echeance #'+ech.num,amt:fmt(ech.totalDu)+' F',cr:false});});});
   var ct=G('cal-jour-title'),cc=G('cal-jour-content');
@@ -10740,7 +10890,7 @@ function renderCal(){
   for(var d=1;d<=days;d++){
     var dt=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var isT=d===now.getDate()&&m===now.getMonth()&&y===now.getFullYear();
-    var hasEv=[...(D.revenus||[]),...(D.depenses||[]),...(D.transactions||[])].some(function(r){return r.date===dt;})||
+    var hasEv=[...(D.revenus||[]),...(D.depenses||[]),...historiqueTresorerieComplet()].some(function(r){return r.date===dt;})||
       (D.emprunts||[]).some(function(em){return (em.echeancier||[]).some(function(ech){return ech.date===dt;});});
     html+='<div class="cal-d '+(isT?'today':'')+(hasEv?' has-ev':'')+'" data-date="'+dt+'">'+d+'</div>';
   }
@@ -11138,7 +11288,7 @@ function saveTrajet(){
 function mqEm(c){try{return String.fromCodePoint(c);}catch(e){return '?';}}
 var MENU_ACTIONS_BASE=[
   ['a:tx',0x1F504,'Mouvement',function(){ouvrirNouveauTx();}],
-  ['a:transfert',0x21C4,'Transfert',function(){openOv('ov-transfert');}],
+  ['a:transfert',0x21C4,'Transfert',function(){ouvrirNouveauTransfert();}],
   ['a:rev',0x1F4B0,'Revenu',function(){ouvrirNouveauRev();}],
   ['a:dep',0x1F4B8,'Depense',function(){ouvrirNouvelleDep();}],
   ['a:partage',0x1F465,'Partage',function(){ouvrirTrajet();}],
@@ -11153,7 +11303,7 @@ var MENU_ACTIONS_BASE=[
   ['a:tontine',0x1F91D,'Tontine',function(){ouvrirNouvelleTontine();}],
   ['a:projet',0x1F3AF,'Projet',function(){ouvrirNouveauProjet();}],
   ['a:famille',0x1F46A,'Famille',function(){ouvrirNouvelleFam();}],
-  ['a:contact',0x1F464,'Contact',function(){openOv('ov-tiers');}]
+  ['a:contact',0x1F464,'Contact',function(){ouvrirNouveauTiersForm();}]
 ];
 var MENU_PRESETS=[
   ['a:partage-alim',0x1F96A,'Repas partage',function(){ouvrirTrajet('60|Alimentation');}],
@@ -11169,6 +11319,15 @@ function ensureMenuRapide(){
   if(!m||typeof m!=='object'||Array.isArray(m)){m=D.menuRapide={};}
   if(!Array.isArray(m.saisie))m.saisie=[];
   if(!Array.isArray(m.outils))m.outils=[];
+  // Rubrique personnalisee (3e section, pliable) : raccourcis choisis librement par l'utilisateur
+  if(!Array.isArray(m.rub))m.rub=[];
+  if(typeof m.rubTitre!=='string'||!m.rubTitre)m.rubTitre='Ma rubrique';
+  if(typeof m.rubPlie!=='boolean')m.rubPlie=true;
+  // ordre d'affichage des 3 rubriques (modifiable en mode "Organiser")
+  var ORD=['saisie','outils','rub'];
+  if(!Array.isArray(m.ordre))m.ordre=[];
+  m.ordre=m.ordre.filter(function(k,i){return ORD.indexOf(k)>-1&&m.ordre.indexOf(k)===i;});
+  ORD.forEach(function(k){if(m.ordre.indexOf(k)<0)m.ordre.push(k);});
   if(!Array.isArray(m.vus))m.vus=[];
   if(!m.perso||typeof m.perso!=='object')m.perso={};
   if(!m.over||typeof m.over!=='object')m.over={};
@@ -11278,9 +11437,25 @@ function renderMenuRapide(keepEdit){
   var addT=function(sec){return '<div class="mi-add" data-act="add" data-sec="'+sec+'"><span class="mgi-plus">+</span>Ajouter</div>';};
   var h='<div class="mq-bar"><span>Maintiens une icone puis glisse-la pour la deplacer. Touche-la pour la modifier.</span><button class="mq-done" data-act="done">Termine</button></div>';
   h+='<div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">Ajout rapide<span style="display:flex;gap:6px"><button class="mq-edit-btn" data-act="edit">Organiser</button><button class="mq-edit-btn" data-act="close" aria-label="Fermer" title="Fermer">&#x2715;</button></span></div>';
-  h+='<div class="mi-grid" data-sec="saisie">'+m.saisie.map(function(id){return mqTuile(id,cat);}).join('')+addT('saisie')+'</div>';
-  h+='<div class="modal-title" style="margin-top:20px">Outils</div>';
-  h+='<div class="mi-grid" data-sec="outils">'+m.outils.map(function(id){return mqTuile(id,cat);}).join('')+addT('outils')+'</div>';
+  // Rubrique personnalisee : pliable (repliee par defaut) ; toujours depliee en mode "Organiser" pour
+  // pouvoir y glisser des icones. Les 3 rubriques se deplacent par leur poignee (mode "Organiser").
+  var rubOuv=!m.rubPlie||_mqEdit;
+  var grip='<span class="mq-grip" aria-label="Deplacer la rubrique" title="Deplacer la rubrique">&#8942;&#8942;</span>';
+  m.ordre.forEach(function(k,idx){
+    var mt=idx?'margin-top:20px;':'margin-top:10px;';
+    h+='<div class="mq-sec" data-secid="'+k+'">';
+    if(k==='saisie'){
+      h+='<div class="modal-title mq-sec-hd" style="'+mt+'display:flex;align-items:center;gap:8px">'+grip+'<span>Saisies</span></div>';
+      h+='<div class="mi-grid" data-sec="saisie">'+m.saisie.map(function(id){return mqTuile(id,cat);}).join('')+addT('saisie')+'</div>';
+    }else if(k==='outils'){
+      h+='<div class="modal-title mq-sec-hd" style="'+mt+'display:flex;align-items:center;gap:8px">'+grip+'<span>Outils</span></div>';
+      h+='<div class="mi-grid" data-sec="outils">'+m.outils.map(function(id){return mqTuile(id,cat);}).join('')+addT('outils')+'</div>';
+    }else{
+      h+='<div class="modal-title mq-sec-hd" data-act="rubtoggle" style="'+mt+'display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer"><span style="display:flex;align-items:center;gap:8px">'+grip+'<span>'+(rubOuv?'&#9662; ':'&#9656; ')+escHtml(m.rubTitre)+' <span style="font-size:12px;font-weight:500;color:var(--text3)">('+m.rub.length+')</span></span></span>'+(_mqEdit?'<button class="mq-ren" data-act="rubrename">Renommer</button>':'')+'</div>';
+      if(rubOuv)h+='<div class="mi-grid" data-sec="rub">'+m.rub.map(function(id){return mqTuile(id,cat);}).join('')+addT('rub')+'</div>';
+    }
+    h+='</div>';
+  });
   h+='<button class="mq-reset" data-act="reset">Reinitialiser le menu</button>';
   h+='<button class="mq-close-bas" data-act="close">Fermer</button>';
   body.innerHTML=h;
@@ -11317,7 +11492,7 @@ function ouvrirGroupeMenu(id){
 // --- ordre : lu depuis le DOM apres un glisser-deposer ---
 function mqSauverOrdreDom(){
   var m=ensureMenuRapide();
-  ['saisie','outils'].forEach(function(sec){
+  ['saisie','outils','rub'].forEach(function(sec){
     var g=document.querySelector('#menu-rapide-body .mi-grid[data-sec="'+sec+'"]');if(!g)return;
     var ids=[];for(var i=0;i<g.children.length;i++){var id=g.children[i].getAttribute('data-id');if(id)ids.push(id);}
     m[sec]=ids;
@@ -11326,7 +11501,7 @@ function mqSauverOrdreDom(){
 }
 function deplacerMenuItem(id,sec,index){
   var m=ensureMenuRapide();
-  ['saisie','outils'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
+  ['saisie','outils','rub'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
   if(!m[sec])return;
   if(index<0||index>m[sec].length)index=m[sec].length;
   m[sec].splice(index,0,id);save();
@@ -11350,6 +11525,50 @@ function mqDeplacer(x,y){
     var kids=Array.prototype.slice.call(grid.children);
     if(kids.indexOf(drag)<kids.indexOf(t))grid.insertBefore(drag,t.nextSibling);else grid.insertBefore(drag,t);
   }else grid.insertBefore(drag,t);
+}
+// --- deplacement des rubriques entiere (poignee, mode Organiser) ---
+var _mqSecDrag=null;
+var _mqSecXY=null,_mqSecTimer=null;
+function mqSecPlacer(x,y){
+  var drag=_mqSecDrag;if(!drag)return;
+  var els=document.elementsFromPoint?document.elementsFromPoint(x,y):[],t=null;
+  for(var i=0;i<els.length;i++){
+    var c=els[i].closest?els[i].closest('.mq-sec'):null;
+    if(c&&c!==drag&&c.closest('#menu-rapide-body')){t=c;break;}
+  }
+  if(!t||t.parentNode!==drag.parentNode)return;
+  // bascule des que le doigt entre de ~80 px (ou de la moitie, si plus petit) dans la rubrique visee
+  var rc=t.getBoundingClientRect(),marge=Math.min(rc.height/2,80);
+  var kids=Array.prototype.slice.call(drag.parentNode.querySelectorAll('.mq-sec'));
+  if(kids.indexOf(drag)<kids.indexOf(t)){if(y>rc.top+marge)t.parentNode.insertBefore(drag,t.nextSibling);}
+  else if(y<rc.bottom-marge)t.parentNode.insertBefore(drag,t);
+}
+function mqSecMove(e){
+  if(!_mqSecDrag)return;
+  _mqSecXY={x:e.clientX,y:e.clientY};
+  mqSecPlacer(e.clientX,e.clientY);
+  // defilement continu quand le doigt reste pres du haut/bas de la fenetre, meme sans bouger
+  if(!_mqSecTimer)_mqSecTimer=setInterval(function(){
+    if(!_mqSecDrag||!_mqSecXY)return;
+    var body=G('menu-rapide-body'),sc=body?body.closest('.modal'):null;
+    if(sc){var r=sc.getBoundingClientRect();if(_mqSecXY.y<r.top+70)sc.scrollTop-=14;else if(_mqSecXY.y>r.bottom-70)sc.scrollTop+=14;}
+    mqSecPlacer(_mqSecXY.x,_mqSecXY.y);
+  },40);
+}
+function mqSecFin(){
+  document.removeEventListener('pointermove',mqSecMove);
+  document.removeEventListener('pointerup',mqSecFin);
+  document.removeEventListener('pointercancel',mqSecFin);
+  if(_mqSecTimer){clearInterval(_mqSecTimer);_mqSecTimer=null;}
+  _mqSecXY=null;
+  if(_mqSecDrag){
+    _mqSecDrag.classList.remove('dragging-sec');
+    var m=ensureMenuRapide(),ord=[];
+    document.querySelectorAll('#menu-rapide-body .mq-sec').forEach(function(x){ord.push(x.getAttribute('data-secid'));});
+    if(ord.length===3){m.ordre=ord;save();}
+    _mqSuppress=true;
+  }
+  _mqSecDrag=null;
 }
 function mqCommencerDrag(it){_mqDrag=it;it.classList.add('dragging');}
 function mqNettoyer(){
@@ -11375,9 +11594,22 @@ function mqFin(){
 function mqInitEvents(body){
   if(body._mqInit)return;body._mqInit=true;
   body.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.mi-grid-item'))e.preventDefault();});
-  body.addEventListener('touchmove',function(e){if(_mqDrag&&e.cancelable)e.preventDefault();},{passive:false});
+  body.addEventListener('touchmove',function(e){if((_mqDrag||_mqSecDrag)&&e.cancelable)e.preventDefault();},{passive:false});
   body.addEventListener('pointerdown',function(e){
     _mqSuppress=false;
+    var gr=e.target.closest?e.target.closest('.mq-grip'):null;
+    if(gr&&_mqEdit){
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      _mqSecDrag=gr.closest('.mq-sec');
+      if(_mqSecDrag){
+        _mqSecDrag.classList.add('dragging-sec');
+        document.addEventListener('pointermove',mqSecMove);
+        document.addEventListener('pointerup',mqSecFin);
+        document.addEventListener('pointercancel',mqSecFin);
+        e.preventDefault();
+      }
+      return;
+    }
     var it=e.target.closest?e.target.closest('.mi-grid-item[data-id]'):null;
     if(!it||e.target.closest('[data-act]'))return;
     if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -11395,6 +11627,7 @@ function mqInitEvents(body){
   });
   body.addEventListener('click',function(e){
     if(_mqSuppress){_mqSuppress=false;return;}
+    if(e.target.closest&&e.target.closest('.mq-grip'))return;
     var a=e.target.closest?e.target.closest('[data-act]'):null;
     if(a){
       var act=a.getAttribute('data-act');
@@ -11402,6 +11635,11 @@ function mqInitEvents(body){
       if(act==='edit'){mqEntrerEdition();}
       else if(act==='done'){mqQuitterEdition();}
       else if(act==='add'){ouvrirEditMenu('add',a.getAttribute('data-sec'),null);}
+      else if(act==='rubtoggle'){var mr=ensureMenuRapide();mr.rubPlie=!mr.rubPlie;save();renderMenuRapide(true);}
+      else if(act==='rubrename'){
+        var mr2=ensureMenuRapide(),nt=prompt('Nom de la rubrique',mr2.rubTitre);
+        if(nt!==null&&nt.trim()){mr2.rubTitre=nt.trim().slice(0,30);save();renderMenuRapide(true);}
+      }
       else if(act==='x'){retirerMenuItem(a.getAttribute('data-id'));}
       else if(act==='reset'){
         if(!_mqResetArme){_mqResetArme=true;a.textContent='Appuie encore pour confirmer';setTimeout(function(){_mqResetArme=false;if(a.isConnected)a.textContent='Reinitialiser le menu';},4000);}
@@ -11418,13 +11656,13 @@ function mqInitEvents(body){
 // --- retirer / reinitialiser ---
 function retirerMenuItem(id){
   var m=ensureMenuRapide();
-  ['saisie','outils'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
+  ['saisie','outils','rub'].forEach(function(s){var k=m[s].indexOf(id);if(k>=0)m[s].splice(k,1);});
   if(m.perso[id])delete m.perso[id];
   save();renderMenuRapide(true);
 }
 function reinitialiserMenuRapide(){
   var m=ensureMenuRapide();
-  m.saisie=MENU_DEFAUT_SAISIE.slice();m.outils=MENU_DEFAUT_OUTILS.slice();
+  m.saisie=MENU_DEFAUT_SAISIE.slice();m.outils=MENU_DEFAUT_OUTILS.slice();m.rub=[];m.ordre=['saisie','outils','rub'];
   m.vus=MENU_DEFAUT_SAISIE.concat(MENU_DEFAUT_OUTILS);m.perso={};m.over={};
   save();renderMenuRapide(true);
 }
@@ -11499,7 +11737,7 @@ function mqEditSave(){
       var dest=G('mq-e-dest').value;if(!cat[dest]){notif('Choisis une fonction',true);return;}
       m.perso[id]={type:'dest',dest:dest,lbl:lbl,ico:ico};
     }
-    m[c.sec==='outils'?'outils':'saisie'].push(id);
+    m[c.sec==='outils'?'outils':(c.sec==='rub'?'rub':'saisie')].push(id);
   }else if(type==='base'){
     var base=cat[c.id];
     if(base){
@@ -11622,6 +11860,10 @@ function ddmPeriode(){
     var lb='Du '+(du?fmtD(du):'debut')+' au '+(au?fmtD(au):'ce jour');
     return {from:du,to:au,label:lb,cle:'perso'};
   }
+  if(p==='mois'){
+    var dn=new Date(),yn=dn.getFullYear(),mn=dn.getMonth()+1,dernier=new Date(yn,mn,0).getDate();
+    return {from:ddmIso(yn,mn,1),to:ddmIso(yn,mn,dernier),label:'Mois en cours - '+DDM_MOIS[mn-1]+' '+yn,cle:'mois'};
+  }
   var y=parseInt(p,10)||new Date().getFullYear();
   return {from:y+'-01-01',to:y+'-12-31',label:'Annee '+y,cle:String(y)};
 }
@@ -11655,6 +11897,19 @@ function ddmGroupes(r){
   var tj=today(),dm=dates[dates.length-1]||tj;if(hi>tj)hi=dm>tj?dm:tj;if(hi<lo)hi=lo;
   var y1=+lo.slice(0,4),m1=+lo.slice(5,7),y2=+hi.slice(0,4),m2=+hi.slice(5,7);
   var nMois=(y2-y1)*12+(m2-m1)+1;
+  // Periode sur UN SEUL mois (mois en cours, ou personnalisee dans un meme mois) : on detaille chaque
+  // jeudi et chaque sortie au lieu d'une unique ligne de mois.
+  if(nMois===1){
+    var ev=[];
+    r.entrees.forEach(function(v){var mt=Number(v.montant)||0;ev.push({date:v.date,o:0,e:mt,s:0,txt:'Jeudi du dahira'+(mt>0?'':' (rien recu)')+(v.note?' - '+v.note:'')});});
+    r.sorties.forEach(function(v){ev.push({date:v.date,o:1,e:0,s:Number(v.montant)||0,txt:'Sortie - '+(v.cat||DDM_NC)+(v.motif?' - '+v.motif:'')});});
+    ev.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.o-b.o;});
+    var c1=r.debut;
+    return {mode:'jour',rows:ev.map(function(v){
+      c1+=v.e-v.s;
+      return {lbl:fmtD(v.date)+' - '+v.txt,lblH:'<b>'+escHtml(fmtD(v.date))+'</b><br><span style="color:#6b778f;font-size:10.5px">'+escHtml(v.txt)+'</span>',e:v.e,s:v.s,cum:c1};
+    })};
+  }
   var rows=[],cum=r.debut,mode=nMois<=14?'mois':'annee';
   function somme(prefix){
     var e=0,s=0;
@@ -11691,7 +11946,7 @@ function ddmAcc(id,ico,titre,corps){
 function renderDdm(){
   var x=ensureDdm(),el=G('ddm-corps');if(!el)return;
   var per=ddmPeriode(),r=ddmCalc(per);
-  var ch='';
+  var ch='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode==='mois'?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\'mois\')">Mois en cours</button>';
   ddmAnnees().forEach(function(y){
     ch+='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode===String(y)?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\''+y+'\')">'+y+'</button>';
   });
@@ -11902,16 +12157,19 @@ function ddmRapportHtml(){
    '.ft{text-align:center;font-size:10px;color:#9aa6bd;margin-top:14px}@media print{body{padding:8px}}';
   var h='<div class="hd">'+logos(DDM_LOGO_DDM,rp.logoDdm)+'<div class="c"><h1>'+e(rp.nom)+'</h1><div style="font-size:15px">'+e(rp.sous)+'</div><div class="s">&Eacute;tat des recettes et d&eacute;penses &middot; '+e(per.label)+'</div></div>'+logos(DDM_LOGO_COM,rp.logoCom)+'</div>';
   h+='<div class="bx"><div><small>Solde au d&eacute;but</small><b>'+ddmF(r.debut)+'</b></div><div><small>Re&ccedil;u des jeudis</small><b class="g">+ '+ddmF(r.totE)+'</b></div><div><small>Sorties</small><b class="r">- '+ddmF(r.totS)+'</b></div><div><small>Solde en caisse</small><b style="color:#8a6200">'+ddmF(r.fin)+'</b></div></div>';
-  h+='<h2>D&eacute;tail par '+(g.mode==='mois'?'mois':'ann&eacute;e')+'</h2><table><tr><th>'+(g.mode==='mois'?'Mois':'Ann&eacute;e')+'</th><th>Re&ccedil;u</th><th>Sorties</th><th>Caisse</th></tr>';
+  h+='<h2>'+(g.mode==='jour'?'D&eacute;tail du mois, op&eacute;ration par op&eacute;ration':'D&eacute;tail par '+(g.mode==='mois'?'mois':'ann&eacute;e'))+'</h2><table><tr><th>'+(g.mode==='jour'?'Date et op&eacute;ration':(g.mode==='mois'?'Mois':'Ann&eacute;e'))+'</th><th>Re&ccedil;u</th><th>Sorties</th><th>Caisse</th></tr>';
+  if(g.mode==='jour')h+='<tr><td><i>Solde au d&eacute;but</i></td><td>-</td><td>-</td><td><b>'+ddmF(r.debut)+'</b></td></tr>';
   g.rows.forEach(function(w){h+='<tr><td>'+w.lblH+'</td><td class="g">'+(w.e?ddmF(w.e):'-')+'</td><td class="r">'+(w.s?ddmF(w.s):'-')+'</td><td><b>'+ddmF(w.cum)+'</b></td></tr>';});
   h+='<tr class="t"><td>Total</td><td>'+ddmF(r.totE)+'</td><td>'+ddmF(r.totS)+'</td><td>'+ddmF(r.fin)+'</td></tr></table>';
   h+='<div class="s" style="margin-bottom:4px">'+r.recus+' jeudi(s) avec une somme re&ccedil;ue.</div>';
-  h+='<h2>Sorties de la p&eacute;riode</h2>';
-  if(!r.sorties.length)h+='<div class="s">Aucune sortie sur cette p&eacute;riode.</div>';
+  if(g.mode!=='jour')h+='<h2>Sorties de la p&eacute;riode</h2>';
+  if(!r.sorties.length){if(g.mode!=='jour')h+='<div class="s">Aucune sortie sur cette p&eacute;riode.</div>';}
   else{
-    h+='<table><tr><th>Date</th><th style="text-align:left">Cat&eacute;gorie</th><th style="text-align:left">Motif</th><th>Montant</th></tr>';
-    r.sorties.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(s){h+='<tr><td>'+e(fmtD(s.date))+'</td><td style="text-align:left">'+e(s.cat||DDM_NC)+'</td><td style="text-align:left">'+(s.motif?e(s.motif):'-')+'</td><td>'+ddmF(s.montant)+'</td></tr>';});
-    h+='</table>';
+    if(g.mode!=='jour')h+='<table><tr><th>Date</th><th style="text-align:left">Cat&eacute;gorie</th><th style="text-align:left">Motif</th><th>Montant</th></tr>';
+    if(g.mode!=='jour'){
+      r.sorties.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(s){h+='<tr><td>'+e(fmtD(s.date))+'</td><td style="text-align:left">'+e(s.cat||DDM_NC)+'</td><td style="text-align:left">'+(s.motif?e(s.motif):'-')+'</td><td>'+ddmF(s.montant)+'</td></tr>';});
+      h+='</table>';
+    }
     var cats=Object.keys(r.parCat).sort(function(a,b){return r.parCat[b]-r.parCat[a];});
     h+='<h2>Sorties par cat&eacute;gorie</h2><table>'+cats.map(function(c){return '<tr><td>'+e(c)+'</td><td>'+ddmF(r.parCat[c])+'</td><td style="width:70px">'+(r.totS?Math.round(r.parCat[c]*100/r.totS):0)+' %</td></tr>';}).join('')+'</table>';
   }
@@ -12360,8 +12618,52 @@ function filtTx(f,el){
   if(el)el.classList.add('on');
   renderTxList(f,false);
 }
+// Historique complet de la tresorerie = mouvements deja traces dans D.transactions + mouvements du
+// Journal (lignes des comptes de tresorerie 52/521/531.../57) qui n'y ont pas de trace. Beaucoup
+// d'operations (depenses, partages, manquants, projets...) modifient le solde et le Journal sans
+// ajouter de ligne a D.transactions : sans ce complement, leurs sorties d'argent n'apparaissaient
+// jamais dans l'historique. Le rapprochement se fait par compte + sens + montant (priorite a la meme
+// date) ; chaque mouvement deja trace "consomme" une ligne du Journal, donc aucun doublon.
+function historiqueTresorerieComplet(){
+  var nomParCode={};
+  COMPTES_TRES.forEach(function(n){if(n!=='Frais Transfert')nomParCode[cptCode(n)]=n;});
+  var exact={},loose={};
+  function add(c,dt,m,dir){
+    var m2=Math.round(Number(m||0)),ke=c+'|'+dir+'|'+m2+'|'+dt,kl=c+'|'+dir+'|'+m2;
+    exact[ke]=(exact[ke]||0)+1;loose[kl]=(loose[kl]||0)+1;
+  }
+  (D.transactions||[]).forEach(function(t){
+    if(t.type==='transfert'){add(t.compte,t.date,t.montant,'C');add(t.compteDest,t.date,t.montant,'D');}
+    else add(t.compte,t.date,t.montant,t.type==='credit'?'D':'C');
+  });
+  var lignes=[];
+  (D.ecritures||[]).forEach(function(e){
+    (e.lignes||[]).forEach(function(l){
+      var nom=nomParCode[l.compte];if(!nom)return;
+      lignes.push({e:e,l:l,nom:nom,dir:l.sens==='D'?'D':'C',m:Math.round(Number(l.montant||0)),ok:false});
+    });
+  });
+  // passe 1 : meme date ; passe 2 : meme compte/sens/montant, date differente
+  lignes.forEach(function(x){
+    var ke=x.nom+'|'+x.dir+'|'+x.m+'|'+x.e.date;
+    if(exact[ke]>0){exact[ke]--;loose[x.nom+'|'+x.dir+'|'+x.m]--;x.ok=true;}
+  });
+  var synth=[];
+  lignes.forEach(function(x){
+    if(x.ok)return;
+    var kl=x.nom+'|'+x.dir+'|'+x.m;
+    if(loose[kl]>0){loose[kl]--;return;}
+    synth.push({type:x.dir==='D'?'credit':'debit',compte:x.nom,libelle:x.e.libelle,montant:x.m,date:x.e.date,tiers:x.l.tiers||'',ref:x.e.ref,duJournal:true});
+  });
+  var tout=[];
+  (D.transactions||[]).forEach(function(t,i){tout.push({t:t,seq:i});});
+  synth.forEach(function(t,i){tout.push({t:t,seq:100000+i});});
+  tout.sort(function(a,b){return String(a.t.date||'').localeCompare(String(b.t.date||''))||(a.seq-b.seq);});
+  return tout.map(function(x){return x.t;});
+}
 function renderTxList(f,moisCourantSeulement){
-  var list=f==='tous'?(D.transactions||[]):(D.transactions||[]).filter(function(t){return t.compte===f||t.compteDest===f;});
+  var hist=historiqueTresorerieComplet();
+  var list=f==='tous'?hist:hist.filter(function(t){return t.compte===f||t.compteDest===f;});
   if(moisCourantSeulement){
     var y=new Date().getFullYear(),m=new Date().getMonth();
     list=list.filter(function(t){var d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
@@ -12374,7 +12676,7 @@ function renderTxList(f,moisCourantSeulement){
     var isTr=t.type==='transfert';
     return '<div class="tx">'+
       '<div class="tx-ico '+(isTr?'itr':t.type==='credit'?'icr':'idb')+'">'+(isTr?'T':t.type==='credit'?'+':'-')+'</div>'+
-      '<div class="tx-inf"><div class="tx-lib">'+t.libelle+'</div><div class="tx-meta">'+fmtD(t.date)+(t.tiers?' - '+t.tiers:'')+'</div>'+
+      '<div class="tx-inf"><div class="tx-lib">'+escHtml(t.libelle)+'</div><div class="tx-meta">'+fmtD(t.date)+(t.tiers?' - '+escHtml(t.tiers):'')+(t.ref?' - '+escHtml(t.ref):'')+'</div>'+
       '<span class="tx-tag">'+t.compte+(isTr?' vers '+t.compteDest:'')+'</span></div>'+
       '<div class="tx-amt '+(isTr?'':t.type==='credit'?'acr':'adb')+'">'+(isTr?'':t.type==='credit'?'+':'-')+fmt(t.montant)+' F</div></div>';
   }).join('');
@@ -12504,8 +12806,14 @@ function renderCompta(){
       var div=document.createElement('div');
       div.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:11px;background:rgba(0,0,0,.3);border-radius:9px;margin-bottom:7px;border:1px solid var(--border);cursor:pointer';
       var protege=estTiersNomLibre(t.code)||t.code===TIERS_MAISON_CODE;
+      // Tiers a nom libre : sous-lignes par personne, pliables (etat memorise, replie par defaut)
+      var lpT=estTiersNomLibre(t.code)?listerPersonnesTiers(t.code):null;
+      var subsT=[];
+      if(lpT){subsT=lpT.personnes.slice();if(subsT.length&&lpT.sansNom)subsT.push({cle:cleTiers(t.code,''),nom:'(sans nom)'});}
+      var ouvertT=subsT.length&&tiersSousLignesOuvertes(t.code);
+      var togT=subsT.length?'<div data-tg="1" style="display:inline-block;margin-top:6px;padding:3px 10px;border-radius:12px;border:1px solid var(--border2);font-size:calc(11px*var(--fscale));color:var(--gold2);font-weight:700">'+(ouvertT?'&#9662; ':'&#9656; ')+subsT.length+' personne'+(subsT.length>1?'s':'')+'</div>':'';
       div.innerHTML='<span style="font-size:calc(12.5px*var(--fscale));font-weight:800;color:var(--gold2);width:74px;flex-shrink:0;word-break:break-word;line-height:1.25">'+escHtml(t.code)+'</span>'+
-        '<div style="flex:1;min-width:0"><div style="font-size:calc(14px*var(--fscale));font-weight:600;line-height:1.25">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">'+escHtml(t.categorie)+(t.tel?' &middot; '+escHtml(t.tel):'')+'</div></div>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:calc(14px*var(--fscale));font-weight:600;line-height:1.25">'+escHtml(t.nom)+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">'+escHtml(t.categorie)+(t.tel?' &middot; '+escHtml(t.tel):'')+'</div>'+togT+'</div>'+
         '<div style="text-align:right;flex-shrink:0;white-space:nowrap">'+soldeHtml+
         (protege?'':'<div style="display:flex;gap:5px;justify-content:flex-end;margin-top:6px"><span class="bdg bo" style="margin:0" data-modif="'+escHtml(t.code)+'">Modif.</span><span class="bdg br" style="margin:0" data-i="'+i+'">Suppr.</span></div>')+
         '</div>';
@@ -12515,11 +12823,10 @@ function renderCompta(){
       var supprBtn=div.querySelector('[data-i]');
       if(supprBtn)supprBtn.addEventListener('click',function(e){e.stopPropagation();supprimerTiers(Number(this.getAttribute('data-i')));});
       el.appendChild(div);
-      if(estTiersNomLibre(t.code)){
-        var lp=listerPersonnesTiers(t.code);
-        var subs=lp.personnes.slice();
-        if(subs.length&&lp.sansNom)subs.push({cle:cleTiers(t.code,''),nom:'(sans nom)'});
-        subs.forEach(function(sp){
+      var tgEl=div.querySelector('[data-tg]');
+      if(tgEl)tgEl.addEventListener('click',function(ev){ev.stopPropagation();basculerTiersSousLignes(t.code);});
+      if(subsT.length&&ouvertT){
+        subsT.forEach(function(sp){
           var n2=tiersSoldeNet(sp.cle);
           var sub=document.createElement('div');
           sub.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 11px 8px 30px;background:rgba(0,0,0,.18);border-radius:9px;margin:-3px 0 7px 14px;border:1px solid var(--border);cursor:pointer';
@@ -14225,6 +14532,7 @@ var _depotTransfertIdx=-1;
 function ouvrirDepotTransfert(i){
   var d=(D.depots||[])[i];if(!d)return;
   _depotTransfertIdx=i;
+  reinitialiserChampsOv('ov-depot-transfert');
   var rep=depotRepartitions(d);
   var fromSel=G('dtr-from');
   if(fromSel)fromSel.innerHTML=rep.map(function(r){return '<option value="'+r.compte+'">'+r.compte+' ('+fmt(r.montant)+' F)</option>';}).join('');
