@@ -1007,6 +1007,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         <div class="sr"><span>Total en garde</span><span id="dp-tot" style="color:var(--purple);font-weight:700">0 F</span></div>
         <div class="sr"><span>Depots actifs</span><span id="dp-nb">0</span></div>
       </div>
+      <div id="dp-regul" style="display:none;margin:8px 0"><button class="btn-s" onclick="ouvrirRegularisationFondsTiers()">Regulariser l'argent de tiers utilise</button></div>
       <div id="dp-list"></div>
     </div>
 
@@ -1620,6 +1621,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <p id="cft-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px"></p>
       <button class="btn-p btn-gold" onclick="confirmerFondsTiers()">Continuer</button>
       <button class="btn-s" style="margin-top:9px" onclick="annulerFondsTiers()">Annuler</button>
+    </div></div>
+
+    <!-- MODAL : compte a reapprovisionner / repartition pour un remboursement -->
+    <div class="ov" id="ov-remb-source"><div class="modal" onclick="event.stopPropagation()">
+      <div class="card-hd">Compte non reapprovisionne</div>
+      <p id="rs-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0"></p>
+      <div class="fg"><label class="fl">Que voulez-vous faire ?</label><select class="fc" id="rs-choix" onchange="rsToggle()"><option value="transfert">Transfert compte a compte puis remboursement</option><option value="repartir">Repartir sur plusieurs comptes (total inchange)</option></select></div>
+      <div id="rs-transfert"><div class="fg"><label class="fl">Compte a debiter pour le transfert</label><select class="fc" id="rs-src"></select></div></div>
+      <div id="rs-repartir" style="display:none"><div id="rs-rows"></div><div id="rs-total" style="font-size:calc(12.5px*var(--fscale));margin:6px 0"></div></div>
+      <button class="btn-p btn-gold" onclick="rsValider()">Continuer</button>
+      <button class="btn-s" style="margin-top:9px" onclick="rsAnnuler()">Annuler</button>
     </div></div>
 
     <!-- IA -->
@@ -3932,50 +3944,6 @@ function comptesReaffectation(exclu){
 function libreAilleurs(cpt){
   return comptesReaffectation(cpt).reduce(function(a,c){return a+libreSurCompte(c);},0);
 }
-// Apres un debit : si le compte contient moins que l'argent d'autrui qui lui est rattache, le depot (ou la
-// tontine geree) est reaffecte aux comptes ou j'ai des fonds personnels libres. Le passif envers le tiers
-// ne change pas (somme des repartitions inchangee) ; seul l'endroit ou se trouve son argent change.
-// Ce qui ne peut pas etre reaffecte (pas assez de fonds personnels ailleurs) reste traite par la dette de
-// tracabilite "fonds de tiers a regulariser". Retourne le montant reaffecte.
-function relocaliserFondsTiers(cpt){
-  var exces=fondsTiersSurCompte(cpt)-Math.max(0,D.comptes[cpt]||0);
-  if(exces<=0.5)return 0;
-  var cibles=comptesReaffectation(cpt).map(function(c){return {c:c,libre:libreSurCompte(c)};})
-    .filter(function(x){return x.libre>0.5;}).sort(function(a,b){return b.libre-a.libre;});
-  var deplace=0,vers={};
-  function prendre(max){
-    var res=[],reste=max;
-    cibles.forEach(function(x){if(reste<=0.0001||x.libre<=0.0001)return;var m=Math.min(reste,x.libre);x.libre-=m;reste-=m;res.push({c:x.c,m:m});});
-    return res;
-  }
-  function deplacerDans(rep){
-    var ligne=rep.find(function(r){return r.compte===cpt;});
-    if(!ligne||ligne.montant<=0||exces-deplace<=0.0001)return false;
-    var alloc=prendre(Math.min(ligne.montant,exces-deplace));
-    if(!alloc.length)return false;
-    alloc.forEach(function(a){
-      ligne.montant-=a.m;deplace+=a.m;vers[a.c]=(vers[a.c]||0)+a.m;
-      var ex=rep.find(function(r){return r.compte===a.c;});
-      if(ex)ex.montant+=a.m;else rep.push({compte:a.c,montant:a.m});
-    });
-    return true;
-  }
-  (D.depots||[]).forEach(function(d){
-    var rep=depotRepartitions(d).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
-    if(deplacerDans(rep)){d.repartitions=rep.filter(function(r){return r.montant>0.01;});depotSyncMontantEtCompte(d);}
-  });
-  (D.tontines||[]).forEach(function(t){
-    if(t.categorie!=='gere')return;
-    var rep=tonRepartitions(t).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
-    if(deplacerDans(rep))t.repartitions=rep.filter(function(r){return r.montant>0.01;});
-  });
-  if(deplace>0.5){
-    var txt=Object.keys(vers).map(function(c){return fmt(Math.round(vers[c]))+' F vers '+c;}).join(', ');
-    auditLog('Fonds de tiers reaffectes','Tresorerie',cpt,txt,'Depense payee depuis '+cpt+' : l\'argent d\'autrui qui s\'y trouvait a ete reaffecte aux comptes ou j\'ai des fonds personnels');
-    try{notif('Argent d\'autrui reaffecte : '+txt);}catch(e){}
-  }
-  return deplace;
-}
 function tresorerieDisponibleGlobale(){
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var soldeEpargne=(D.parametres&&D.parametres.epargneUrgence)?0:(D.comptes['Banque Epargne']||0);
@@ -4012,6 +3980,68 @@ function enregistrerDetteFondsTiers(montant,objet){
   if(!montant||montant<=0)return;
   D.dettes.push({creancier:'Fonds de tiers (a regulariser)',type:'401|Fonds de tiers',autoType:'fonds_tiers_reserve',objet:objet||'Usage exceptionnel de fonds de tiers',montant:montant,date:today(),echeance:'',contrepartie:'tresorerie',auto:true});
   auditLog('Utilisation de fonds de tiers','Tresorerie','','Dette de tracabilite de '+fmt(montant)+' F',objet||'Usage exceptionnel de fonds de tiers');
+}
+// ---- Usage confirme de l'argent d'un tiers : il devient une DETTE envers ce tiers ----
+// Les comptes de tresorerie ne sont pas touches (aucune reaffectation automatique). La part de tiers
+// consommee est retiree de son depot / de sa tontine geree (OD 467 -> 401, le total du au tiers ne change
+// pas) et enregistree comme dette envers lui. Les frais suivent la meme regle : a ma charge si ma part libre
+// sur le compte les couvre, sinon ils entrent dans la dette (TTC a rembourser).
+var _dernConvFT=null;
+function repartitionUsageTiers(cpt,montant){
+  var srcs=[];
+  (D.depots||[]).forEach(function(d){var m=0;depotRepartitions(d).forEach(function(r){if(r.compte===cpt)m+=Number(r.montant||0);});if(m>0.005)srcs.push({type:'depot',obj:d,nom:d.deposant||'Depot',tiers:d.tiers||'',part:m});});
+  (D.tontines||[]).forEach(function(t){if(t.categorie!=='gere')return;var m=0;tonRepartitions(t).forEach(function(r){if(r.compte===cpt)m+=Number(r.montant||0);});if(m>0.005)srcs.push({type:'tontine',obj:t,nom:'Tontine '+(t.nom||''),tiers:t.id,part:m});});
+  var tot=srcs.reduce(function(a,s){return a+s.part;},0);
+  if(tot<=0)return [];
+  var usage=Math.min(montant,tot),alloue=0;
+  srcs.forEach(function(s,i){
+    var m=i===srcs.length-1?usage-alloue:Math.round(usage*s.part/tot);
+    s.montant=Math.max(0,Math.min(s.part,m));alloue+=s.montant;
+  });
+  return srcs.filter(function(s){return s.montant>0.005;});
+}
+function convertirFondsTiersEnDette(cpt,objet){
+  var utilise=fondsTiersSurCompte(cpt)-Math.max(0,D.comptes[cpt]||0);
+  if(utilise<=0.5)return 0;
+  var parts=repartitionUsageTiers(cpt,utilise);
+  if(!parts.length)return 0;
+  if(!_dernConvFT||_dernConvFT.cpt!==cpt||!_dernConvFT.actif||Date.now()-_dernConvFT.t>1500){
+    _dernConvFT={cpt:cpt,actif:true,t:Date.now(),snapDepots:JSON.stringify(D.depots||[]),snapDettes:JSON.stringify(D.dettes||[]),
+      snapTontines:(D.tontines||[]).map(function(t){return {id:t.id,rep:JSON.stringify(t.repartitions||null)};}),refs:[]};
+  }
+  var total=0;
+  parts.forEach(function(s){
+    var m=s.montant;
+    if(s.type==='depot'){
+      var rep=depotRepartitions(s.obj).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
+      var l=rep.find(function(r){return r.compte===cpt;});if(l)l.montant-=m;
+      s.obj.repartitions=rep.filter(function(r){return r.montant>0.01;});
+      depotSyncMontantEtCompte(s.obj);
+      if(!s.obj.repartitions.length)s.obj.montant=0;
+    } else {
+      tonRepartitionsRetirer(s.obj,[{compte:cpt,montant:m}]);
+    }
+    var ref=passerEcriture('OD',today(),'Usage fonds de tiers ('+s.nom+') - dette envers le tiers',[
+      {compte:s.type==='depot'?'467':'466',lib:(s.type==='depot'?'Depot ':'Fonds ')+s.nom,sens:'D',montant:m,tiers:s.tiers},
+      {compte:'401',lib:'Dette '+s.nom,sens:'C',montant:m,tiers:s.tiers}
+    ],'');
+    if(ref&&_dernConvFT)_dernConvFT.refs.push(ref);
+    var ex=(D.dettes||[]).find(function(x){return x.autoType==='fonds_tiers_utilise'&&detteEstActive(x)&&x.creancier===s.nom&&(x.tiers||'')===(s.tiers||'');});
+    if(ex){ex.montant+=m;ex.montantInitial=(ex.montantInitial!=null?ex.montantInitial:ex.montant-m)+m;ex.objet=(ex.objet||'')+' | '+(objet||'');}
+    else D.dettes.push({id:'DET'+Date.now()+Math.floor(Math.random()*1000),creancier:s.nom,tiers:s.tiers,type:'401|Argent de tiers utilise',autoType:'fonds_tiers_utilise',objet:'Argent de tiers utilise sur '+cpt+' - '+(objet||''),montant:m,montantInitial:m,date:today(),echeance:'',contrepartie:'reclassement',compteOrigine:'401',compteFonds:cpt});
+    total+=m;
+    auditLog('Argent de tiers utilise','Tresorerie',cpt,s.nom+' : '+fmt(Math.round(m))+' F devenus dette',objet||'');
+  });
+  D.depots=(D.depots||[]).filter(function(d){return Number(d.montant||0)>0.01;});
+  try{notif(fmt(Math.round(total))+' F d\'argent de tiers utilises : dette enregistree envers '+parts.map(function(s){return s.nom;}).join(', '));}catch(e){}
+  return total;
+}
+function annulerConversionFondsTiers(cpt){
+  var c=_dernConvFT;_dernConvFT=null;
+  if(!c||!c.actif||c.cpt!==cpt)return;
+  D.depots=JSON.parse(c.snapDepots);D.dettes=JSON.parse(c.snapDettes);
+  c.snapTontines.forEach(function(s){var t=(D.tontines||[]).find(function(x){return x.id===s.id;});if(t){var r=JSON.parse(s.rep);if(r)t.repartitions=r;else delete t.repartitions;}});
+  c.refs.forEach(function(ref){try{contrepasserEcriture(ref,'Echec de l\'operation - usage de fonds de tiers annule');}catch(e){}});
 }
 // Verifie si un debit de `montant` sur le compte `cpt` est possible, SANS modifier D.comptes.
 // opts.allowEpargne: true pour les operations ou l'usage du compte Epargne est legitime (module Projets).
@@ -4062,12 +4092,11 @@ function verifierDebit(cpt,montant,opts){
 // Extrait de debiterTresorerie() pour etre partage avec execDebitAvecConfirmation() sans dupliquer la logique.
 function _appliquerDebitTresorerie(cpt,montant,chk,opts){
   D.comptes[cpt]=(D.comptes[cpt]||0)-montant;
-  if(chk.manqueFondsTiers>0)enregistrerDetteFondsTiers(chk.manqueFondsTiers,opts.objet||('Operation sur '+cpt));
+  var converti=0;
+  if(!opts.noConversion&&COMPTES_TRES.includes(cpt)){try{converti=convertirFondsTiersEnDette(cpt,opts.objet||('Operation sur '+cpt));}catch(e){console.warn('convertirFondsTiersEnDette:',e);}}
+  var residu=(chk.manqueFondsTiers||0)-converti;
+  if(!opts.noConversion&&residu>0.5)enregistrerDetteFondsTiers(residu,opts.objet||('Operation sur '+cpt));
   if(cpt==='Banque Courant')syncDecouvertBancaire();
-  // Argent d'autrui range sur ce compte : reaffecte aux comptes ou j'ai des fonds libres. Pas pour les
-  // operations qui restituent legitimement l'argent d'autrui (allowFondsTiers : restitution, tontines),
-  // qui mettent deja a jour leurs propres repartitions ; les frais accessoires l'activent explicitement.
-  if(!opts.allowFondsTiers||opts.relocaliserFondsTiers){try{relocaliserFondsTiers(cpt);}catch(e){console.warn('relocaliserFondsTiers:',e);}}
 }
 // Debit "tout-en-un" : verifie puis applique sur D.comptes. Retourne true si effectue, false si bloque/annule.
 // A utiliser en tete de chaque fonction qui debite un compte de tresorerie, a la place de la
@@ -4098,10 +4127,8 @@ function demanderConfirmationFondsTiers(manqueFondsTiers,onConfirm,info){
   var texte='Cette operation utiliserait '+fmt(manqueFondsTiers)+' F de fonds appartenant a des tiers (depots recus / tontines gerees). Continuer et enregistrer une dette de tracabilite envers ces tiers ?';
   if(info&&info.entameCompte>0){
     var cpt=info.compte,det=detailFondsTiersSurCompte(cpt).map(function(x){return x.nom+' ('+fmt(x.montant)+' F)';}).join(', ');
-    var ailleurs=libreAilleurs(cpt),reaff=Math.min(info.entameCompte,ailleurs);
-    texte='Le compte '+cpt+' contient '+fmt(info.reserveCompte)+' F qui appartiennent a des tiers : '+det+'. Votre part libre sur ce compte est de '+fmt(info.libreCompte)+' F. Cette operation utilise '+fmt(info.entameCompte)+' F de leur argent. ';
-    if(reaff>=info.entameCompte-0.5)texte+='Vous avez assez de fonds personnels sur vos autres comptes : le depot sera reaffecte a ces comptes, sans dette. Continuer ?';
-    else texte+=(reaff>0.5?fmt(Math.round(reaff))+' F seront reaffectes a vos autres comptes ; ':'')+'Pour le reste ('+fmt(Math.round(info.entameCompte-reaff))+' F), une dette de tracabilite sera enregistree envers ces tiers. Continuer ?';
+    var parts=repartitionUsageTiers(cpt,info.entameCompte).map(function(x){return x.nom+' ('+fmt(Math.round(x.montant))+' F)';}).join(', ');
+    texte='Le compte '+cpt+' contient '+fmt(info.reserveCompte)+' F qui appartiennent a des tiers : '+det+'. Votre part libre sur ce compte est de '+fmt(info.libreCompte)+' F. Cette operation utilise '+fmt(Math.round(info.entameCompte))+' F de leur argent. Si vous continuez, cette somme devient une dette envers : '+parts+' (leur depot baisse d\'autant, le total qui leur est du ne change pas). Les frais restent a votre charge si votre part libre les couvre, sinon ils s\'ajoutent a la dette (TTC a rembourser). Continuer ?';
   }
   var txtFt=G('cft-texte');if(txtFt)txtFt.textContent=texte;
   openOv('ov-confirm-fonds-tiers');
@@ -4113,7 +4140,7 @@ function confirmerFondsTiers(){
   ctx.onConfirm();
 }
 function annulerFondsTiers(){
-  _fondsTiersPendingCtx=null;
+  _fondsTiersPendingCtx=null;_rembPlanQueue=[];
   closeOv('ov-confirm-fonds-tiers');
 }
 function execDebitAvecConfirmation(cpt,montant,opts,actionFn){
@@ -4144,6 +4171,7 @@ function execDebitAvecConfirmation(cpt,montant,opts,actionFn){
 // enregistre sous fonds de tiers.
 function annulerDebitApresEchecEcriture(cpt,montant,dettesLenAvant){
   D.comptes[cpt]=(D.comptes[cpt]||0)+Number(montant||0);
+  try{annulerConversionFondsTiers(cpt);}catch(e){console.warn('annulerConversionFondsTiers:',e);}
   if(dettesLenAvant!=null){
     while((D.dettes||[]).length>dettesLenAvant){
       var last=D.dettes[D.dettes.length-1];
@@ -4265,7 +4293,7 @@ function appliquerFrais(cpt,frais,libelle,date,tiers){
   // Le frais suit la meme decision (epargne/decouvert) que l'operation principale qu'il accompagne :
   // on ne re-demande pas confirmation pour un frais accessoire, mais le plafond de decouvert reste respecte.
   if(!frais||frais<=0)return;
-  if(!debiterTresorerie(cpt,frais,{allowEpargne:true,allowFondsTiers:true,relocaliserFondsTiers:true,objet:'Frais - '+libelle}))return;
+  if(!debiterTresorerie(cpt,frais,{allowEpargne:true,allowFondsTiers:true,objet:'Frais - '+libelle}))return;
   var refFrais=passerEcriture('FR',date||today(),'Frais - '+libelle,[
     {compte:'627',lib:'Frais operation - '+libelle,sens:'D',montant:frais,tiers:tiers||''},
     {compte:cptCode(cpt),lib:cpt,sens:'C',montant:frais,tiers:tiers||''}
@@ -4321,7 +4349,6 @@ function migrerTiersEcritures(){
   migrerStatutsDettesPrets();
   // Remet en coherence les depots / tontines dont l'argent est rattache a un compte qui en contient moins
   // (ex. depense deja payee depuis ce compte) : reaffectation aux comptes ou j'ai des fonds libres.
-  try{COMPTES_TRES.forEach(function(c){if(c!=='Frais Transfert'&&c!=='Transit 585')relocaliserFondsTiers(c);});}catch(e){console.warn('migration fonds tiers:',e);}
 }
 // Reprise des ecritures deja saisies : retrouve le nom reel (tiers a nom libre : Collegue, Passage...) a
 // partir du libelle de l'ecriture, parmi les noms deja connus (fiches dettes/prets/depots/manquants...
@@ -5146,7 +5173,6 @@ function validerOp(){
       });
       Object.keys(checks).forEach(function(c){if(checks[c].manqueFondsTiers>0)enregistrerDetteFondsTiers(checks[c].manqueFondsTiers,'Operation manuelle - '+lib);});
       if('Banque Courant' in debitsParCompte)syncDecouvertBancaire();
-      Object.keys(debitsParCompte).forEach(function(c){try{relocaliserFondsTiers(c);}catch(e){}});
       save();
       notif('Operation '+ok+' validee');resetOp();
     }
@@ -8467,7 +8493,25 @@ function doRembourser(){
     openOv('ov-confirm-excedent-remb');
     return;
   }
+  if(mode==='tresorerie'&&d.autoType==='fonds_tiers_utilise'){
+    var cptR=(G('remb-cpt')||{}).value||'';
+    var amtR=Math.min(amt,d.montant);
+    completerCompteRemboursement(cptR,amtR,function(plan){
+      var l0=plan[0];
+      var sel=G('remb-cpt');if(sel)sel.value=l0.compte;
+      _rembPlanQueue=plan.slice(1);
+      doRembourserInterne('tresorerie',l0.montant,frais,null);
+    });
+    return;
+  }
   doRembourserInterne(mode,amt,frais,null);
+}
+var _rembPlanQueue=[];
+function suiteRembPlan(){
+  if(!_rembPlanQueue||!_rembPlanQueue.length)return;
+  var l=_rembPlanQueue.shift();
+  var sel=G('remb-cpt');if(sel)sel.value=l.compte;
+  doRembourserInterne('tresorerie',l.montant,0,null);
 }
 // annulerExcedent : l'utilisateur choisit de ne PAS creer de creance pour l'excedent - le remboursement
 // est alors plafonne exactement au montant de la dette (le surplus n'est jamais enregistre ni perdu :
@@ -8530,6 +8574,7 @@ function doRembourserInterne(mode,amt,frais,excedent){
       }
     }
     save();closeOv('ov-remb-dette');renderDettes();try{renderAll();}catch(e){}
+    suiteRembPlan();
   }
   if(mode==='tresorerie'){
     var cpt=(G('remb-cpt')||{}).value||'';
@@ -8599,7 +8644,7 @@ function renderDettes(){
     var ri=D.dettes.indexOf(d);
     var ech=d.echeance?fmtD(d.echeance):'Non definie';
     var contrep=d.contrepartie==='nature'?'En nature: '+(d.natureDesc||'-'):'Tresorerie';
-    var autoBadge=d.autoType==='decouvert_bancaire'?'<span class="bdg" style="background:var(--orange);color:#fff">Auto - decouvert</span>':(d.autoType==='fonds_tiers_reserve'?'<span class="bdg" style="background:var(--orange);color:#fff">Auto - fonds de tiers</span>':'');
+    var autoBadge=d.autoType==='decouvert_bancaire'?'<span class="bdg" style="background:var(--orange);color:#fff">Auto - decouvert</span>':(d.autoType==='fonds_tiers_utilise'?'<span class="bdg" style="background:var(--purple);color:#fff">Argent de tiers utilise</span>':d.autoType==='fonds_tiers_reserve'?'<span class="bdg" style="background:var(--orange);color:#fff">Auto - fonds de tiers</span>':'');
     var statutBadge=d.statut==='partiel'?'<span class="bdg" style="background:rgba(212,160,23,.2);color:var(--gold2)">'+STATUTS_LABELS.partiel+'</span>':'';
     var lienDette=d.depotOrigine||d.detteLinkId||d.projet;
     var div=document.createElement('div');div.className='pd pd-det';
@@ -8772,6 +8817,76 @@ function ouvrirRembDepot(i){
   if(rf)rf.value='';
   openOv('ov-remb-depot');
 }
+// ---- Remboursement d'argent de tiers : le compte a-t-il ete reapprovisionne ? ----
+// Oui (solde suffisant) : paiement direct sur ce compte. Non : (1) transfert compte a compte vers ce compte
+// puis remboursement, ou (2) repartition du paiement sur plusieurs comptes (la somme reste le montant du).
+var _rsCtx=null;
+function completerCompteRemboursement(cpt,amt,onReady){
+  var solde=Math.max(0,D.comptes[cpt]||0);
+  if(solde>=amt-0.01){onReady([{compte:cpt,montant:amt}],false);return;}
+  _rsCtx={cpt:cpt,amt:amt,onReady:onReady};
+  var autres=COMPTES_TRES.filter(function(c){return c!==cpt&&c!=='Frais Transfert'&&c!=='Transit 585'&&c!=='Banque Epargne';});
+  var src=G('rs-src');if(src)src.innerHTML=autres.map(function(c){return '<option value="'+c+'">'+c+' ('+fmt(Math.max(0,D.comptes[c]||0))+' F)</option>';}).join('');
+  var tx=G('rs-texte');if(tx)tx.textContent='Le compte '+cpt+' n\'a pas ete reapprovisionne : solde '+fmt(solde)+' F pour '+fmt(amt)+' F a rembourser (manque '+fmt(Math.round(amt-solde))+' F).';
+  var ch=G('rs-choix');if(ch)ch.value='transfert';
+  var rows=G('rs-rows');
+  if(rows){rows.innerHTML='';rsAjouterLigne(cpt,solde);rsAjouterLigne(autres[0]||'',Math.round(amt-solde));}
+  rsToggle();openOv('ov-remb-source');
+}
+function rsAjouterLigne(cpt,m){
+  var rows=G('rs-rows');if(!rows)return;
+  var row=document.createElement('div');row.className='fr';row.style.marginTop='6px';
+  row.innerHTML='<div class="fg"><select class="fc rs-cpt">'+COMPTES_TRES.filter(function(c){return c!=='Frais Transfert'&&c!=='Transit 585'&&c!=='Banque Epargne';}).map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div><div class="fg"><input class="fc rs-amt" type="number" placeholder="Montant"></div>';
+  rows.appendChild(row);
+  if(cpt)row.querySelector('.rs-cpt').value=cpt;
+  row.querySelector('.rs-amt').value=m||'';
+  row.querySelector('.rs-amt').addEventListener('input',rsMajTotal);
+  rsMajTotal();
+}
+function rsMajTotal(){
+  if(!_rsCtx)return;
+  var t=0;document.querySelectorAll('#rs-rows .rs-amt').forEach(function(i){t+=Number(i.value||0);});
+  var el=G('rs-total');if(el)el.textContent='Total reparti : '+fmt(t)+' F / '+fmt(_rsCtx.amt)+' F';
+}
+function rsToggle(){
+  var v=(G('rs-choix')||{}).value;
+  var a=G('rs-transfert'),b=G('rs-repartir');
+  if(a)a.style.display=v==='transfert'?'':'none';
+  if(b)b.style.display=v==='repartir'?'':'none';
+}
+function rsAnnuler(){_rsCtx=null;closeOv('ov-remb-source');}
+function rsValider(){
+  var c=_rsCtx;if(!c)return;
+  var v=(G('rs-choix')||{}).value;
+  if(v==='transfert'){
+    var src=(G('rs-src')||{}).value;if(!src){notif('Choisissez un compte',true);return;}
+    var manque=Math.round(c.amt-Math.max(0,D.comptes[c.cpt]||0));
+    _rsCtx=null;closeOv('ov-remb-source');
+    var dla=D.dettes.length;
+    execDebitAvecConfirmation(src,manque,{objet:'Transfert vers '+c.cpt+' (reapprovisionnement)'},function(){
+      var ref=passerEcriture('OD',today(),'Transfert compte a compte '+src+' -> '+c.cpt+' (reapprovisionnement avant remboursement)',[
+        {compte:cptCode(c.cpt),lib:c.cpt,sens:'D',montant:manque,tiers:''},
+        {compte:cptCode(src),lib:src,sens:'C',montant:manque,tiers:''}
+      ],'');
+      if(!ref){annulerDebitApresEchecEcriture(src,manque,dla);notif('Transfert annule - l\'ecriture a echoue',true);return;}
+      D.comptes[c.cpt]=(D.comptes[c.cpt]||0)+manque;
+      D.transactions.push({type:'debit',compte:src,libelle:'Transfert vers '+c.cpt,montant:manque,date:today(),tiers:''});
+      D.transactions.push({type:'credit',compte:c.cpt,libelle:'Transfert depuis '+src,montant:manque,date:today(),tiers:''});
+      save();
+      c.onReady([{compte:c.cpt,montant:c.amt}],true);
+    });
+    return;
+  }
+  var plan=[],tot=0,vu={};
+  document.querySelectorAll('#rs-rows .fr').forEach(function(row){
+    var cp=row.querySelector('.rs-cpt').value,m=Number(row.querySelector('.rs-amt').value||0);
+    if(cp&&m>0){tot+=m;if(vu[cp]){vu[cp].montant+=m;}else{vu[cp]={compte:cp,montant:m};plan.push(vu[cp]);}}
+  });
+  if(Math.abs(tot-c.amt)>0.5){notif('Le total reparti doit etre egal a '+fmt(c.amt)+' F',true);return;}
+  for(var i=0;i<plan.length;i++){if((D.comptes[plan[i].compte]||0)<plan[i].montant-0.01){notif('Solde insuffisant sur '+plan[i].compte,true);return;}}
+  _rsCtx=null;closeOv('ov-remb-source');
+  c.onReady(plan,false);
+}
 function doRembDepot(){
   var d=(D.depots||[])[_depotRembIdx];if(!d)return;
   var amt=Number((G('remb-depot-amt')||{}).value||0)||d.montant;
@@ -8779,21 +8894,31 @@ function doRembDepot(){
   var cpt=(G('remb-depot-cpt')||{}).value||(repFallback?repFallback.compte:'Especes');
   var frais=Number((G('remb-depot-frais')||{}).value||0);
   var payeurFrais=(G('remb-depot-frais-payeur')||{}).value||'moi';
-  if(!debiterTresorerie(cpt,amt,{allowFondsTiers:true,objet:'Restitution depot - '+d.deposant}))return;
-  var refRembDpt=passerEcriture('OD',today(),'Restitution depot - '+d.deposant,[
-    {compte:'467',lib:'Depot '+d.deposant,sens:'D',montant:amt,tiers:d.tiers||''},
-    {compte:cptCode(cpt),lib:cpt,sens:'C',montant:amt,tiers:d.tiers||''}
-  ],'');
-  if(!refRembDpt){annulerDebitApresEchecEcriture(cpt,amt,null);notif('Restitution annulee - l\'ecriture correspondante a echoue',true);return;}
+  completerCompteRemboursement(cpt,amt,function(plan){executerRembDepot(d,amt,plan,frais,payeurFrais);});
+}
+function executerRembDepot(d,amt,plan,frais,payeurFrais){
+  var idxDepot=(D.depots||[]).indexOf(d);if(idxDepot<0)return;
+  var faits=[];
+  for(var i=0;i<plan.length;i++){
+    if(!debiterTresorerie(plan[i].compte,plan[i].montant,{allowFondsTiers:true,noConversion:true,objet:'Restitution depot - '+d.deposant})){
+      faits.forEach(function(f){D.comptes[f.compte]=(D.comptes[f.compte]||0)+f.montant;});return;
+    }
+    faits.push(plan[i]);
+  }
+  var cpt=plan[0].compte;
+  var lignes=[{compte:'467',lib:'Depot '+d.deposant,sens:'D',montant:amt,tiers:d.tiers||''}];
+  plan.forEach(function(l){lignes.push({compte:cptCode(l.compte),lib:l.compte,sens:'C',montant:l.montant,tiers:d.tiers||''});});
+  var refRembDpt=passerEcriture('OD',today(),'Restitution depot - '+d.deposant,lignes,'');
+  if(!refRembDpt){faits.forEach(function(f){D.comptes[f.compte]=(D.comptes[f.compte]||0)+f.montant;});notif('Restitution annulee - l\'ecriture correspondante a echoue',true);return;}
   depotReduireProportionnellement(d,amt);
   var depotEncoreLa=d.montant>0.01;
-  if(!depotEncoreLa)D.depots.splice(_depotRembIdx,1);
+  if(!depotEncoreLa){var ix=D.depots.indexOf(d);if(ix>-1)D.depots.splice(ix,1);}
   var fraisRes=appliquerFraisUniverselle(cpt,frais,payeurFrais,'Restitution depot '+d.deposant,today(),d.tiers||'','467');
   if(fraisRes.ok&&fraisRes.montantAReduire>0&&depotEncoreLa){
     depotReduireProportionnellement(d,fraisRes.montantAReduire);
   }
   save();closeOv('ov-remb-depot');renderDepots();
-  notif('Restitution '+fmt(amt)+' F enregistree'+(frais>0?' (frais: '+fmt(frais)+' F, a charge de '+(payeurFrais==='moi'?'Baye':d.deposant)+')':''));
+  notif('Restitution '+fmt(amt)+' F enregistree'+(plan.length>1?' (repartie sur '+plan.length+' comptes)':'')+(frais>0?' (frais: '+fmt(frais)+' F, a charge de '+(payeurFrais==='moi'?'Baye':d.deposant)+')':''));
   try{renderAll();}catch(e){}
 }
 function annulerDepot(i){
@@ -8806,7 +8931,33 @@ function annulerDepot(i){
   D.depots.splice(i,1);save();renderDepots();notif('Depot annule (ecart 479) - le solde du tiers est mis a jour');
   try{renderAll();}catch(e){}
 }
+// ---- Regularisation des operations passees avant la dette envers le tiers ----
+function fondsTiersExcedents(){
+  var out=[];
+  COMPTES_TRES.forEach(function(c){
+    if(c==='Frais Transfert'||c==='Transit 585')return;
+    var ex=fondsTiersSurCompte(c)-Math.max(0,D.comptes[c]||0);
+    if(ex>0.5)out.push({compte:c,excedent:ex});
+  });
+  return out;
+}
+function ouvrirRegularisationFondsTiers(){
+  var ex=fondsTiersExcedents();
+  if(!ex.length){notif('Rien a regulariser : aucun compte ne contient moins que l\'argent de tiers qui lui est rattache');return;}
+  var txt=ex.map(function(e){
+    var p=repartitionUsageTiers(e.compte,e.excedent).map(function(x){return x.nom+' '+fmt(Math.round(x.montant))+' F';}).join(', ');
+    return e.compte+' : '+fmt(Math.round(e.excedent))+' F ('+p+')';
+  }).join(' ; ');
+  _fondsTiersPendingCtx={onConfirm:function(){
+    var tot=0;ex.forEach(function(e){tot+=convertirFondsTiersEnDette(e.compte,'Regularisation (operation anterieure)');});
+    save();renderDepots();try{renderAll();}catch(e){}
+    notif('Regularisation faite : '+fmt(Math.round(tot))+' F devenus dette envers les tiers concernes');
+  }};
+  var t=G('cft-texte');if(t)t.textContent='Ces comptes contiennent moins que l\'argent de tiers qui leur est rattache : '+txt+'. Cet excedent sera retire du depot concerne et enregistre comme dette envers le tiers (ecriture 467 vers 401). Les soldes des comptes ne changent pas. Continuer ?';
+  openOv('ov-confirm-fonds-tiers');
+}
 function renderDepots(){
+  var rg=G('dp-regul');if(rg)rg.style.display=fondsTiersExcedents().length?'':'none';
   var tot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
   var e1=G('dp-tot'),e2=G('dp-nb');
   if(e1)e1.textContent=fmt(tot)+' F';if(e2)e2.textContent=(D.depots||[]).length;
@@ -9805,7 +9956,7 @@ function saveTonVerser(){
   var appliques=[];
   for(var _iv=0;_iv<repartitions.length;_iv++){
     var _rv=repartitions[_iv];
-    if(!debiterTresorerie(_rv.compte,_rv.montant,{allowFondsTiers:true,objet:'Versement tontine - '+t.nom+' - '+tiersNom})){
+    if(!debiterTresorerie(_rv.compte,_rv.montant,{allowFondsTiers:true,noConversion:true,objet:'Versement tontine - '+t.nom+' - '+tiersNom})){
       appliques.forEach(function(a){annulerDebitApresEchecEcriture(a.compte,a.montant,null);});
       tonRepartitionsAjouter(t,repartitions);
       notif('Versement annule - solde insuffisant sur '+_rv.compte,true);
@@ -11441,19 +11592,14 @@ function renderMenuRapide(keepEdit){
   // pouvoir y glisser des icones. Les 3 rubriques se deplacent par leur poignee (mode "Organiser").
   var rubOuv=!m.rubPlie||_mqEdit;
   var grip='<span class="mq-grip" aria-label="Deplacer la rubrique" title="Deplacer la rubrique">&#8942;&#8942;</span>';
+  var titres={saisie:'Saisies',outils:'Outils',rub:m.rubTitre};
   m.ordre.forEach(function(k,idx){
     var mt=idx?'margin-top:20px;':'margin-top:10px;';
+    var ouv=_mqEdit||(k==='rub'?!m.rubPlie:!(m.plie&&m.plie[k]));
+    var liste=k==='saisie'?m.saisie:(k==='outils'?m.outils:m.rub);
     h+='<div class="mq-sec" data-secid="'+k+'">';
-    if(k==='saisie'){
-      h+='<div class="modal-title mq-sec-hd" style="'+mt+'display:flex;align-items:center;gap:8px">'+grip+'<span>Saisies</span></div>';
-      h+='<div class="mi-grid" data-sec="saisie">'+m.saisie.map(function(id){return mqTuile(id,cat);}).join('')+addT('saisie')+'</div>';
-    }else if(k==='outils'){
-      h+='<div class="modal-title mq-sec-hd" style="'+mt+'display:flex;align-items:center;gap:8px">'+grip+'<span>Outils</span></div>';
-      h+='<div class="mi-grid" data-sec="outils">'+m.outils.map(function(id){return mqTuile(id,cat);}).join('')+addT('outils')+'</div>';
-    }else{
-      h+='<div class="modal-title mq-sec-hd" data-act="rubtoggle" style="'+mt+'display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer"><span style="display:flex;align-items:center;gap:8px">'+grip+'<span>'+(rubOuv?'&#9662; ':'&#9656; ')+escHtml(m.rubTitre)+' <span style="font-size:12px;font-weight:500;color:var(--text3)">('+m.rub.length+')</span></span></span>'+(_mqEdit?'<button class="mq-ren" data-act="rubrename">Renommer</button>':'')+'</div>';
-      if(rubOuv)h+='<div class="mi-grid" data-sec="rub">'+m.rub.map(function(id){return mqTuile(id,cat);}).join('')+addT('rub')+'</div>';
-    }
+    h+='<div class="modal-title mq-sec-hd" data-act="sectoggle" data-k="'+k+'" style="'+mt+'display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer"><span style="display:flex;align-items:center;gap:8px">'+grip+'<span>'+(ouv?'&#9662; ':'&#9656; ')+escHtml(titres[k])+' <span style="font-size:12px;font-weight:500;color:var(--text3)">('+liste.length+')</span></span></span>'+(_mqEdit&&k==='rub'?'<button class="mq-ren" data-act="rubrename">Renommer</button>':'')+'</div>';
+    if(ouv)h+='<div class="mi-grid" data-sec="'+k+'">'+liste.map(function(id){return mqTuile(id,cat);}).join('')+addT(k)+'</div>';
     h+='</div>';
   });
   h+='<button class="mq-reset" data-act="reset">Reinitialiser le menu</button>';
@@ -11635,7 +11781,7 @@ function mqInitEvents(body){
       if(act==='edit'){mqEntrerEdition();}
       else if(act==='done'){mqQuitterEdition();}
       else if(act==='add'){ouvrirEditMenu('add',a.getAttribute('data-sec'),null);}
-      else if(act==='rubtoggle'){var mr=ensureMenuRapide();mr.rubPlie=!mr.rubPlie;save();renderMenuRapide(true);}
+      else if(act==='sectoggle'){var mr=ensureMenuRapide(),kk=a.getAttribute('data-k');if(kk==='rub')mr.rubPlie=!mr.rubPlie;else{if(!mr.plie)mr.plie={};mr.plie[kk]=!mr.plie[kk];}save();renderMenuRapide(true);}
       else if(act==='rubrename'){
         var mr2=ensureMenuRapide(),nt=prompt('Nom de la rubrique',mr2.rubTitre);
         if(nt!==null&&nt.trim()){mr2.rubTitre=nt.trim().slice(0,30);save();renderMenuRapide(true);}
