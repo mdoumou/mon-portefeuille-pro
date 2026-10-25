@@ -321,6 +321,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 /* FAB */
 .fab{position:fixed;bottom:38px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;box-shadow:0 0 0 4px var(--bg),0 4px 20px rgba(212,160,23,.5);color:#0A1628;font-size:calc(28px*var(--fscale));cursor:pointer;display:none;align-items:center;justify-content:center;z-index:9000;font-family:var(--font-body);transition:transform .28s ease,opacity .22s ease;}
 .fab.fab-hidden{transform:translateX(-50%) translateY(90px);opacity:0;pointer-events:none;}
+.fab-ctx{position:fixed;right:14px;bottom:84px;display:none;align-items:center;gap:6px;padding:11px 16px;border-radius:999px;background:var(--bg2,#0F1E38);border:1.5px solid var(--gold2);color:var(--gold2);font-size:calc(14px*var(--fscale));font-weight:700;cursor:pointer;z-index:8990;font-family:var(--font-body);box-shadow:0 4px 16px rgba(0,0,0,.45);transition:transform .28s ease,opacity .22s ease;}
+.fab-ctx:active{transform:scale(.95);}
+.fab-ctx{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;}
+.fab-ctx.fab-hidden{transform:translateY(110px);opacity:0;pointer-events:none;}
 .fab:active{transform:translateX(-50%) scale(.93);}
 
 /* MODAL */
@@ -1697,6 +1701,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="bn-item" id="bn-plus" onclick="openOv('nav-drawer')"><span class="bn-ic">&#9776;</span>Plus</button>
 </div>
 <button class="fab" id="fab" onclick="openFab()">+</button>
+<button class="fab-ctx" id="fab-ctx" onclick="actionFabCtx()" title="Appui long : ajout rapide"></button>
 
 <!-- ═══ MODALS ═══ -->
 <div class="ov" id="ov-menu" onclick="closeOv('ov-menu')">
@@ -1735,7 +1740,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <!-- MODAL TRESORERIE -->
 <div class="ov" id="ov-tx"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Mouvement de tresorerie</div>
-  <div class="fg"><label class="fl">Type</label><select class="fc" id="tx-type"><option value="credit">Entree (credit)</option><option value="debit">Sortie (debit)</option></select></div>
+  <div class="fg"><label class="fl">Type</label><select class="fc" id="tx-type" onchange="majTxCats()"><option value="credit">Entree (credit)</option><option value="debit">Sortie (debit)</option></select></div>
+  <div class="fg"><label class="fl">Categorie</label><select class="fc" id="tx-cat"></select></div>
   <div class="fg"><label class="fl">Compte</label><select class="fc" id="tx-cpt"><option>Wave 76</option><option>Wave 77</option><option>Orange Money</option><option>Mix by Yas</option><option>XpressCash</option><option>Banque Courant</option><option>Banque Epargne</option><option>Especes</option></select></div>
   <div class="fg"><label class="fl">Libelle</label><input class="fc" type="text" id="tx-lib" placeholder="ex: Salaire du mois"></div>
   <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="tx-tiers"><option value="">- Aucun tiers -</option></select></div>
@@ -1773,11 +1779,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <div class="ov" id="ov-dep"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Depense</div>
   <div class="fg"><label class="fl">Categorie (OHADA Cl.6)</label><select class="fc" id="dep-cat"><option value="60|Alimentation">60 - Alimentation</option><option value="61|Transport">61 - Transport</option><option value="62|Logement">62 - Logement / Loyer</option><option value="622|Depenses domestiques">622 - Depenses domestiques (maison, ravitaillement, autres)</option><option value="63|Sante">63 - Sante</option><option value="64|Education">64 - Education</option><option value="65|Communication">65 - Communication</option><option value="66|Habillement">66 - Habillement</option><option value="67|Loisirs">67 - Loisirs</option><option value="68|Religion">68 - Religion / Zakat</option><option value="69|Charges familiales">69 - Charges familiales</option><option value="659|Cadeaux offerts">659 - Cadeaux (offerts, accordes)</option><option value="476|Charge a payer">476 - Charge a payer (non encore decaissee)</option><option value="79|Autre">79 - Autre</option></select></div>
-  <div class="fg"><label class="fl">Compte decaissement</label><select class="fc" id="dep-cpt"><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Especes">Especes</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option><option value="476">476 - Pas encore decaisse</option></select></div>
+  <div class="fg"><label class="fl">Compte decaissement</label><select class="fc" id="dep-cpt" onchange="majDepCreanceInfo()"><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Especes">Especes</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option><option value="476">476 - Pas encore decaisse</option></select></div>
+  <label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="dep-multi" onchange="toggleDepMulti()" style="width:18px;height:18px"> Payer avec plusieurs comptes</label>
+  <div id="dep-repart-rows" style="display:none"></div>
+  <div class="bdg bb" id="dep-repart-add" style="display:none;margin-bottom:6px" onclick="ajouterLigneDepRepart()">+ Ajouter un compte</div>
+  <div id="dep-repart-info" style="display:none;font-size:calc(12px*var(--fscale));color:var(--text2);margin-bottom:10px"></div>
   <div class="fg"><label class="fl">Libelle</label><input class="fc" type="text" id="dep-lib" placeholder="ex: Courses marche Sandaga"></div>
-  <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="dep-tiers"><option value="">- Aucun tiers -</option></select></div>
-  <label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="dep-use-creance" style="width:18px;height:18px"> Utiliser une creance existante de ce tiers pour cet achat</label>
-  <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="dep-amt"></div><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="dep-date"></div></div>
+  <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="dep-tiers" onchange="majDepCreanceInfo()"><option value="">- Aucun tiers -</option></select></div>
+  <label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="dep-use-creance" onchange="majDepCreanceInfo()" style="width:18px;height:18px"> Utiliser une creance existante de ce tiers pour cet achat</label>
+  <label class="lbl" id="dep-reliquat-row" style="display:none;align-items:flex-start;gap:8px;margin:0 0 10px"><input type="checkbox" id="dep-reliquat-dette" onchange="toggleDepReliquat()" style="width:18px;height:18px;flex-shrink:0;margin-top:2px"> <span>Je ne paie pas avec un compte : si la creance ne couvre pas tout, le reste devient une dette envers ce tiers</span></label>
+  <div id="dep-creance-info" style="display:none;font-size:calc(12px*var(--fscale));margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(212,160,23,.10);border:1px solid var(--border);line-height:1.5"></div>
+  <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="dep-amt" oninput="majDepRepartInfo();majDepCreanceInfo()"></div><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="dep-date"></div></div>
   <label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="dep-surplus-toggle" onchange="toggleDepSurplus()" style="width:18px;height:18px"> Montant paye different (plus = don, moins = reste a credit)</label>
   <div class="fg" id="dep-paye-row" style="display:none"><label class="fl">Montant reellement paye (FCFA)</label><input class="fc" type="number" id="dep-paye"></div>
   <div class="fg"><label class="fl">Frais (optionnel)</label><input class="fc" type="number" id="dep-frais" placeholder="ex: 100 (frais de transaction)"></div>
@@ -2215,7 +2227,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <div class="fg"><label class="fl">Statut</label><select class="fc" id="proj-statut"><option value="Planifie">Planifie</option><option value="En cours" selected>En cours</option><option value="Suspendu">Suspendu</option><option value="Realise">Realise</option><option value="Annule">Annule</option></select></div>
   <div class="fr"><div class="fg"><label class="fl">Budget prevu (FCFA)</label><input class="fc" type="number" id="proj-obj"></div><div class="fg"><label class="fl">Epargne deja affectee</label><input class="fc" type="number" id="proj-act" placeholder="0"></div></div>
   <div class="fg"><label class="fl">Compte epargne du projet</label><select class="fc" id="proj-cpt"><option value="Banque Epargne">Banque Epargne</option><option value="Banque Courant">Banque Courant</option><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Especes">Especes</option></select></div>
-  <div class="fg"><label class="fl">Date cible (vide=Non definie)</label><input class="fc" type="date" id="proj-cible"></div>
+  <div class="fg"><label class="fl">Echeance du projet</label><select class="fc" id="proj-ech-mode" onchange="toggleProjEcheance()"><option value="aucune">Non definie</option><option value="date">Une date precise</option><option value="periode">Une periode (du ... au ...)</option></select></div>
+  <div class="fg" id="proj-row-date" style="display:none"><label class="fl">Date precise</label><input class="fc" type="date" id="proj-cible"></div>
+  <div class="fr" id="proj-row-periode" style="display:none"><div class="fg"><label class="fl">Du</label><input class="fc" type="date" id="proj-debut"></div><div class="fg"><label class="fl">Au</label><input class="fc" type="date" id="proj-fin"></div></div>
   <div class="warn" style="margin:2px 0 4px">Epargne automatique (optionnel)</div>
   <div class="fr"><div class="fg"><label class="fl">Montant periodique (FCFA)</label><input class="fc" type="number" id="proj-epargne-montant" placeholder="ex: 25000"></div><div class="fg"><label class="fl">Frequence</label><select class="fc" id="proj-epargne-freq"><option value="mensuel">Mensuel</option><option value="hebdomadaire">Hebdomadaire</option></select></div></div>
   <div class="fg"><label class="fl">Notes</label><input class="fc" type="text" id="proj-notes" placeholder="ex: Attendre le devis definitif du macon"></div>
@@ -2898,6 +2912,48 @@ function openOv(id){var el=G(id);if(el)el.classList.add('on');}
 // heriter du choix de la precedente (compte de tresorerie, categorie de charge, mode...). Les champs
 // caches (etat interne) ne sont pas touches. Les listes/cases qui pilotent l'affichage (onchange) sont
 // notifiees pour que le formulaire reflete bien l'etat par defaut.
+// ---- Listes a choix obligatoire : AUCUNE presselection ----
+// Les listes de categorie / type / compte de tresorerie des formulaires de saisie ouvrent sur
+// "- Choisir ... -" au lieu d'une valeur deja cochee (ex. "60 - Alimentation", "Wave 76") : une saisie
+// rapide ne peut plus etre classee ou imputee a un compte par defaut sans que l'utilisateur l'ait voulu.
+// Les listes facultatives ("Aucun tiers", "Ne pas affecter", modes, periodicites...) ne sont pas touchees.
+var SELECTS_CHOIX_OBLIGATOIRE=['rev-cat','dep-cat','tx-cat','trj-cat','det-type','reg-type','reg-compte-contrep','ti-cat',
+  'tx-cpt','tr-from','tr-to','rev-cpt','dep-cpt','dpt-cpt','trj-cpt','mq-cpt','tc-cpt','tr2-cpt','tg-cpt','tv-cpt','tcl-cpt','ton-cpt',
+  'remb-cpt','remb-depot-cpt','real-prom-cpt','encaiss-pret-cpt','pdp-cpt','pret-cpt','det-cpt-rec','empd-cpt','rall-cpt','rach-cpt',
+  'empp-cpt','emp-cpt-decaissement','proj-cpt'];
+function texteChoisirSelect(id){
+  if(/-cat$|^ti-cat$/.test(id)||id==='reg-compte-contrep')return '- Choisir une categorie -';
+  if(id==='det-type'||id==='reg-type')return '- Choisir un type -';
+  return '- Choisir un compte -';
+}
+function placeholderSelect(sel){
+  if(!sel||!sel.id||SELECTS_CHOIX_OBLIGATOIRE.indexOf(sel.id)===-1)return;
+  var o0=sel.options[0];
+  if(!o0||!o0.hasAttribute('data-ph')){
+    var ph=document.createElement('option');ph.value='';ph.setAttribute('data-ph','1');ph.textContent=texteChoisirSelect(sel.id);
+    sel.insertBefore(ph,sel.firstChild);
+  }
+  sel.selectedIndex=0;
+}
+// Garde generique : un bouton principal (.btn-p) d'un formulaire est bloque tant qu'une liste a choix
+// obligatoire VISIBLE de ce formulaire est restee sur "- Choisir -".
+document.addEventListener('click',function(ev){
+  var btn=ev.target&&ev.target.closest?ev.target.closest('.ov .btn-p'):null;if(!btn)return;
+  var ov=btn.closest('.ov');if(!ov)return;
+  var sels=ov.querySelectorAll('select');
+  for(var i=0;i<sels.length;i++){
+    var sel=sels[i];
+    if(SELECTS_CHOIX_OBLIGATOIRE.indexOf(sel.id)===-1)continue;
+    if(!sel.getClientRects().length)continue; // liste masquee (mode different) : non concernee
+    if(sel.value===''){
+      ev.stopPropagation();ev.preventDefault();
+      var fg=sel.closest('.fg'),lb=fg?fg.querySelector('.fl'):null;
+      try{notif('Choisissez : '+(lb?lb.textContent.trim():'une valeur'),true);}catch(e){}
+      try{sel.focus();}catch(e){}
+      return;
+    }
+  }
+},true);
 function reinitialiserChampsOv(ovId){
   var ov=G(ovId);if(!ov)return;
   var notifs=[];
@@ -2905,6 +2961,7 @@ function reinitialiserChampsOv(ovId){
     var k=-1;
     for(var i=0;i<sel.options.length;i++){if(sel.options[i].defaultSelected){k=i;break;}}
     sel.selectedIndex=sel.options.length?(k>=0?k:0):-1;
+    placeholderSelect(sel);
     if(sel.getAttribute('onchange'))notifs.push(sel);
   });
   ov.querySelectorAll('input,textarea').forEach(function(el){
@@ -2932,7 +2989,7 @@ function ouvrirNouvelleSaisie(ovId,textIds,tiersIds,dateIds){
   (tiersIds||[]).forEach(function(id){var e=G(id);if(e)e.value='';});
   openOv(ovId);
 }
-function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-frais'],['tx-tiers'],['tx-date']);}
+function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-frais'],['tx-tiers'],['tx-date']);try{majTxCats();}catch(e){}}
 function ouvrirNouveauRev(){ouvrirNouvelleSaisie('ov-rev',['rev-lib','rev-amt','rev-frais'],['rev-tiers'],['rev-date']);}
 function ouvrirNouvelleDep(){_chargeLinkIdPourDep='';ouvrirNouvelleSaisie('ov-dep',['dep-lib','dep-amt','dep-frais'],['dep-tiers'],['dep-date']);}
 function ouvrirNouveauDepot(){ouvrirNouvelleSaisie('ov-depot',['dpt-dep','dpt-obj','dpt-amt','dpt-rest','dpt-frais'],['dpt-tiers'],['dpt-date']);}
@@ -2962,6 +3019,49 @@ function planifierReinitOv(id){
   },400);
 }
 function openFab(){renderMenuRapide(false);openOv('ov-menu');}
+// Bouton "+" contextuel : un raccourci par page principale qui ouvre directement le bon formulaire
+// (sans repasser par le menu Ajout rapide). Les fonctions ouvrirNouv* reinitialisent le formulaire.
+var FAB_CTX={
+  tresorerie:['Mouvement',function(){ouvrirNouveauTx();}],
+  revenus:['Revenu',function(){ouvrirNouveauRev();}],
+  depenses:['Depense',function(){ouvrirNouvelleDep();}],
+  depots:['Depot',function(){ouvrirNouveauDepot();}],
+  dettes:['Dette',function(){ouvrirNouvelleDette();}],
+  emprunts:['Emprunt',function(){ouvrirNouvelEmprunt();}],
+  prets:['Pret',function(){ouvrirNouveauPret();}],
+  promesses:['Promesse',function(){ouvrirNouvellePromesse();}],
+  tontines:['Tontine',function(){ouvrirNouvelleTontine();}],
+  famille:['Membre',function(){ouvrirNouvelleFam();}],
+  projets:['Projet',function(){ouvrirNouveauProjet();}]
+};
+function majFabCtx(p){
+  var b=G('fab-ctx'),f=G('fab');
+  var d=FAB_CTX[p];
+  // Sur une page qui a son propre "+", le "+" central (Ajout rapide) est masque : il reste accessible par
+  // un appui long sur le bouton "+ Page". Ailleurs il reste visible, sauf Controles/Impression/IA.
+  if(f&&G('app')&&G('app').classList.contains('on'))f.style.display=(d||p==='controles'||p==='impression'||p==='ia')?'none':'flex';
+  if(!b)return;
+  if(!d){b.style.display='none';return;}
+  b.textContent='+ '+d[0];
+  b.style.display='flex';
+  b.classList.remove('fab-hidden');
+}
+var _fabLongT=null,_fabLongFired=false;
+function initFabCtxLongPress(){
+  var b=G('fab-ctx');if(!b||b._lpInit)return;b._lpInit=true;
+  b.addEventListener('pointerdown',function(){
+    _fabLongFired=false;clearTimeout(_fabLongT);
+    _fabLongT=setTimeout(function(){_fabLongFired=true;try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}openFab();},500);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){b.addEventListener(ev,function(){clearTimeout(_fabLongT);});});
+  b.addEventListener('contextmenu',function(e){e.preventDefault();});
+}
+setTimeout(initFabCtxLongPress,300);
+function actionFabCtx(){
+  if(_fabLongFired){_fabLongFired=false;return;}
+  var d=FAB_CTX[curPage];
+  if(d){try{d[1]();}catch(e){console.warn('fab-ctx:',e);notif('Ouverture impossible',true);}}
+}
 function refreshApp(){
   if(!currentDataKey){notif('Session verrouillee',true);return;}
   initD(currentDataKey).then(function(){try{migrerTiersEcritures();}catch(e){}try{renderAll();}catch(e){}try{buildCharts();}catch(e){}notif('Page actualisee');}).catch(function(){notif('Erreur actualisation',true);});
@@ -3071,6 +3171,7 @@ function unlockApp(){
   if(lock)lock.style.display='none';
   if(app)app.classList.add('on');
   if(fab)fab.style.display='flex';
+  try{majFabCtx(curPage);}catch(e){}
   updateIAView();
   populateOpJournalSelect();
   try{renderAll();}catch(e){}
@@ -3083,7 +3184,7 @@ function unlockApp(){
 }
 function doLogout(){
   var app=G('app'),fab=G('fab'),lock=G('lock');
-  if(app)app.classList.remove('on');if(fab)fab.style.display='none';
+  if(app)app.classList.remove('on');if(fab)fab.style.display='none';var fcx=G('fab-ctx');if(fcx)fcx.style.display='none';
   if(lock)lock.style.display='flex';
   var lu=G('lk-user'),lp=G('lk-pass');if(lu)lu.value='';if(lp)lp.value='';
   pinBuf='';updateDots();
@@ -4352,6 +4453,21 @@ function appliquerFraisUniverselle(cpt,frais,payeur,libelle,date,tiersCode,compt
   }
   return {ok:true,montantAReduire:frais};
 }
+// Le don fait au vendeur quand on paie plus que le prix (compte 656) etait libelle "Bonus recu" alors que c'est
+// un bonus OFFERT : on renomme les anciennes ecritures (libelle + lignes). Idempotent (ne touche que les
+// libelles qui commencent encore par "Bonus recu - "), montants/comptes/tiers inchanges.
+function migrerLibellesBonus(){
+  var n=0;
+  (D.ecritures||[]).forEach(function(e){
+    var touche=false;
+    if(typeof e.libelle==='string'&&e.libelle.indexOf('Bonus recu - ')===0){e.libelle='Bonus offert - '+e.libelle.slice(13);touche=true;}
+    (e.lignes||[]).forEach(function(l){
+      if(typeof l.lib==='string'&&l.lib.indexOf('Bonus recu - ')===0){l.lib='Bonus offert - '+l.lib.slice(13);touche=true;}
+    });
+    if(touche)n++;
+  });
+  if(n){save();try{auditLog('Correction de libelles','Journal','Bonus recu','Bonus offert',n+' ecriture(s) renommee(s) - montants, comptes et tiers inchanges');}catch(e){}}
+}
 function migrerTiersEcritures(){
   // Reconcilie les ecritures deja enregistrees dont le tiers a ete tague par nom au lieu du code officiel
   var changed=false;
@@ -4363,6 +4479,7 @@ function migrerTiersEcritures(){
     });
   });
   if(changed)save();
+  try{migrerLibellesBonus();}catch(e){console.warn('migrerLibellesBonus:',e);}
   migrerNomsTiersEcritures();
   migrerStatutsDettesPrets();
   // Remet en coherence les depots / tontines dont l'argent est rattache a un compte qui en contient moins
@@ -4411,7 +4528,7 @@ function migrerStatutsDettesPrets(){
 var curPage='dashboard';
 // ---- Touche retour du telephone : ferme la fenetre ouverte, puis revient a la page precedente, puis a
 // l'Accueil ; depuis l'Accueil, un second appui (sous 2 s) quitte l'application ----
-var _pileNav=[],_navRetour=false,_quitArme=false,_quitTimer=null;
+var _pileNav=[],_navRetour=false,_quitArme=false,_quitTimer=null,_quitEnCours=false;
 function ovOuvertDuHaut(){
   var best=null,bz=-1;
   document.querySelectorAll('.ov.on').forEach(function(el){
@@ -4420,11 +4537,21 @@ function ovOuvertDuHaut(){
   });
   return best;
 }
-function armerRetour(){try{history.pushState({mpp:'garde'},'');}catch(e){}}
+// Bouton Retour : l'appli maintient plusieurs entrees "garde" derriere la position courante (au lieu d'une
+// seule). Une garde isolee pouvait etre depassee si deux appuis rapprochees arrivaient avant que l'appli
+// (occupee a se redessiner) ait eu le temps d'en remettre une - ou etre ignoree par Chrome (entree creee
+// sans geste de l'utilisateur) : l'appli se fermait alors sur une page autre que l'Accueil. _posRetour =
+// numero de l'entree courante (0 = base, lu depuis history.state a chaque retour pour rester juste meme si
+// Chrome en saute plusieurs).
+var GARDES_RETOUR=3,_posRetour=0;
+function armerRetour(){try{while(_posRetour<GARDES_RETOUR){history.pushState({mpp:'garde',i:_posRetour+1},'');_posRetour++;}}catch(e){}}
+document.addEventListener('pointerdown',function(){if(window._retourInit&&_posRetour<GARDES_RETOUR)armerRetour();},{capture:true,passive:true});
 function initRetourTelephone(){
   if(window._retourInit)return;window._retourInit=true;
-  try{history.replaceState({mpp:'base'},'');armerRetour();}catch(e){return;}
-  window.addEventListener('popstate',function(){
+  try{history.replaceState({mpp:'base',i:0},'');_posRetour=0;armerRetour();}catch(e){return;}
+  window.addEventListener('popstate',function(ev){
+    if(_quitEnCours)return;
+    _posRetour=(ev&&ev.state&&typeof ev.state.i==='number')?ev.state.i:0;
     // application verrouillee : on ne navigue pas, on garde simplement la garde en place
     var ov=ovOuvertDuHaut();
     if(ov){
@@ -4449,12 +4576,14 @@ function initRetourTelephone(){
     }
     if(!_quitArme){
       _quitArme=true;armerRetour();
+      try{if(navigator.vibrate)navigator.vibrate(40);}catch(e){}
       try{notif('Appuyez encore sur Retour pour quitter');}catch(e){}
-      clearTimeout(_quitTimer);_quitTimer=setTimeout(function(){_quitArme=false;},2000);
+      clearTimeout(_quitTimer);_quitTimer=setTimeout(function(){_quitArme=false;},3000);
       return;
     }
-    // second appui : on laisse le navigateur quitter (la garde n'est pas remise)
-    try{history.back();}catch(e){}
+    // second appui : on quitte vraiment - on remonte au-dela de TOUTES les gardes, pas d'une seule
+    _quitEnCours=true;
+    try{history.go(-(_posRetour+1));}catch(e){_quitEnCours=false;}
   });
 }
 setTimeout(initRetourTelephone,300);
@@ -4481,6 +4610,7 @@ function goPage(p,btn){
   try{renderAll();}catch(e){console.warn('renderAll:',p,e);}
   if(p==='conv'){try{majTauxDevises(false);}catch(e){}}
   var fabBtn=G('fab');if(fabBtn){fabBtn.style.display=(p==='controles'||p==='impression'||p==='ia')?'none':'flex';fabBtn.classList.remove('fab-hidden');}
+  try{majFabCtx(p);}catch(e){}
   closeOv('nav-drawer');
 }
 // Bande d'onglets de navigation (menu principal) : repliable, etat memorise
@@ -4512,10 +4642,12 @@ function initAutoHideNav(){
     if(delta>0&&st>40){
       if(nav)nav.classList.add('bn-hidden');
       if(fab)fab.classList.add('fab-hidden');
+      var fc1=G('fab-ctx');if(fc1)fc1.classList.add('fab-hidden');
       if(aiRow)aiRow.classList.add('ai-row-hidden');
     } else {
       if(nav)nav.classList.remove('bn-hidden');
       if(fab)fab.classList.remove('fab-hidden');
+      var fc2=G('fab-ctx');if(fc2)fc2.classList.remove('fab-hidden');
       if(aiRow)aiRow.classList.remove('ai-row-hidden');
     }
     _navScrollLast=st<0?0:st;
@@ -5241,7 +5373,14 @@ function validerOp(){
           else D.comptes[cptName]=(D.comptes[cptName]||0)-Number(l.montant);
         }
       });
-      Object.keys(checks).forEach(function(c){if(checks[c].manqueFondsTiers>0)enregistrerDetteFondsTiers(checks[c].manqueFondsTiers,'Operation manuelle - '+lib);});
+      Object.keys(checks).forEach(function(c){
+        // Meme regle que les autres operations : l'argent d'autrui utilise devient une DETTE envers le tiers
+        // (son depot / sa tontine baisse d'autant) ; seul un eventuel residu non localise va en dette generique.
+        var conv=0;
+        try{conv=convertirFondsTiersEnDette(c,'Operation manuelle - '+lib);}catch(e){console.warn('convertirFondsTiersEnDette:',e);}
+        var residu=(checks[c].manqueFondsTiers||0)-conv;
+        if(residu>0.5)enregistrerDetteFondsTiers(residu,'Operation manuelle - '+lib);
+      });
       if('Banque Courant' in debitsParCompte)syncDecouvertBancaire();
       save();
       notif('Operation '+ok+' validee');resetOp();
@@ -6483,7 +6622,7 @@ function impDataProjets(f){
   });
   return {titre:'Projets',sousTitre:impFiltresTxt(f),
     sections:[{titre:null,colonnes:[impCol('nom','Nom','left'),impCol('categorie','Categorie','left'),impCol('statut','Statut','left'),impCol('cible','Echeance','left','date'),impCol('objectif','Objectif','right','montant'),impCol('actuel','Epargne actuelle','right','montant')],
-      lignes:lignes.map(function(p){return {nom:p.nom,categorie:p.categorie||'',statut:p.statut,cible:p.dateCible?fmtD(p.dateCible):'-',objectif:p.objectif,actuel:p.actuel};}),
+      lignes:lignes.map(function(p){return {nom:p.nom,categorie:p.categorie||'',statut:p.statut,cible:(p.echeanceMode==='periode'&&p.dateDebut&&p.dateFin)?(fmtD(p.dateDebut)+' - '+fmtD(p.dateFin)):(p.dateCible?fmtD(p.dateCible):'-'),objectif:p.objectif,actuel:p.actuel};}),
       totaux:{objectif:impSomme(lignes,'objectif'),actuel:impSomme(lignes,'actuel')}}]};
 }
 // ---- Module : FAMILLE ----
@@ -6546,7 +6685,7 @@ function impDataSocial(f){
 function impDataRapport(f){
   var y=(f.debut||today()).slice(0,4);
   var rev=(D.revenus||[]).filter(function(r){return (r.date||'').slice(0,4)===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var dep=(D.depenses||[]).filter(function(d){return (d.date||'').slice(0,4)===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
+  var dep=depensesPayees().filter(function(d){return (d.date||'').slice(0,4)===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   var rows=[{lbl:'Revenus '+y,montant:rev},{lbl:'Depenses '+y,montant:dep},{lbl:'Epargne nette '+y,montant:rev-dep},
     {lbl:'Epargne cumulee (projets)',montant:(D.projets||[]).reduce(function(a,p){return a+Number(p.actuel);},0)},
     {lbl:'Dettes + emprunts en cours',montant:dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts()}];
@@ -8960,6 +9099,9 @@ function rsValider(){
 function doRembDepot(){
   var d=(D.depots||[])[_depotRembIdx];if(!d)return;
   var amt=Number((G('remb-depot-amt')||{}).value||0)||d.montant;
+  // Garde-fou : on ne peut restituer plus que ce qui reste du depot (le reste, deja utilise, est une DETTE a
+  // rembourser depuis le module Dettes) - sinon le compte 467 passerait en debit.
+  if(amt>d.montant+0.5){notif('Montant superieur au depot restant ('+fmt(d.montant)+' F). Ce qui a deja ete utilise est une dette : remboursez-la depuis le module Dettes',true);return;}
   var repFallback=depotRepartitions(d)[0];
   var cpt=(G('remb-depot-cpt')||{}).value||(repFallback?repFallback.compte:'Especes');
   var frais=Number((G('remb-depot-frais')||{}).value||0);
@@ -10364,12 +10506,27 @@ function toggleProjCategoriePerso(){
   if(row)row.style.display=v==='Autre'?'':'none';
 }
 var _projEditIdx=-1;
+// Echeance d'un projet : aucune | date precise (dateCible) | periode (dateDebut -> dateFin ; dateCible = dateFin pour que
+// les calculs existants - jours restants, plan d'epargne, IA - continuent de fonctionner sans changement).
+function toggleProjEcheance(){
+  var m=(G('proj-ech-mode')||{}).value||'aucune';
+  var rd=G('proj-row-date'),rp=G('proj-row-periode');
+  if(rd)rd.style.display=m==='date'?'':'none';
+  if(rp)rp.style.display=m==='periode'?'flex':'none';
+}
+function projEcheanceTxt(p){
+  if(p.echeanceMode==='periode'&&p.dateDebut&&p.dateFin)return 'Periode : du '+fmtD(p.dateDebut)+' au '+fmtD(p.dateFin);
+  if(p.dateCible)return 'Cible : '+fmtD(p.dateCible);
+  return 'Cible : Non definie';
+}
 function ouvrirNouveauProjet(){
   _projEditIdx=-1;
   populateProjCategorieSelect();
   var t=G('proj-modal-title');if(t)t.textContent='Nouveau projet';
   clr('proj-nom','proj-desc','proj-obj','proj-act','proj-notes','proj-pieces','proj-epargne-montant','proj-cat-perso');
   var ci=G('proj-cible');if(ci)ci.value='';
+  var pd=G('proj-debut');if(pd)pd.value='';var pf2=G('proj-fin');if(pf2)pf2.value='';
+  var em=G('proj-ech-mode');if(em)em.value='aucune';toggleProjEcheance();
   var ty=G('proj-type');if(ty)ty.value='Epargne';
   var pr=G('proj-priorite');if(pr)pr.value='Normale';
   var st=G('proj-statut');if(st)st.value='En cours';
@@ -10395,6 +10552,9 @@ function editerProjet(i){
   G('proj-act').value='';
   G('proj-cpt').value=p.cpt||'Banque Epargne';
   G('proj-cible').value=p.dateCible||p.cible||'';
+  G('proj-debut').value=p.dateDebut||'';G('proj-fin').value=p.dateFin||'';
+  G('proj-ech-mode').value=(p.echeanceMode==='periode'&&p.dateDebut&&p.dateFin)?'periode':(p.dateCible?'date':'aucune');
+  toggleProjEcheance();
   G('proj-epargne-montant').value=(p.epargneAuto&&p.epargneAuto.montantPeriodique)||'';
   G('proj-epargne-freq').value=(p.epargneAuto&&p.epargneAuto.frequence)||'mensuel';
   G('proj-notes').value=p.notes||'';
@@ -10410,6 +10570,13 @@ function saveProj(){
   var statut=(G('proj-statut')||{}).value||'En cours';
   var obj=Number((G('proj-obj')||{}).value||0),act=Number((G('proj-act')||{}).value||0);
   var cpt=(G('proj-cpt')||{}).value||'Banque Epargne',cible=(G('proj-cible')||{}).value||'';
+  var echMode=(G('proj-ech-mode')||{}).value||'aucune',dDebut='',dFin='';
+  if(echMode==='periode'){
+    dDebut=(G('proj-debut')||{}).value||'';dFin=(G('proj-fin')||{}).value||'';
+    if(!dDebut||!dFin){notif('Indiquez le debut et la fin de la periode',true);return;}
+    if(dFin<dDebut){notif('La fin de la periode doit etre apres son debut',true);return;}
+    cible=dFin;
+  } else if(echMode!=='date'){cible='';}
   var epMontant=Number((G('proj-epargne-montant')||{}).value||0),epFreq=(G('proj-epargne-freq')||{}).value||'mensuel';
   var notes=(G('proj-notes')||{}).value||'';
   var pieces=((G('proj-pieces')||{}).value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);
@@ -10418,7 +10585,7 @@ function saveProj(){
     var p=D.projets[_projEditIdx];
     p.nom=nom;p.description=desc;p.categorie=cat;p.type=cat;p.priorite=priorite;
     var ancienStatut=p.statut;
-    p.statut=statut;p.objectif=obj;p.cpt=cpt;p.dateCible=cible;p.cible=cible;
+    p.statut=statut;p.objectif=obj;p.cpt=cpt;p.dateCible=cible;p.cible=cible;p.echeanceMode=echMode;p.dateDebut=dDebut;p.dateFin=dFin;
     p.epargneAuto={actif:epMontant>0,montantPeriodique:epMontant,frequence:epFreq};
     p.notes=notes;p.piecesJointes=pieces;
     p.historique=p.historique||[];
@@ -10430,7 +10597,7 @@ function saveProj(){
   var code=genProjCode();
   var proj={
     code:code,nom:nom,description:desc,categorie:cat,type:cat,priorite:priorite,statut:statut,
-    dateCreation:today(),dateCible:cible,cible:cible,dateRealisation:'',
+    dateCreation:today(),dateCible:cible,cible:cible,echeanceMode:echMode,dateDebut:dDebut,dateFin:dFin,dateRealisation:'',
     objectif:obj,actuel:0,cpt:cpt,notes:notes,piecesJointes:pieces,
     epargneAuto:{actif:epMontant>0,montantPeriodique:epMontant,frequence:epFreq},
     operations:[],historique:[{date:today(),evenement:'Projet cree'}]
@@ -10777,7 +10944,7 @@ function analyserProjetIA(p){
   try{
     var now=new Date(),y=now.getFullYear(),m=now.getMonth();
     var cafM3=calculerCAFPeriode(firstOfMonthISO(y,m-2),today());
-    cafMoy=cafM3.caf/3;
+    cafMoy=cafM3.caf/nbMoisHistorique(3);
   }catch(e){}
   if(p.dateCible&&r.budgetRestant>0){
     var joursRestants=Math.max(1,Math.ceil((new Date(p.dateCible)-new Date())/864e5));
@@ -10852,7 +11019,7 @@ function renderProjets(){
         '<span class="pj-chev">&#x25B6;</span></div>'+
       '<div style="display:flex;justify-content:space-between;font-size:calc(13px*var(--fscale));margin:9px 0 3px"><span style="font-weight:600;color:var(--green)">'+fmt(r.budgetConsomme)+' F consomme</span><span style="color:var(--text2)">sur '+fmt(r.budgetPrevu)+' F</span></div>'+
       '<div class="pb"><div class="pf '+pf+'" style="width:'+pctBudget+'%"></div></div>'+
-      '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:5px">'+(p.dateCible?('Cible: '+fmtD(p.dateCible)+(r.joursRestants!==null?(' ('+(r.joursRestants>=0?r.joursRestants+' j restants':'echeance depassee')+')'):'')):'Cible: Non definie')+'</div>'+
+      '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:5px">'+(p.dateCible?(projEcheanceTxt(p).replace('Cible : ','Cible: ')+(r.joursRestants!==null?(' ('+(r.joursRestants>=0?r.joursRestants+' j restants':'echeance depassee')+')'):'')):'Cible: Non definie')+'</div>'+
       '<div class="pj-body">'+
         '<div class="pj-ind">'+
           '<div class="pj-ind-it"><div class="pj-ind-lbl">Budget prevu</div><div class="pj-ind-val">'+fmt(r.budgetPrevu)+' F</div></div>'+
@@ -10940,7 +11107,7 @@ function construireRapportProjetPdf(i){
   var y=dessinerEnTetePdf(doc,'RAPPORT PROJET - '+p.nom.toUpperCase(),today().slice(0,4));
   doc.setFont(pdfFontFamille(),'normal');doc.setFontSize((9)*pdfEchelle());doc.setTextColor(90);
   doc.text('Code: '+(p.code||'-')+'   Categorie: '+p.categorie+'   Statut: '+p.statut,15,y);y+=6;
-  doc.text('Cree le '+fmtD(p.dateCreation)+(p.dateCible?('   Cible: '+fmtD(p.dateCible)):'')+(p.dateRealisation?('   Cloture le '+fmtD(p.dateRealisation)):''),15,y);y+=8;
+  doc.text('Cree le '+fmtD(p.dateCreation)+(p.dateCible?('   '+projEcheanceTxt(p)):'')+(p.dateRealisation?('   Cloture le '+fmtD(p.dateRealisation)):''),15,y);y+=8;
   doc.setTextColor(0);
   y=dessinerBandeSolde(doc,y,pageW,'Budget prevu',r.budgetPrevu,today().slice(0,4));
   y=dessinerBandeSolde(doc,y,pageW,'Cout final / consomme',r.budgetConsomme,today().slice(0,4));
@@ -11260,22 +11427,24 @@ function declarerPerteCaisse(){
   if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
   if(!motif){notif('Motif obligatoire',true);return;}
   var code=cptCode(cpt);
-  var ref=passerEcriture('OD',date,'Perte de caisse - '+motif,[
-    {compte:'479',lib:'Ecarts de regularisation',sens:'D',montant:montant,tiers:''},
-    {compte:code,lib:cpt,sens:'C',montant:montant,tiers:''}
-  ],'');
-  if(!ref){notif('Perte annulee - l\'ecriture correspondante a echoue',true);return;}
-  D.comptes[cpt]=(D.comptes[cpt]||0)-montant;
-  if(!D.pertesCaisse)D.pertesCaisse=[];
-  var id='PERTE'+Date.now()+Math.floor(Math.random()*1000);
-  D.pertesCaisse.push({id:id,compte:cpt,montantPerdu:montant,montantRetrouve:0,motif:motif,date:date,statut:'ouverte'});
-  auditLog('Perte de caisse declaree','Tresorerie',cpt+' : -'+fmt(montant)+' F',motif,'');
-  save();notif('Perte enregistree');
-  clr('perte-montant','perte-motif');
-  renderPertesCaisse();
-  try{renderTres();}catch(e){}
+  // Une perte sort de l'argent du compte comme une depense : solde suffisant exige, et si elle entame de
+  // l'argent d'autrui (depots, tontines gerees) la regle habituelle s'applique (confirmation + dette envers lui).
+  execDebitAvecConfirmation(cpt,montant,{objet:'Perte de caisse - '+motif},function(){
+    var ref=passerEcriture('OD',date,'Perte de caisse - '+motif,[
+      {compte:'479',lib:'Ecarts de regularisation',sens:'D',montant:montant,tiers:''},
+      {compte:code,lib:cpt,sens:'C',montant:montant,tiers:''}
+    ],'');
+    if(!ref){annulerDebitApresEchecEcriture(cpt,montant,null);notif('Perte annulee - l\'ecriture correspondante a echoue',true);return;}
+    if(!D.pertesCaisse)D.pertesCaisse=[];
+    var id='PERTE'+Date.now()+Math.floor(Math.random()*1000);
+    D.pertesCaisse.push({id:id,compte:cpt,montantPerdu:montant,montantRetrouve:0,motif:motif,date:date,statut:'ouverte'});
+    auditLog('Perte de caisse declaree','Tresorerie',cpt+' : -'+fmt(montant)+' F',motif,'');
+    save();notif('Perte enregistree');
+    clr('perte-montant','perte-motif');
+    renderPertesCaisse();
+    try{renderTres();}catch(e){}
+  });
 }
-var _arCourantId='';
 function ouvrirArgentRetrouve(id){
   var p=(D.pertesCaisse||[]).find(function(x){return x.id===id;});
   if(!p)return;
@@ -12056,7 +12225,12 @@ function ensureDdm(){
   if(!Array.isArray(x.entrees))x.entrees=[];
   if(!Array.isArray(x.sorties))x.sorties=[];
   if(!Array.isArray(x.cats)||!x.cats.length)x.cats=DDM_CATS_DEFAUT.slice();
-  if(!x.periode)x.periode=String(new Date().getFullYear());
+  // Periodes simplifiees : 'mois' | 'annee' (annee en cours) | 'tout' | 'perso' (une annee OU une periode libre).
+  // Ancien format (annee choisie sous forme '2025') : converti en Personnalise > Une annee.
+  if(/^\d{4}$/.test(String(x.periode||''))){x.persoMode='annee';x.persoAnnee=String(x.periode);x.periode='perso';}
+  if(!x.periode)x.periode='annee';
+  if(x.persoMode!=='annee'&&x.persoMode!=='periode')x.persoMode='annee';
+  if(!/^\d{4}$/.test(String(x.persoAnnee||'')))x.persoAnnee=String(new Date().getFullYear());
   if(!x.du)x.du='';if(!x.au)x.au='';
   if(!x.rapport)x.rapport={};
   var r=x.rapport;
@@ -12088,10 +12262,12 @@ function ddmPeriode(){
   var x=ensureDdm(),p=x.periode;
   if(p==='tout'){return {from:'',to:'',label:'Depuis le debut ('+(ddmAnnees()[0])+' a '+ddmAnnees().slice(-1)[0]+')',cle:'tout'};}
   if(p==='perso'){
+    if(x.persoMode==='annee'){var ya=parseInt(x.persoAnnee,10)||new Date().getFullYear();return {from:ya+'-01-01',to:ya+'-12-31',label:'Annee '+ya,cle:'perso'};}
     var du=x.du||'',au=x.au||'';
     var lb='Du '+(du?fmtD(du):'debut')+' au '+(au?fmtD(au):'ce jour');
     return {from:du,to:au,label:lb,cle:'perso'};
   }
+  if(p==='annee'){var ye=new Date().getFullYear();return {from:ye+'-01-01',to:ye+'-12-31',label:'Annee en cours - '+ye,cle:'annee'};}
   if(p==='mois'){
     var dn=new Date(),yn=dn.getFullYear(),mn=dn.getMonth()+1,dernier=new Date(yn,mn,0).getDate();
     return {from:ddmIso(yn,mn,1),to:ddmIso(yn,mn,dernier),label:'Mois en cours - '+DDM_MOIS[mn-1]+' '+yn,cle:'mois'};
@@ -12099,6 +12275,8 @@ function ddmPeriode(){
   var y=parseInt(p,10)||new Date().getFullYear();
   return {from:y+'-01-01',to:y+'-12-31',label:'Annee '+y,cle:String(y)};
 }
+function ddmPersoMode(v){var x=ensureDdm();x.persoMode=(v==='periode')?'periode':'annee';if(x.persoMode==='periode'&&!x.du&&!x.au){x.du=x.persoAnnee+'-01-01';x.au=today();}save();renderDdm();}
+function ddmPersoAnnee(v){var x=ensureDdm();x.persoAnnee=String(v);save();renderDdm();}
 function ddmCalc(per){
   var x=ensureDdm(),from=per.from,to=per.to;
   var avant=0;
@@ -12178,15 +12356,16 @@ function ddmAcc(id,ico,titre,corps){
 function renderDdm(){
   var x=ensureDdm(),el=G('ddm-corps');if(!el)return;
   var per=ddmPeriode(),r=ddmCalc(per);
-  var ch='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode==='mois'?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\'mois\')">Mois en cours</button>';
-  ddmAnnees().forEach(function(y){
-    ch+='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode===String(y)?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\''+y+'\')">'+y+'</button>';
-  });
-  ch+='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode==='tout'?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\'tout\')">Depuis le debut</button>';
-  ch+='<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode==='perso'?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\'perso\')">Personnalisee</button>';
+  var chip=function(cle,txt){return '<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode===cle?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\''+cle+'\')">'+txt+'</button>';};
+  var ch=chip('mois','Mois en cours')+chip('annee','Annee en cours')+chip('tout','Depuis le debut')+chip('perso','Personnalise');
   var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+ch+'</div>';
   if(x.periode==='perso'){
-    h+='<div class="fr" style="margin-bottom:10px"><div class="fg"><label class="fl">Du</label><input class="fc" type="date" id="ddm-du" value="'+escHtml(x.du)+'" onchange="ddmPersoMaj()"></div><div class="fg"><label class="fl">Au</label><input class="fc" type="date" id="ddm-au" value="'+escHtml(x.au)+'" onchange="ddmPersoMaj()"></div></div>';
+    h+='<div class="fg"><label class="fl">Choisir</label><select class="fc" onchange="ddmPersoMode(this.value)"><option value="annee"'+(x.persoMode==='annee'?' selected':'')+'>Une annee</option><option value="periode"'+(x.persoMode==='periode'?' selected':'')+'>Une periode (du ... au ...)</option></select></div>';
+    if(x.persoMode==='annee'){
+      h+='<div class="fg"><label class="fl">Annee</label><select class="fc" onchange="ddmPersoAnnee(this.value)">'+ddmAnnees().map(function(y){return '<option value="'+y+'"'+(String(y)===String(x.persoAnnee)?' selected':'')+'>'+y+'</option>';}).join('')+'</select></div>';
+    } else {
+      h+='<div class="fr" style="margin-bottom:10px"><div class="fg"><label class="fl">Du</label><input class="fc" type="date" id="ddm-du" value="'+escHtml(x.du)+'" onchange="ddmPersoMaj()"></div><div class="fg"><label class="fl">Au</label><input class="fc" type="date" id="ddm-au" value="'+escHtml(x.au)+'" onchange="ddmPersoMaj()"></div></div>';
+    }
   }
   h+='<div style="font-weight:700;margin-bottom:8px">'+escHtml(per.label)+'</div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">'+
@@ -12945,10 +13124,17 @@ function filtrerDepCat(cat){
   renderDep();
   if(_depFiltreCat){var c=G('dep-hist-card');if(c&&c.scrollIntoView)c.scrollIntoView({behavior:'smooth',block:'start'});}
 }
+// Depense "offerte" par un collegue (trajet/repas partage - mode "un collegue a paye pour moi") : l'ecriture
+// comptable reste (charge + don recu, effet nul sur le resultat) mais aucun argent ne sort de ma poche, donc
+// elle n'entre ni dans les totaux ni dans le camembert de l'ecran Depenses (elle reste visible en historique).
+function depenseOfferte(d){return d&&d.compte==='Offert par un collegue';}
+// Depenses qui ont reellement sorti de l'argent de ma poche (hors depenses offertes) : base de TOUS les chiffres
+// "argent depense" du tableau de bord, des tendances, des ratios et de l'assistant IA.
+function depensesPayees(){return (D.depenses||[]).filter(function(d){return !depenseOfferte(d);});}
 function renderDep(){
-  var cats={};(D.depenses||[]).forEach(function(d){cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
+  var cats={};(D.depenses||[]).forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(_depFiltreCat&&!(_depFiltreCat in cats))_depFiltreCat='';
-  var tot=(D.depenses||[]).reduce(function(a,d){return a+Number(d.montant);},0);
+  var tot=(D.depenses||[]).reduce(function(a,d){return depenseOfferte(d)?a:a+Number(d.montant);},0);
   var pfx=['pfg','pfb','pfo','pfr','pfp'];
   var ec=G('dep-cats');
   var lstCats=Object.entries(cats).sort(function(a,b){return b[1]-a[1];});
@@ -12967,6 +13153,7 @@ function renderDep(){
   var el=G('dep-list');if(!el)return;
   var liste=(D.depenses||[]).filter(function(d){return !_depFiltreCat||d.categorie===_depFiltreCat;});
   el.innerHTML=liste.length?[...liste].reverse().map(function(d){
+    if(depenseOfferte(d))return '<div class="tx"><div class="tx-ico idb" style="opacity:.6">=</div><div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(d.tiers):'')+'</div><span class="tx-tag">'+escHtml(d.categorie)+' - offert, rien paye</span></div><div class="tx-amt" style="color:var(--text2)">'+fmt(d.montant)+' F</div></div>';
     return '<div class="tx"><div class="tx-ico idb">-</div><div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(d.tiers):'')+'</div><span class="tx-tag">'+escHtml(d.categorie)+' depuis '+escHtml(d.compte)+'</span></div><div class="tx-amt adb">-'+fmt(d.montant)+' F</div></div>';
   }).join(''):'<div class="empty"><div class="empty-txt">Aucune depense</div></div>';
   setTimeout(buildDepChart,100);
@@ -13149,22 +13336,33 @@ function changerPeriodePilotage(p,btn){
 // sur la periode. Les comptes 585 (transit interne), 401/16 (prets/emprunts) et 465-467 (depots pour
 // autrui) ne sont ni classe 6 ni classe 7 : ils sont donc naturellement exclus de ce calcul.
 function calculerCAFPeriode(debut,fin){
-  var produits=0,charges=0,detailCharges={},detailProduits={};
+  // Soldes NETS par compte, comme le Compte de resultat et le SIG : charges = debits - credits des comptes de
+  // classe 6 ; produits = credits - debits des comptes de classe 7. Avant, seuls les debits 6 et les credits 7
+  // etaient comptes : une ecriture annulee (contre-passation) ou un avoir restait donc compte en entier.
+  var netCharges={},netProduits={};
   (D.ecritures||[]).forEach(function(e){
     if(!e.date||e.date<debut||e.date>fin)return;
     (e.lignes||[]).forEach(function(l){
-      var c=String(l.compte||'');
-      if(/^7/.test(c)&&l.sens==='C'){
-        produits+=Number(l.montant||0);
-        detailProduits[c]=(detailProduits[c]||0)+Number(l.montant||0);
-      }
-      if(/^6/.test(c)&&l.sens==='D'){
-        charges+=Number(l.montant||0);
-        detailCharges[c]=(detailCharges[c]||0)+Number(l.montant||0);
-      }
+      var c=String(l.compte||''),m=Number(l.montant||0);
+      if(/^6/.test(c))netCharges[c]=(netCharges[c]||0)+(l.sens==='D'?m:-m);
+      else if(/^7/.test(c))netProduits[c]=(netProduits[c]||0)+(l.sens==='C'?m:-m);
     });
   });
+  var produits=0,charges=0,detailCharges={},detailProduits={};
+  Object.keys(netCharges).forEach(function(c){charges+=netCharges[c];if(netCharges[c]>0.5)detailCharges[c]=netCharges[c];});
+  Object.keys(netProduits).forEach(function(c){produits+=netProduits[c];if(netProduits[c]>0.5)detailProduits[c]=netProduits[c];});
   return {produits:produits,charges:charges,caf:produits-charges,detailCharges:detailCharges,detailProduits:detailProduits};
+}
+// Nombre de mois reellement couverts par l'historique (1 a n) : sert a calculer les MOYENNES mensuelles. Diviser
+// toujours par 3 alors que l'appli n'a qu'un mois de donnees faussait les moyennes (CAF moyenne trop basse,
+// "couverture des charges" trop haute).
+function nbMoisHistorique(n){
+  var min='';
+  (D.ecritures||[]).forEach(function(e){if(e.date&&(!min||e.date<min))min=e.date;});
+  if(!min)return 1;
+  var now=new Date(),y0=parseInt(min.slice(0,4),10),m0=parseInt(min.slice(5,7),10)-1;
+  var k=(now.getFullYear()-y0)*12+(now.getMonth()-m0)+1;
+  return Math.max(1,Math.min(n,k));
 }
 function tauxEpargneDe(caf){return caf.produits>0?(caf.caf/caf.produits*100):0;}
 // Epargne reelle : uniquement les mouvements sur le compte epargne (521 = Banque Epargne), pas un solde
@@ -13173,6 +13371,11 @@ function calculerEpargneReellePeriode(debut,fin){
   var entrees=0,sorties=0;
   (D.ecritures||[]).forEach(function(e){
     if(!e.date||e.date<debut||e.date>fin)return;
+    // Un solde d'ouverture (contrepartie capital, compte 10) n'est pas de l'epargne constituee pendant la
+    // periode : il est ecarte (sinon le taux d'epargne du mois de saisie des soldes explose).
+    // Meme chose pour l'argent d'AUTRUI (depots 467, tontines gerees 466) : il transite parfois par le compte
+    // Epargne mais n'est pas mon epargne.
+    if((e.lignes||[]).some(function(l){var c=String(l.compte);return c==='10'||c==='466'||c==='467';}))return;
     (e.lignes||[]).forEach(function(l){
       if(l.compte==='521'){
         if(l.sens==='D')entrees+=Number(l.montant||0);
@@ -13263,7 +13466,7 @@ function renderPilotage(){
 
 
   // CAF moyenne (3 mois) : meme methode comptable que la CAF de periode, seule la fenetre change -> pas de doublon de calcul
-  var cafMoy3=cafM3.caf/3;
+  var cafMoy3=cafM3.caf/nbMoisHistorique(3);
   var elCafMoy=G('an-caf-moy');
   if(elCafMoy){elCafMoy.textContent=fmt(cafMoy3)+' F';elCafMoy.style.color=cafMoy3>=0?'var(--green)':'var(--red)';}
 
@@ -13286,9 +13489,21 @@ function renderPilotage(){
 }
 // BFR (Besoin en Fonds de Roulement) adapte a la finance personnelle : creances (41,465,477,471) - dettes court terme (40,401,46)
 function renderBFR(){
-  var creancesBfr=(D.ecritures||[]).reduce(function(a,e){return a+(e.lignes||[]).reduce(function(aa,l){return aa+(['41','465','477','471'].indexOf(l.compte)>-1?(l.sens==='D'?Number(l.montant||0):-Number(l.montant||0)):0);},0);},0);
-  var dettesBfr=(D.ecritures||[]).reduce(function(a,e){return a+(e.lignes||[]).reduce(function(aa,l){return aa+(['40','401','46'].indexOf(l.compte)>-1?(l.sens==='C'?Number(l.montant||0):-Number(l.montant||0)):0);},0);},0);
-  var bfr=creancesBfr-dettesBfr;
+  // BFR = creances a court terme - dettes a court terme (hors tresorerie et hors emprunts 16, qui sont du
+  // financement). Comptes (selon l'usage de l'appli) : creances 41x, 465, 471, 477 ; dettes 40x, 476. Les fonds
+  // d'autrui (467 depots, 466 tontines gerees) sont EXCLUS : ils sont adosses a de la tresorerie qui n'est pas dans le BFR.
+  // Soldes NETS de chaque compte, correspondance par PREFIXE (avant : '46' exact ne correspondait a aucun compte et
+  // 476 - pendant exact de 477 - etait oublie).
+  var CRE=['41','465','471','477'],DET=['40','476'];
+  var creances=0,dettes=0;
+  (D.ecritures||[]).forEach(function(e){
+    (e.lignes||[]).forEach(function(l){
+      var c=String(l.compte||''),m=Number(l.montant||0),sg=(l.sens==='D'?m:-m);
+      if(CRE.some(function(x){return c.indexOf(x)===0;}))creances+=sg;
+      else if(DET.some(function(x){return c.indexOf(x)===0;}))dettes-=sg;
+    });
+  });
+  var bfr=creances-dettes;
   var el=G('an-bfr');
   if(el){el.textContent=fmt(bfr)+' F';el.style.color=bfr>=0?'var(--orange)':'var(--green)';}
 }
@@ -13298,11 +13513,13 @@ function renderRatiosPerso(){
   var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
   var ep=epargneProjetsPhantome();
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
-  var actifTotal=tres+pretsTot+ep;
+  // Actif qui m'appartient : on retire l'argent detenu pour des tiers (depots, tontines gerees) - meme logique que
+  // le patrimoine net ; dettes et actif sont ainsi sur la meme base.
+  var actifTotal=tres-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()+pretsTot+ep;
   var tauxEndett=actifTotal>0?(dettes/actifTotal*100):(dettes>0?100:0);
   var tresDispo=tresorerieDisponibleGlobale(); // recalcule depuis D.comptes/depots/tontines - plus jamais depuis un cache pouvant devenir perime
-  var ms3=getMs(3);
-  var depMoy=ms3.reduce(function(acc,x){return acc+(D.depenses||[]).filter(function(rr){var d=new Date(rr.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,rr){return a+Number(rr.montant);},0);},0)/ms3.length;
+  var nbm=nbMoisHistorique(3),ms3=getMs(3).slice(-nbm);
+  var depMoy=ms3.reduce(function(acc,x){return acc+depensesPayees().filter(function(rr){var d=new Date(rr.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,rr){return a+Number(rr.montant);},0);},0)/nbm;
   var moisCouv=depMoy>0?(tresDispo/depMoy):0;
   var el=G('an-ratios-perso');
   if(el)el.innerHTML=
@@ -13326,7 +13543,7 @@ function renderPrevisions(cafMoy){
 // Comparatifs Revenus/Depenses (sur la periode selectionnee) + Tresorerie/Dettes/Prets/Depots (soldes actuels)
 function renderComparatifs(per){
   var rev=(D.revenus||[]).filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var dep=(D.depenses||[]).filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var dep=depensesPayees().filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var pret=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
@@ -13607,7 +13824,7 @@ function updateHdr(){
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
   var hd=G('h-date');if(hd)hd.textContent=now.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
   var rev=(D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var dep=(D.depenses||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var dep=depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var dettes=(D.dettes||[]).reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   // Le decouvert bancaire (s'il existe) est deja reflete dans tres (solde negatif de Banque Courant) :
@@ -13637,7 +13854,7 @@ function updateHdr(){
   // patrimoine net / tresorerie actuelle / disponible ne sont pas repetes ici : deja dans l'en-tete.
   var sno=G('syn-nb-ops'),srm=G('syn-rev-mois'),sdm=G('syn-dep-mois'),sem=G('syn-ep-mois');
   var sdet=G('syn-det'),spret=G('syn-pret'),sdepot=G('syn-depot'),spromr=G('syn-prom-recues'),spromf=G('syn-prom-faites');
-  if(sno)sno.textContent=(D.ecritures||[]).length;
+  if(sno){var _pm=firstOfMonthISO(new Date().getFullYear(),new Date().getMonth());sno.textContent=(D.ecritures||[]).filter(function(e){return e.date&&e.date>=_pm;}).length;}
   if(sdet)sdet.textContent=fmt(dettes)+' F';
   if(spret)spret.textContent=fmt(pretsTot)+' F';
   if(sdepot)sdepot.textContent=fmt(depot)+' F';
@@ -13809,7 +14026,7 @@ function renderRapport(){
   var ry=G('rap-yr'),rn=G('rap-net'),rr=G('rap-rev'),rd=G('rap-dep'),re=G('rap-ep'),rdet=G('rap-det');
   if(ry)ry.textContent='Annee '+y;
   var rev=(D.revenus||[]).filter(function(r){return new Date(r.date).getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var dep=(D.depenses||[]).filter(function(d){return new Date(d.date).getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
+  var dep=depensesPayees().filter(function(d){return new Date(d.date).getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   if(rn)rn.textContent=fmt(rev-dep)+' FCFA';if(rr)rr.textContent=fmt(rev);if(rd)rd.textContent=fmt(dep);
   if(re)re.textContent=fmt((D.projets||[]).reduce(function(a,p){return a+Number(p.actuel);},0));
   if(rdet)rdet.textContent=fmt(dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts());
@@ -14142,7 +14359,7 @@ function buildRevDepChart(){
   ms.forEach(function(x){
     labs.push(x.lbl);
     rl.push((D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
-    dl.push((D.depenses||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
+    dl.push(depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
   });
   charts['rd']=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Revenus',data:rl,backgroundColor:'rgba(16,185,129,.7)',borderRadius:5},{label:'Depenses',data:dl,backgroundColor:'rgba(239,68,68,.7)',borderRadius:5}]},options:chartOpts});
 }
@@ -14173,7 +14390,7 @@ function buildRevChart(){
 }
 function buildDepChart(){
   var ctx=G('ch-dep');if(!ctx)return;kc('dp');
-  var cats={};(D.depenses||[]).forEach(function(d){cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
+  var cats={};(D.depenses||[]).forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(!Object.keys(cats).length)return;
   charts['dp']=new Chart(ctx,{type:'pie',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:C10,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94A3B8',font:{size:11}}}}}});
 }
@@ -14271,7 +14488,7 @@ function buildRapChart(){
   ms.forEach(function(x){
     labs.push(x.lbl);
     rl.push((D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
-    dl.push((D.depenses||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
+    dl.push(depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
   });
   charts['rp']=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label:'Revenus',data:rl,borderColor:'#10B981',tension:.4,pointRadius:3},{label:'Depenses',data:dl,borderColor:'#EF4444',tension:.4,pointRadius:3}]},options:chartOpts});
 }
@@ -14389,7 +14606,7 @@ async function sendIA(){
   msgs.scrollTop=msgs.scrollHeight;
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
   var rev=(D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var dep=(D.depenses||[]).filter(function(d){var dd=new Date(d.date);return dd.getMonth()===m&&dd.getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
+  var dep=depensesPayees().filter(function(d){var dd=new Date(d.date);return dd.getMonth()===m&&dd.getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var projTxt=(D.projets||[]).filter(function(p){return p.statut!=='Annule';}).map(function(p){
@@ -14424,17 +14641,36 @@ async function sendIA(){
 
 // ============ SAVE FORMS ============
 function clr(){for(var i=0;i<arguments.length;i++){var el=G(arguments[i]);if(el)el.value='';}}
+// Remplit la liste "Categorie" du formulaire Mouvement selon le type (entree = categories de revenu,
+// sortie = categories de depense). On copie les options des formulaires Revenu/Depense pour rester
+// toujours synchronise avec eux ; "Charge a payer" (476) est exclu : un mouvement de tresorerie est
+// toujours regle immediatement, il ne peut pas etre "pas encore decaisse".
+function majTxCats(){
+  var type=(G('tx-type')||{}).value||'credit',src=G(type==='credit'?'rev-cat':'dep-cat'),dst=G('tx-cat');
+  if(!src||!dst)return;
+  var precedent=dst.value;
+  dst.innerHTML='';
+  for(var i=0;i<src.options.length;i++){
+    var o=src.options[i];
+    if(o.value===''||o.value.split('|')[0]==='476')continue;
+    dst.appendChild(o.cloneNode(true));
+  }
+  placeholderSelect(dst);
+  if(precedent){for(var j=0;j<dst.options.length;j++){if(dst.options[j].value===precedent){dst.selectedIndex=j;break;}}}
+}
 function saveTx(){
   var type=(G('tx-type')||{}).value||'credit',cpt=(G('tx-cpt')||{}).value||'Especes';
   var lib=(G('tx-lib')||{}).value||'',amt=Number((G('tx-amt')||{}).value||0);
   var date=(G('tx-date')||{}).value||today(),tiers=(G('tx-tiers')||{}).value||'';
   var frais=Number((G('tx-frais')||{}).value||0);
   if(!lib||!amt){notif('Libelle et montant obligatoires',true);return;}
+  // Categorie choisie dans le formulaire (avant : 70 en dur pour toute entree, 60 en dur pour toute sortie).
+  var txCatVal=(G('tx-cat')||{}).value||(type==='credit'?'70|Salaire net':'60|Alimentation'),txCatParts=txCatVal.split('|'),txCode=txCatParts[0],txCat=txCatParts[1]||txCatParts[0];
   function finaliserTx(){
-    var lignes=type==='credit'?[{compte:cptCode(cpt),lib:cpt,sens:'D',montant:amt,tiers:tiers},{compte:'70',lib:lib,sens:'C',montant:amt,tiers:tiers}]:[{compte:'60',lib:lib,sens:'D',montant:amt,tiers:tiers},{compte:cptCode(cpt),lib:cpt,sens:'C',montant:amt,tiers:tiers}];
+    var lignes=type==='credit'?[{compte:cptCode(cpt),lib:cpt,sens:'D',montant:amt,tiers:tiers},{compte:txCode,lib:lib,sens:'C',montant:amt,tiers:tiers}]:[{compte:txCode,lib:lib,sens:'D',montant:amt,tiers:tiers},{compte:cptCode(cpt),lib:cpt,sens:'C',montant:amt,tiers:tiers}];
     var refTx=passerEcriture('TR',date,lib,lignes,'');
     if(!refTx){if(type!=='credit')annulerDebitApresEchecEcriture(cpt,amt,null);notif('Operation annulee - l\'ecriture correspondante a echoue',true);return;}
-    D.transactions.push({type:type,compte:cpt,libelle:lib,montant:amt,date:date,tiers:tiers});
+    D.transactions.push({type:type,compte:cpt,libelle:lib,montant:amt,date:date,tiers:tiers,categorie:txCat});
     if(type==='credit')D.comptes[cpt]=(D.comptes[cpt]||0)+amt;
     appliquerFrais(cpt,frais,lib,date,tiers);
     save();closeOv('ov-tx');notif('Operation enregistree'+(frais>0?' (frais: '+fmt(frais)+' F)':''));clr('tx-lib','tx-amt','tx-frais');
@@ -14504,6 +14740,126 @@ function saveRev(){
   save();closeOv('ov-rev');notif('Revenu enregistre'+(frais>0?' (frais: '+fmt(frais)+' F)':'')+msgCreance);clr('rev-lib','rev-amt','rev-frais');
   try{renderAll();}catch(e){}
 }
+// ---- Depense payee avec plusieurs comptes de tresorerie ----
+// Une seule depense, UNE seule ecriture (1 debit charge, 1 credit par compte de tresorerie). Tous les
+// comptes sont verifies (solde, epargne, fonds de tiers) AVANT toute modification : si un seul est
+// refuse, rien n'est debite ni enregistre. Non combinable avec projet / creance / montant paye different
+// (ces circuits supposent un compte de paiement unique, notamment a l'annulation).
+function comptesPourRepartDep(){return COMPTES_TRES.filter(function(c){return c!=='Frais Transfert'&&c!=='Transit 585';});}
+function ajouterLigneDepRepart(cpt,amt){
+  var wrap=G('dep-repart-rows');if(!wrap)return;
+  var row=document.createElement('div');row.className='fr';row.style.marginTop='6px';
+  row.innerHTML='<div class="fg"><select class="fc dep-repart-cpt">'+comptesPourRepartDep().map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div><div class="fg"><input class="fc dep-repart-amt" type="number" placeholder="Montant" oninput="majDepRepartInfo()"></div>';
+  wrap.appendChild(row);
+  if(cpt)row.querySelector('.dep-repart-cpt').value=cpt;
+  if(amt)row.querySelector('.dep-repart-amt').value=amt;
+  majDepRepartInfo();
+}
+function lireRepartitionsDep(){
+  var out=[],idx={};
+  document.querySelectorAll('#dep-repart-rows .fr').forEach(function(row){
+    var cpt=row.querySelector('.dep-repart-cpt').value,montant=Number(row.querySelector('.dep-repart-amt').value||0);
+    if(!cpt||!(montant>0))return;
+    if(idx[cpt]!==undefined){out[idx[cpt]].montant+=montant;}
+    else{idx[cpt]=out.length;out.push({compte:cpt,montant:montant});}
+  });
+  return out;
+}
+function majDepRepartInfo(){
+  var el=G('dep-repart-info');if(!el)return;
+  var multi=!!(G('dep-multi')||{}).checked;
+  if(!multi){el.style.display='none';return;}
+  var total=Number((G('dep-amt')||{}).value||0),somme=lireRepartitionsDep().reduce(function(a,r){return a+r.montant;},0),reste=total-somme;
+  el.style.display='';
+  el.textContent='Reparti : '+fmt(somme)+' F sur '+fmt(total)+' F'+(Math.abs(reste)<1?' - OK':(reste>0?' - reste '+fmt(reste)+' F':' - depasse de '+fmt(-reste)+' F'));
+  el.style.color=Math.abs(reste)<1?'var(--green)':'var(--text2)';
+}
+function toggleDepMulti(){
+  var on=!!(G('dep-multi')||{}).checked;
+  var cptSel=G('dep-cpt'),cptRow=cptSel?cptSel.parentNode:null;
+  if(cptRow)cptRow.style.display=(on||!!(G('dep-reliquat-dette')||{}).checked)?'none':'';
+  var rows=G('dep-repart-rows'),add=G('dep-repart-add');
+  if(rows)rows.style.display=on?'':'none';
+  if(add)add.style.display=on?'':'none';
+  if(on){
+    if(rows&&!rows.children.length){ajouterLigneDepRepart('Especes');ajouterLigneDepRepart('Wave 76');}
+  } else if(rows){rows.innerHTML='';}
+  majDepRepartInfo();
+}
+function saveDepMulti(p){
+  if(p.mode&&p.mode!=='aucune'){notif('Le paiement multi-comptes ne se combine pas avec l\'affectation a un projet - choisissez "Aucune" ou payez avec un seul compte',true);return;}
+  if((G('dep-use-creance')||{}).checked||(G('dep-surplus-toggle')||{}).checked||(G('dep-reliquat-dette')||{}).checked){notif('Le paiement multi-comptes ne se combine pas avec la creance ni avec "Montant paye different"',true);return;}
+  var reps=lireRepartitionsDep();
+  if(reps.length<2){notif('Ajoutez au moins deux comptes avec un montant',true);return;}
+  var somme=reps.reduce(function(a,r){return a+r.montant;},0);
+  if(Math.abs(somme-p.amt)>=1){notif('La somme des comptes ('+fmt(somme)+' F) doit etre egale au montant total ('+fmt(p.amt)+' F)',true);return;}
+  var checks={};
+  function finaliser(){
+    var lignes=[{compte:p.code,lib:p.cat,sens:'D',montant:p.amt,tiers:p.tiers}].concat(reps.map(function(r){return {compte:cptCode(r.compte),lib:r.compte,sens:'C',montant:r.montant,tiers:p.tiers};}));
+    var ref=passerEcriture('AC',p.date,p.lib,lignes,'');
+    if(!ref){notif('Depense annulee - l\'ecriture correspondante a echoue',true);return;}
+    reps.forEach(function(r){_appliquerDebitTresorerie(r.compte,r.montant,checks[r.compte],{objet:'Depense - '+p.lib});});
+    D.depenses.push({categorie:p.cat,libelle:p.lib,montant:p.amt,date:p.date,tiers:p.tiers,compte:reps.map(function(r){return r.compte;}).join(' + '),repartitions:reps,chargeLinkId:p.chargeLinkId||undefined});
+    if(p.frais>0)appliquerFrais(reps[0].compte,p.frais,p.lib,p.date,p.tiers);
+    save();closeOv('ov-dep');
+    notif('Depense enregistree - '+reps.map(function(r){return r.compte+' '+fmt(r.montant)+' F';}).join(' + ')+(p.frais>0?' (frais: '+fmt(p.frais)+' F)':''));
+    clr('dep-lib','dep-amt','dep-frais','dep-paye');
+    var dm=G('dep-multi');if(dm)dm.checked=false;toggleDepMulti();
+    try{renderAll();}catch(e){}
+  }
+  function suivant(i){
+    if(i>=reps.length){finaliser();return;}
+    var r=reps[i],opts={objet:'Depense - '+p.lib};
+    var chk=verifierDebit(r.compte,r.montant,opts);
+    if(chk.needsConfirmFondsTiers){
+      demanderConfirmationFondsTiers(chk.manqueFondsTiers,function(){
+        checks[r.compte]=verifierDebit(r.compte,r.montant,{objet:opts.objet,fondsTiersConfirme:true});
+        suivant(i+1);
+      },chk);
+      return;
+    }
+    if(!chk.ok)return;
+    checks[r.compte]=chk;
+    suivant(i+1);
+  }
+  suivant(0);
+}
+// Apercu en direct de "Utiliser une creance" dans Depense : montre la creance disponible du tiers, la part
+// couverte par elle et ce qui sortira reellement du compte (meme calcul que saveDep : min(creance, montant)).
+function toggleDepReliquat(){
+  var on=!!(G('dep-reliquat-dette')||{}).checked,multi=!!(G('dep-multi')||{}).checked;
+  var cptSel=G('dep-cpt'),cptRow=cptSel?cptSel.parentNode:null;
+  if(cptRow)cptRow.style.display=(on||multi)?'none':'';
+  majDepCreanceInfo();
+}
+function majDepCreanceInfo(){
+  var el=G('dep-creance-info');if(!el)return;
+  var on=!!(G('dep-use-creance')||{}).checked;
+  var rowR=G('dep-reliquat-row'),cbR=G('dep-reliquat-dette');
+  if(rowR)rowR.style.display=on?'flex':'none';
+  if(!on){
+    if(cbR&&cbR.checked){cbR.checked=false;var cs0=G('dep-cpt'),cr0=cs0?cs0.parentNode:null;if(cr0&&!(G('dep-multi')||{}).checked)cr0.style.display='';}
+    el.style.display='none';el.innerHTML='';return;
+  }
+  var enDette=!!(cbR&&cbR.checked);
+  el.style.display='';
+  var tiers=(G('dep-tiers')||{}).value||'';
+  if(!tiers){el.innerHTML='Choisissez un tiers pour utiliser sa creance.';return;}
+  var nom=nomEffectifTiers('dep-tiers');
+  var pr=(D.prets||[]).find(function(pp){return pretEstActif(pp)&&memeTiers(tiers,nom,pp.tiers,pp.debiteur)&&(pp.compte||'41')==='41';});
+  if(!pr){el.innerHTML='<span style="color:var(--red)">Aucune creance active pour ce tiers.</span>';return;}
+  var reste=pretReste(pr),amt=Number((G('dep-amt')||{}).value||0);
+  var l=['Creance de '+escHtml(nom||tiers)+' : <b>'+fmt(reste)+' F</b>'];
+  if(amt>0){
+    var util=Math.min(reste,amt),aPayer=amt-util;
+    var multi=!!(G('dep-multi')||{}).checked,cpt=multi?'les comptes choisis':((G('dep-cpt')||{}).value||'le compte de paiement');
+    l.push('Utilisee pour cet achat : <b>'+fmt(util)+' F</b>');
+    if(aPayer>0&&enDette)l.push('<span style="color:var(--orange)">Reste <b>'+fmt(aPayer)+' F</b> : devient une dette envers '+escHtml(nom||tiers)+' (aucun compte debite)</span>');
+    else l.push(aPayer>0?'Reste a payer (depuis '+escHtml(cpt)+') : <b>'+fmt(aPayer)+' F</b>':'<span style="color:var(--green)">Aucun argent ne sort de la tresorerie</span>');
+    if(util<reste)l.push('Creance restante apres : '+fmt(reste-util)+' F');
+  }
+  el.innerHTML=l.join('<br>');
+}
 function toggleDepSurplus(){
   var on=!!(G('dep-surplus-toggle')||{}).checked;
   var row=G('dep-paye-row');if(row)row.style.display=on?'':'none';
@@ -14513,10 +14869,14 @@ var _pendingSurplusAchat=null;
 function saveDep(){
   var catVal=(G('dep-cat')||{}).value||'60|Alimentation',parts=catVal.split('|'),code=parts[0],cat=parts[1]||parts[0];
   var cptVal=(G('dep-cpt')||{}).value||'Especes',lib=(G('dep-lib')||{}).value||'';
+  // Creance utilisee + "pas de compte de tresorerie" : le reliquat non couvert par la creance devient une dette
+  // envers le tiers (compte 476, meme mecanique qu'un achat saisi "pas encore decaisse").
+  if(!!(G('dep-use-creance')||{}).checked&&!!(G('dep-reliquat-dette')||{}).checked)cptVal='476';
   var amt=Number((G('dep-amt')||{}).value||0),date=(G('dep-date')||{}).value||today(),tiers=(G('dep-tiers')||{}).value||'';
   var frais=Number((G('dep-frais')||{}).value||0);
   var chargeLinkId=_chargeLinkIdPourDep||'';_chargeLinkIdPourDep='';
   if(!lib||!amt){notif('Libelle et montant obligatoires',true);return;}
+  if((G('dep-multi')||{}).checked){saveDepMulti({code:code,cat:cat,lib:lib,amt:amt,date:date,tiers:tiers,frais:frais,chargeLinkId:chargeLinkId,mode:(G('dep-proj-mode')||{}).value||'aucune'});return;}
   var mode=(G('dep-proj-mode')||{}).value||'aucune';
   var splits=[];
   if(mode==='unique'){
@@ -14627,7 +14987,7 @@ function saveDep(){
     }
     save();closeOv('ov-dep');notif('Depense enregistree'+(frais>0?' (frais: '+fmt(frais)+' F)':'')+msgCreanceAppliquee+msgDette+msgCreanceCreee);clr('dep-lib','dep-amt','dep-frais','dep-paye');
     var dstFin=G('dep-surplus-toggle');if(dstFin)dstFin.checked=false;toggleDepSurplus();
-    var ducFin=G('dep-use-creance');if(ducFin)ducFin.checked=false;
+    var ducFin=G('dep-use-creance');if(ducFin)ducFin.checked=false;try{majDepCreanceInfo();}catch(e){}
     resetDepProjAffectation();
     try{renderAll();}catch(e){}
   }
@@ -14660,13 +15020,13 @@ function confirmerSurplusAchat(choix){
       // equilibree) - il ne reste qu'a finaliser normalement l'ecran.
       save();closeOv('ov-dep');notif('Depense enregistree'+(p.frais>0?' (frais: '+fmt(p.frais)+' F)':''));clr('dep-lib','dep-amt','dep-frais','dep-paye');
       var dst=G('dep-surplus-toggle');if(dst)dst.checked=false;toggleDepSurplus();
-      var duc=G('dep-use-creance');if(duc)duc.checked=false;
+      var duc=G('dep-use-creance');if(duc)duc.checked=false;try{majDepCreanceInfo();}catch(e){}
       resetDepProjAffectation();
       try{renderAll();}catch(e){}
       return;
     }
-    var refDon=passerEcriture('AC',p.date,'Bonus recu - '+p.lib,[
-      {compte:'656',lib:'Bonus recu - '+p.lib,sens:'D',montant:p.surplus,tiers:p.tiers},
+    var refDon=passerEcriture('AC',p.date,'Bonus offert - '+p.lib,[
+      {compte:'656',lib:'Bonus offert - '+p.lib,sens:'D',montant:p.surplus,tiers:p.tiers},
       {compte:p.cptC,lib:p.cptVal,sens:'C',montant:p.surplus,tiers:p.tiers}
     ],'');
     if(!refDon){
