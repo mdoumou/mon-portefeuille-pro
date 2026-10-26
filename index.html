@@ -719,6 +719,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
             <div class="st" data-ico="&#x1F4CA;"><div class="st-lbl">Taux d'epargne (mois)</div><div class="st-val" id="pil-taux-mois">0%</div></div>
             <div class="st" data-ico="&#x2696;"><div class="st-lbl">BFR</div><div class="st-val" id="an-bfr">0</div></div>
           </div>
+          <div style="font-size:calc(10.5px*var(--fscale));color:var(--text2);margin:-4px 0 10px">CAF (SYSCOHADA revise) = resultat net + dotations &minus; reprises + valeur comptable des cessions &minus; produits des cessions. Sans compte de dotation, reprise ou cession, elle est egale au resultat net (produits &minus; charges).</div>
           <div class="card">
             <div class="card-hd">Taux d'epargne - tendance</div>
             <div id="pil-taux-detail"></div>
@@ -4063,9 +4064,20 @@ function comptesReaffectation(exclu){
 function libreAilleurs(cpt){
   return comptesReaffectation(cpt).reduce(function(a,c){return a+libreSurCompte(c);},0);
 }
+// Patrimoine net (source unique, en-tete + courbe) : tresorerie - dettes propres - fonds d'autrui (depots recus ET
+// tontines gerees) + prets a recuperer + epargne de depart des projets. Le decouvert est deja dans le solde negatif
+// de la banque : il n'est pas rededuit (dettesHorsDecouvert).
+function patrimoineNetActuel(){
+  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var dettesP=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
+  var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
+  return tres-dettesP-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()+pretsTot+epargneProjetsPhantome();
+}
 function tresorerieDisponibleGlobale(){
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
-  var soldeEpargne=(D.parametres&&D.parametres.epargneUrgence)?0:(D.comptes['Banque Epargne']||0);
+  // L'argent d'autrui deja retire ci-dessous ne doit pas l'etre une 2e fois via l'epargne : on n'exclut que la
+  // part personnelle du compte Epargne.
+  var soldeEpargne=(D.parametres&&D.parametres.epargneUrgence)?0:libreSurCompte('Banque Epargne');
   return tres-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()-soldeEpargne;
 }
 // ============ STATUTS DETTES/PRETS/CREANCES (gestion des clotures sans suppression) ============
@@ -5699,6 +5711,7 @@ function relCalculerMouvements(matchFn,debut,fin,ecrTri){
       else if((e.date||'')<=fin)mvts.push({date:e.date,ref:e.ref,journal:e.journal,libelle:e.libelle,sens:l.sens,montant:Number(l.montant||0),tiers:l.tiers||'',tiersNom:nomLigneTiers(l),compte:l.compte});
     });
   });
+  var run=soldeOuv;mvts.forEach(function(m){run+=m.sens==='D'?m.montant:-m.montant;m.soldeProg=run;});
   var totD=mvts.filter(function(m){return m.sens==='D';}).reduce(function(a,m){return a+m.montant;},0);
   var totC=mvts.filter(function(m){return m.sens==='C';}).reduce(function(a,m){return a+m.montant;},0);
   return {soldeOuv:soldeOuv,mvts:mvts,totD:totD,totC:totC,soldeClot:soldeOuv+totD-totC};
@@ -5716,11 +5729,11 @@ function genererReleve(){
     html+='<div class="card-hd">'+titre+'</div>';
     html+='<div class="sr"><span>Solde d\'ouverture ('+fmtD(debut)+')</span><span style="font-weight:700">'+fmtPdf(res.soldeOuv)+' F</span></div>';
     if(res.mvts.length){
-      html+='<div class="rel-table-wrap"><table class="rel-table"><thead><tr><th>Date</th><th>Ref</th><th>Libelle</th><th>'+(showCompteCol?'Compte':'Tiers')+'</th><th>Debit</th><th>Credit</th></tr></thead><tbody>';
+      html+='<div class="rel-table-wrap"><table class="rel-table"><thead><tr><th>Date</th><th>Ref</th><th>Libelle</th><th>'+(showCompteCol?'Compte':'Tiers')+'</th><th>Debit</th><th>Credit</th><th>Solde</th></tr></thead><tbody>';
       res.mvts.forEach(function(m){
-        html+='<tr><td>'+fmtD(m.date)+'</td><td>'+escHtml(m.ref)+'</td><td>'+escHtml(m.libelle)+'</td><td>'+escHtml(showCompteCol?m.compte:(m.tiers||'-'))+'</td><td class="rel-d" style="color:'+couleurSensPrint(m.compte,'D')+'">'+(m.sens==='D'?fmtPdf(m.montant):'')+'</td><td class="rel-c" style="color:'+couleurSensPrint(m.compte,'C')+'">'+(m.sens==='C'?fmtPdf(m.montant):'')+'</td></tr>';
+        html+='<tr><td>'+fmtD(m.date)+'</td><td>'+escHtml(m.ref)+'</td><td>'+escHtml(m.libelle)+'</td><td>'+escHtml(showCompteCol?m.compte:(m.tiers||'-'))+'</td><td class="rel-d" style="color:'+couleurSensPrint(m.compte,'D')+'">'+(m.sens==='D'?fmtPdf(m.montant):'')+'</td><td class="rel-c" style="color:'+couleurSensPrint(m.compte,'C')+'">'+(m.sens==='C'?fmtPdf(m.montant):'')+'</td><td style="font-weight:700;text-align:right">'+fmtPdf(m.soldeProg)+'</td></tr>';
       });
-      html+='</tbody><tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Totaux periode</td><td class="rel-d" style="font-weight:700">'+fmtPdf(res.totD)+'</td><td class="rel-c" style="font-weight:700">'+fmtPdf(res.totC)+'</td></tr></tfoot></table></div>';
+      html+='</tbody><tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Totaux periode</td><td class="rel-d" style="font-weight:700">'+fmtPdf(res.totD)+'</td><td class="rel-c" style="font-weight:700">'+fmtPdf(res.totC)+'</td><td style="font-weight:700;text-align:right">'+fmtPdf(res.soldeClot)+'</td></tr></tfoot></table></div>';
     } else {
       html+='<div style="font-size:calc(13px*var(--fscale));color:var(--text2);padding:8px 0">Aucun mouvement sur cette periode.</div>';
     }
@@ -5860,16 +5873,16 @@ function construireDocPdf(){
     doc.text(titre,15,y);y+=7;doc.setTextColor(0);
     y=dessinerBandeSolde(doc,y,pageW,'Solde d\'ouverture ('+fmtD(debut)+')',res.soldeOuv,exerciceTxt);y+=3;
     if(res.mvts.length){
-      var body=res.mvts.map(function(m){return [fmtD(m.date),m.ref,m.libelle,showCompteCol?m.compte:(m.tiers||'-'),m.sens==='D'?fmtPdf(m.montant):'',m.sens==='C'?fmtPdf(m.montant):''];});
+      var body=res.mvts.map(function(m){return [fmtD(m.date),m.ref,m.libelle,showCompteCol?m.compte:(m.tiers||'-'),m.sens==='D'?fmtPdf(m.montant):'',m.sens==='C'?fmtPdf(m.montant):'',fmtPdf(m.soldeProg)];});
       doc.autoTable({
         startY:y,
-        head:[['Date','Ref','Libelle',showCompteCol?'Compte':'Tiers','Debit','Credit']],
+        head:[['Date','Ref','Libelle',showCompteCol?'Compte':'Tiers','Debit','Credit','Solde']],
         body:body,
-        foot:[['','','','Totaux',fmtPdf(res.totD),fmtPdf(res.totC)]],
+        foot:[['','','','Totaux',fmtPdf(res.totD),fmtPdf(res.totC),fmtPdf(res.soldeClot)]],
         styles:{fontSize:8,cellPadding:1.5},
         headStyles:{fillColor:NAVY,textColor:255},
         footStyles:{fillColor:NAVY,textColor:GOLD,fontStyle:'bold'},
-        columnStyles:{4:{halign:'right'},5:{halign:'right'}},
+        columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}},
         margin:{left:15,right:15,top:PDF_HEADER_CONTENU_Y},
         didDrawPage:function(data){if(data.pageNumber>1)dessinerEnTetePdf(doc,null,exerciceTxt);},
         didParseCell:function(data){
@@ -6017,7 +6030,9 @@ function calculerGrandLivreComplet(){
     var lignes=comptes[code].slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
     var solde=0;
     lignes.forEach(function(l){solde+=l.sens==='D'?l.montant:-l.montant;l.soldeProg=solde;});
-    return {code:code,lib:PLAN_COMPTES[code]||('Compte '+code),lignes:lignes,soldeFinal:solde};
+    var totD=0,totC=0;
+    lignes.forEach(function(l){if(l.sens==='D')totD+=l.montant;else totC+=l.montant;});
+    return {code:code,lib:PLAN_COMPTES[code]||('Compte '+code),lignes:lignes,soldeFinal:solde,totD:totD,totC:totC};
   });
 }
 // Natures de journal proposees a la creation - liste indicative (pas fermee : "Autre" permet une
@@ -6158,7 +6173,7 @@ function construireDocPdfEtatFinancier(){
       startY:y,
       head:[['Code','Libelle','Debit','Credit','Solde']],
       body:bal.rows.map(function(rw){return [rw.code,rw.lib,fmtPdf(rw.deb),fmtPdf(rw.cred),fmtPdf(rw.solde)];}),
-      foot:[['','Totaux',fmtPdf(bal.totDeb),fmtPdf(bal.totCred),'']],
+      foot:[['','Totaux',fmtPdf(bal.totDeb),fmtPdf(bal.totCred),fmtPdf(bal.totDeb-bal.totCred)]],
       styles:{fontSize:7.5,cellPadding:1.3},
       headStyles:{fillColor:NAVY,textColor:255},
       footStyles:{fillColor:NAVY,textColor:GOLD,fontStyle:'bold'},
@@ -6186,8 +6201,10 @@ function construireDocPdfEtatFinancier(){
       startY:y,
       head:[['Date','Jrn','Ref','Libelle','Debit','Credit','Solde']],
       body:cpt.lignes.map(function(l){return [fmtD(l.date),l.journal,l.ref,l.libelle,l.sens==='D'?fmtPdf(l.montant):'',l.sens==='C'?fmtPdf(l.montant):'',fmtPdf(l.soldeProg)];}),
+      foot:[['','','','Totaux',fmtPdf(cpt.totD),fmtPdf(cpt.totC),fmtPdf(cpt.soldeFinal)]],
       styles:{fontSize:7,cellPadding:1.2},
       headStyles:{fillColor:NAVY,textColor:255},
+      footStyles:{fillColor:NAVY,textColor:[212,160,23],fontStyle:'bold'},
       columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}},
       margin:{left:15,right:15,top:PDF_HEADER_CONTENU_Y},
       didDrawPage:function(data){if(data.pageNumber>1)dessinerEnTetePdf(doc,null,exerciceTxt);}
@@ -6216,8 +6233,10 @@ function construireDocPdfEtatFinancier(){
       startY:y,
       head:[['Date','Ref','Compte','Libelle','Debit','Credit']],
       body:body,
+      foot:[['','','','Totaux',fmtPdf(j.ecritures.reduce(function(a,e){return a+(e.lignes||[]).reduce(function(b,l){return b+(l.sens==='D'?Number(l.montant||0):0);},0);},0)),fmtPdf(j.ecritures.reduce(function(a,e){return a+(e.lignes||[]).reduce(function(b,l){return b+(l.sens==='C'?Number(l.montant||0):0);},0);},0))]],
       styles:{fontSize:7,cellPadding:1.2},
       headStyles:{fillColor:NAVY,textColor:255},
+      footStyles:{fillColor:NAVY,textColor:[212,160,23],fontStyle:'bold'},
       columnStyles:{4:{halign:'right'},5:{halign:'right'}},
       margin:{left:15,right:15,top:PDF_HEADER_CONTENU_Y},
       didDrawPage:function(data){if(data.pageNumber>1)dessinerEnTetePdf(doc,null,exerciceTxt);}
@@ -6404,6 +6423,7 @@ function impDataOperations(f){
 }
 
 // ---- Module : JOURNAL (par code journal) ----
+var IMP_NOTE_REGUL=' - Note : dans cette appli, 476 = depenses/promesses faites non decaissees et 477 = ventes/promesses recues a encaisser (usage interne, different du plan SYSCOHADA officiel).';
 function impDataJournal(f){
   var sections=calculerJournauxComplets().map(function(j){
     var lignes=[];
@@ -6414,9 +6434,9 @@ function impDataJournal(f){
         lignes.push({date:e.date,ref:e.ref,compte:l.compte,libelle:e.libelle,tiers:l.tiers||'',debit:l.sens==='D'?l.montant:'',credit:l.sens==='C'?l.montant:''});
       });
     });
-    return {titre:j.code+' - '+j.lib,colonnes:[impCol('date','Date','left','date'),impCol('ref','Ref','left'),impCol('compte','Compte','left'),impCol('libelle','Libelle','left'),impCol('tiers','Tiers','left'),impCol('debit','Debit','right','montant'),impCol('credit','Credit','right','montant')],lignes:lignes};
+    return {titre:j.code+' - '+j.lib,colonnes:[impCol('date','Date','left','date'),impCol('ref','Ref','left'),impCol('compte','Compte','left'),impCol('libelle','Libelle','left'),impCol('tiers','Tiers','left'),impCol('debit','Debit','right','montant'),impCol('credit','Credit','right','montant')],lignes:lignes,totaux:{debit:impSomme(lignes,'debit'),credit:impSomme(lignes,'credit')}};
   }).filter(function(s){return s.lignes.length;});
-  return {titre:'Journal (par code)',sousTitre:impPeriodeTxt(f),sections:sections};
+  return {titre:'Journal (par code)',sousTitre:impPeriodeTxt(f)+IMP_NOTE_REGUL,sections:sections};
 }
 
 // ---- Module : GRAND LIVRE ----
@@ -6427,9 +6447,10 @@ function impDataGrandLivre(f){
   }).map(function(c){
     var lignes=c.lignes.filter(function(l){return impDansPeriode(l.date,f)&&impTiersOk(l.tiers,f);});
     return {titre:c.code+' - '+c.lib,colonnes:[impCol('date','Date','left','date'),impCol('journal','Jrn','left'),impCol('ref','Ref','left'),impCol('libelle','Libelle','left'),impCol('debit','Debit','right','montant'),impCol('credit','Credit','right','montant'),impCol('soldeProg','Solde','right','montant')],
-      lignes:lignes.map(function(l){return {date:l.date,journal:l.journal,ref:l.ref,libelle:l.libelle,debit:l.sens==='D'?l.montant:'',credit:l.sens==='C'?l.montant:'',soldeProg:l.soldeProg};})};
+      lignes:lignes.map(function(l){return {date:l.date,journal:l.journal,ref:l.ref,libelle:l.libelle,debit:l.sens==='D'?l.montant:'',credit:l.sens==='C'?l.montant:'',soldeProg:l.soldeProg};}),
+      totaux:{debit:lignes.reduce(function(a,l){return a+(l.sens==='D'?l.montant:0);},0),credit:lignes.reduce(function(a,l){return a+(l.sens==='C'?l.montant:0);},0),soldeProg:lignes.length?lignes[lignes.length-1].soldeProg:0}};
   }).filter(function(s){return s.lignes.length;});
-  return {titre:'Grand Livre',sousTitre:impPeriodeTxt(f),sections:sections};
+  return {titre:'Grand Livre',sousTitre:impPeriodeTxt(f)+IMP_NOTE_REGUL,sections:sections};
 }
 
 // ---- Module : BALANCE DES SOLDES ----
@@ -6437,9 +6458,9 @@ function impDataBalance(f){
   var codes=impComptesCodes(f);
   var bal=calculerBalanceComplete();
   var rows=bal.rows.filter(function(r){return !f.comptes||!f.comptes.length||codes.indexOf(r.code)>-1;});
-  return {titre:'Balance des soldes',sousTitre:'Arretee au '+fmtD(f.fin||today())+' (cumul depuis le debut)',
+  return {titre:'Balance des soldes',sousTitre:'Arretee au '+fmtD(f.fin||today())+' (cumul depuis le debut)'+IMP_NOTE_REGUL,
     sections:[{titre:null,colonnes:[impCol('code','Code','left'),impCol('lib','Libelle','left'),impCol('deb','Debit','right','montant'),impCol('cred','Credit','right','montant'),impCol('solde','Solde','right','montant')],
-      lignes:rows,totaux:{deb:impSomme(rows,'deb'),cred:impSomme(rows,'cred')}}]};
+      lignes:rows,totaux:{deb:impSomme(rows,'deb'),cred:impSomme(rows,'cred'),solde:impSomme(rows,'deb')-impSomme(rows,'cred')}}]};
 }
 
 // ---- Modules : BILAN / RESULTAT / SIG (cumulatifs, non filtrables par periode) ----
@@ -8069,8 +8090,10 @@ function renderBalance(){
   var keys=Object.keys(soldes).sort();
   if(!keys.length){el.innerHTML='<div class="empty"><div class="empty-ico">--</div><div class="empty-txt">Aucune ecriture'+(cptFilter?' pour ce compte':'')+'</div></div>';return;}
   el.innerHTML='';
+  var balTD=0,balTC=0;
   keys.forEach(function(k){
     var s=soldes[k],sol=s.deb-s.cred;
+    balTD+=s.deb;balTC+=s.cred;
     var code=s.compte;
     var lib=PLAN_COMPTES[code]||('Compte '+code);
     if(s.tiers){
@@ -8087,6 +8110,10 @@ function renderBalance(){
     row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers);});
     el.appendChild(row);
   });
+  var rowT=document.createElement('div');
+  rowT.className='bal-row';rowT.style.cssText='font-weight:800;background:var(--bg3);border-top:2px solid var(--border2);cursor:default';
+  rowT.innerHTML='<span style="color:var(--gold2)">'+fmt(Math.abs(balTD-balTC))+'</span><span></span><span>Totaux</span><span style="text-align:right;color:var(--gold2)">'+fmt(balTD)+'</span><span style="text-align:right;color:var(--gold2)">'+fmt(balTC)+'</span>';
+  el.appendChild(rowT);
   var bd=G('bal-detail');if(bd)bd.style.display='none';
 }
 function showBalanceDetail(code,lib,tiersFilter){
@@ -8137,7 +8164,8 @@ function construireLignesGrandLivre(code,tiersFilter){
 function construireHtmlGrandLivreCompte(code,tiersFilter){
   var lines=construireLignesGrandLivre(code,tiersFilter);
   if(!lines.length)return '';
-  var solde=0;
+  var solde=0,totD=0,totC=0;
+  lines.forEach(function(l){if(l.sens==='D')totD+=l.montant;else totC+=l.montant;});
   return lines.map(function(l){
     solde+=l.sens==='D'?l.montant:-l.montant;
     return '<div class="gl-row">'+
@@ -8148,7 +8176,7 @@ function construireHtmlGrandLivreCompte(code,tiersFilter){
       '<span style="text-align:right;color:'+(l.sens==='C'?'var(--red)':'var(--text2)')+'">'+(l.sens==='C'?fmt(l.montant):'')+'</span>'+
       '<span style="text-align:right;font-weight:700;color:'+couleurSolde(code,solde)+'">'+fmt(solde)+'</span>'+
       '</div>';
-  }).join('');
+  }).join('')+'<div class="gl-row" style="font-weight:800;background:var(--bg3);border-top:2px solid var(--border2)"><span></span><span></span><span>Totaux</span><span style="text-align:right;color:var(--green)">'+fmt(totD)+'</span><span style="text-align:right;color:var(--red)">'+fmt(totC)+'</span><span style="text-align:right;color:var(--gold2)">'+fmt(solde)+'</span></div>';
 }
 function renderGrandLivre(){
   populateGlCptFilter();
@@ -12356,9 +12384,9 @@ function ddmAcc(id,ico,titre,corps){
 function renderDdm(){
   var x=ensureDdm(),el=G('ddm-corps');if(!el)return;
   var per=ddmPeriode(),r=ddmCalc(per);
-  var chip=function(cle,txt){return '<button class="btn-s" style="width:auto;flex:0 0 auto;padding:6px 11px;font-size:calc(12px*var(--fscale));'+(x.periode===cle?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\''+cle+'\')">'+txt+'</button>';};
-  var ch=chip('mois','Mois en cours')+chip('annee','Annee en cours')+chip('tout','Depuis le debut')+chip('perso','Personnalise');
-  var h='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+ch+'</div>';
+  var chip=function(cle,txt){return '<button class="btn-s" style="width:auto;flex:1 1 0;min-width:0;white-space:nowrap;padding:6px 2px;font-size:calc(11px*var(--fscale));'+(x.periode===cle?'border-color:var(--gold);color:var(--gold2)':'')+'" onclick="ddmPeriodeChoisir(\''+cle+'\')">'+txt+'</button>';};
+  var ch=chip('mois','Ce mois')+chip('annee','Cette annee')+chip('tout','Depuis le debut')+chip('perso','Perso');
+  var h='<div style="display:flex;flex-wrap:nowrap;gap:4px;margin-bottom:10px">'+ch+'</div>';
   if(x.periode==='perso'){
     h+='<div class="fg"><label class="fl">Choisir</label><select class="fc" onchange="ddmPersoMode(this.value)"><option value="annee"'+(x.persoMode==='annee'?' selected':'')+'>Une annee</option><option value="periode"'+(x.persoMode==='periode'?' selected':'')+'>Une periode (du ... au ...)</option></select></div>';
     if(x.persoMode==='annee'){
@@ -13332,26 +13360,43 @@ function changerPeriodePilotage(p,btn){
   if(btn)btn.classList.add('on');
   renderPilotage();
 }
-// CAF personnelle : Revenus encaissables (classe 7, credit) - Charges decaissables (classe 6, debit)
-// sur la periode. Les comptes 585 (transit interne), 401/16 (prets/emprunts) et 465-467 (depots pour
-// autrui) ne sont ni classe 6 ni classe 7 : ils sont donc naturellement exclus de ce calcul.
+// CAF (Capacite d'AutoFinancement) - SYSCOHADA revise, methode additive a partir du resultat :
+//   CAF = Resultat net + dotations (charges calculees : 681, 687, 691, 697, 85)
+//                      - reprises (produits calcules : 791, 797, 798, 799, 86)
+//                      + valeur comptable des elements cedes (81)
+//                      - produits des cessions d'elements d'actif (82)
+// Resultat net = produits (classes 7 et 84/86/88/82) - charges (classes 6 et 81/83/85/87/89).
+// Adaptation au plan personnel de l'appli : ses comptes 68 (Zakat), 69 (charges familiales) et 79 (produits
+// divers) sont des comptes DECAISSABLES / ENCAISSABLES, pas des dotations ni des reprises : seuls les codes
+// SYSCOHADA exacts ci-dessus sont retraites. Sans compte calcule (cas courant d'un budget familial), la CAF
+// est donc egale au resultat net. Les comptes 585, 401/16 et 465-467 (classes 4/5) restent hors calcul.
 function calculerCAFPeriode(debut,fin){
-  // Soldes NETS par compte, comme le Compte de resultat et le SIG : charges = debits - credits des comptes de
-  // classe 6 ; produits = credits - debits des comptes de classe 7. Avant, seuls les debits 6 et les credits 7
-  // etaient comptes : une ecriture annulee (contre-passation) ou un avoir restait donc compte en entier.
+  // Soldes NETS par compte (charges = debits - credits ; produits = credits - debits) pour que contre-passations
+  // et avoirs soient neutralises.
   var netCharges={},netProduits={};
+  var net=function(c,m,sens,chg){return chg?(sens==='D'?m:-m):(sens==='C'?m:-m);};
+  var cptCharges={},cptProduits={}; // comptes de classe 8 inclus
   (D.ecritures||[]).forEach(function(e){
     if(!e.date||e.date<debut||e.date>fin)return;
     (e.lignes||[]).forEach(function(l){
       var c=String(l.compte||''),m=Number(l.montant||0);
-      if(/^6/.test(c))netCharges[c]=(netCharges[c]||0)+(l.sens==='D'?m:-m);
-      else if(/^7/.test(c))netProduits[c]=(netProduits[c]||0)+(l.sens==='C'?m:-m);
+      if(/^6/.test(c))netCharges[c]=(netCharges[c]||0)+net(c,m,l.sens,true);
+      else if(/^7/.test(c))netProduits[c]=(netProduits[c]||0)+net(c,m,l.sens,false);
+      else if(/^8[13579]/.test(c))cptCharges[c]=(cptCharges[c]||0)+net(c,m,l.sens,true);
+      else if(/^8[2468]/.test(c))cptProduits[c]=(cptProduits[c]||0)+net(c,m,l.sens,false);
     });
   });
   var produits=0,charges=0,detailCharges={},detailProduits={};
   Object.keys(netCharges).forEach(function(c){charges+=netCharges[c];if(netCharges[c]>0.5)detailCharges[c]=netCharges[c];});
   Object.keys(netProduits).forEach(function(c){produits+=netProduits[c];if(netProduits[c]>0.5)detailProduits[c]=netProduits[c];});
-  return {produits:produits,charges:charges,caf:produits-charges,detailCharges:detailCharges,detailProduits:detailProduits};
+  var chg8=0,prd8=0,dotations=0,reprises=0,vnc=0,cessions=0;
+  Object.keys(cptCharges).forEach(function(c){chg8+=cptCharges[c];if(/^81/.test(c))vnc+=cptCharges[c];if(/^85/.test(c))dotations+=cptCharges[c];});
+  Object.keys(cptProduits).forEach(function(c){prd8+=cptProduits[c];if(/^82/.test(c))cessions+=cptProduits[c];if(/^86/.test(c))reprises+=cptProduits[c];});
+  Object.keys(netCharges).forEach(function(c){if(/^(681|687|691|697)/.test(c))dotations+=netCharges[c];});
+  Object.keys(netProduits).forEach(function(c){if(/^(791|797|798|799)/.test(c))reprises+=netProduits[c];});
+  var resultatNet=(produits+prd8)-(charges+chg8);
+  var caf=resultatNet+dotations-reprises+vnc-cessions;
+  return {produits:produits,charges:charges,resultatNet:resultatNet,dotations:dotations,reprises:reprises,vnc:vnc,cessions:cessions,caf:caf,detailCharges:detailCharges,detailProduits:detailProduits};
 }
 // Nombre de mois reellement couverts par l'historique (1 a n) : sert a calculer les MOYENNES mensuelles. Diviser
 // toujours par 3 alors que l'appli n'a qu'un mois de donnees faussait les moyennes (CAF moyenne trop basse,
@@ -13494,13 +13539,15 @@ function renderBFR(){
   // d'autrui (467 depots, 466 tontines gerees) sont EXCLUS : ils sont adosses a de la tresorerie qui n'est pas dans le BFR.
   // Soldes NETS de chaque compte, correspondance par PREFIXE (avant : '46' exact ne correspondait a aucun compte et
   // 476 - pendant exact de 477 - etait oublie).
-  var CRE=['41','465','471','477'],DET=['40','476'];
+  // Dettes d'exploitation : 40 (fournisseurs) et 476 uniquement. Le 401 sert aussi aux prets de personnes physiques,
+  // au decouvert et aux fonds de tiers (financement / argent d'autrui) : exclu, comme l'annonce l'aide.
+  var CRE=['41','465','471','477'],DET=['40','476'],DET_EXCL=['401'];
   var creances=0,dettes=0;
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
       var c=String(l.compte||''),m=Number(l.montant||0),sg=(l.sens==='D'?m:-m);
       if(CRE.some(function(x){return c.indexOf(x)===0;}))creances+=sg;
-      else if(DET.some(function(x){return c.indexOf(x)===0;}))dettes-=sg;
+      else if(DET.some(function(x){return c.indexOf(x)===0;})&&!DET_EXCL.some(function(x){return c.indexOf(x)===0;}))dettes-=sg;
     });
   });
   var bfr=creances-dettes;
@@ -13591,7 +13638,7 @@ function calculerPatrimoineHistorique(nbMois){
       dateFin=finMois.toISOString().slice(0,10);
       lbl=finMois.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});
     }
-    points.push({lbl:lbl,dateFin:dateFin,patrimoine:calculerCapitalEtResultat(dateFin)+epActuelle});
+    points.push({lbl:lbl,dateFin:dateFin,patrimoine:estMoisCourant?patrimoineNetActuel():calculerCapitalEtResultat(dateFin)+epActuelle});
   }
   return points;
 }
@@ -13739,7 +13786,7 @@ function renderFondsTiers(){
   var depot=totalFondsDeposantsAutrui(),tonG=totalFondsTontinesGerees();
   var tot=depot+tonG;
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
-  var soldeEpargneVerrou=(D.parametres&&D.parametres.epargneUrgence)?0:(D.comptes['Banque Epargne']||0);
+  var soldeEpargneVerrou=(D.parametres&&D.parametres.epargneUrgence)?0:libreSurCompte('Banque Epargne');
   var dispo=tresorerieDisponibleGlobale();
   el.innerHTML=
     '<div class="info-box">Ces fonds transitent par vos comptes mais ne vous appartiennent pas : ils ne sont jamais proposes comme source dans les operations normales, et toute utilisation exceptionnelle demande confirmation puis trace une dette envers les tiers concernes.</div>'+
@@ -13833,10 +13880,7 @@ function updateHdr(){
   // etre deduit du patrimoine net au meme titre que les dettes classiques, sinon un decaissement de pret
   // gonflerait artificiellement le patrimoine affiche (tresorerie en hausse sans contrepartie deduite).
   var dettesPatrimoine=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
-  var depot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
-  var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
-  var ep=epargneProjetsPhantome();
-  var pat=tres-dettesPatrimoine-depot+pretsTot+ep;
+  var pat=patrimoineNetActuel();
   // Tresorerie actuelle = somme brute de tous les comptes de tresorerie.
   // Tresorerie disponible = ce qui reste une fois exclus l'argent qui ne vous appartient pas (depots pour
   // autrui, fonds de tontines gerees) et l'argent deja mis de cote (compte epargne, sauf urgence activee).
