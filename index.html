@@ -719,7 +719,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
             <div class="st" data-ico="&#x1F4CA;"><div class="st-lbl">Taux d'epargne (mois)</div><div class="st-val" id="pil-taux-mois">0%</div></div>
             <div class="st" data-ico="&#x2696;"><div class="st-lbl">BFR</div><div class="st-val" id="an-bfr">0</div></div>
           </div>
-          <div style="font-size:calc(10.5px*var(--fscale));color:var(--text2);margin:-4px 0 10px">CAF (SYSCOHADA revise) = resultat net + dotations &minus; reprises + valeur comptable des cessions &minus; produits des cessions. Sans compte de dotation, reprise ou cession, elle est egale au resultat net (produits &minus; charges).</div>
           <div class="card">
             <div class="card-hd">Taux d'epargne - tendance</div>
             <div id="pil-taux-detail"></div>
@@ -773,7 +772,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
               <div class="pv-pill"><div class="pv-lbl">6 mois</div><div class="pv-val" id="pil-prev-6">0 F</div></div>
               <div class="pv-pill"><div class="pv-lbl">12 mois</div><div class="pv-val" id="pil-prev-12">0 F</div></div>
             </div>
-            <div style="font-size:calc(10.5px*var(--fscale));color:var(--text2);margin-top:8px">Basee sur la CAF moyenne des 3 derniers mois, appliquee a la tresorerie disponible actuelle.</div>
           </div>
         </div>
       </div>
@@ -6342,7 +6340,7 @@ function impDataDashboard(f){
   var tresDispo=tresorerieDisponibleGlobale();
   var tresTotale=Object.keys(D.comptes||{}).reduce(function(a,k){return a+Number(D.comptes[k]||0);},0);
   var rows=[
-    {lbl:'Patrimoine net',montant:calculerCapitalEtResultat(today())},
+    {lbl:'Patrimoine net',montant:patrimoineNetActuel()},
     {lbl:'Tresorerie totale (tous comptes)',montant:tresTotale},
     {lbl:'Tresorerie disponible (hors fonds de tiers)',montant:tresDispo},
     {lbl:'Produits sur la periode',montant:caf.produits},
@@ -6356,6 +6354,7 @@ function impDataDashboard(f){
   return {
     titre:'Tableau de bord',
     sousTitre:impPeriodeTxt(f),
+    notes:[IMP_NOTE_CAF,IMP_NOTE_BFR,'Previsions de tresorerie a 3, 6 et 12 mois = tresorerie disponible + CAF moyenne des 3 derniers mois x nombre de mois (projection au rythme actuel).','Taux d\'epargne = epargne nette du mois (mouvements reels du compte Epargne) / produits du mois. Lecture : 15 % et plus bon, 5 a 15 % moyen, moins de 5 % faible.'],
     sections:[{titre:'Indicateurs cles',colonnes:[impCol('lbl','Indicateur','left'),impCol('montant','Valeur','right','montant')],lignes:rows,totaux:null}]
   };
 }
@@ -6423,7 +6422,9 @@ function impDataOperations(f){
 }
 
 // ---- Module : JOURNAL (par code journal) ----
-var IMP_NOTE_REGUL=' - Note : dans cette appli, 476 = depenses/promesses faites non decaissees et 477 = ventes/promesses recues a encaisser (usage interne, different du plan SYSCOHADA officiel).';
+var IMP_NOTE_REGUL='Comptes 476 et 477 : dans cette appli, 476 = depenses ou promesses faites non decaissees et 477 = ventes ou promesses recues a encaisser (usage interne, different du plan SYSCOHADA officiel).';
+var IMP_NOTE_CAF='CAF (SYSCOHADA revise) = resultat net + dotations - reprises + valeur comptable des cessions - produits des cessions. Sans compte de dotation, reprise ou cession, elle est egale au resultat net (produits - charges).';
+var IMP_NOTE_BFR='BFR = creances a court terme (41, 465, 471, 477) - dettes d\'exploitation (40 hors 401, 476). Les emprunts, le decouvert et l\'argent d\'autrui sont exclus.';
 function impDataJournal(f){
   var sections=calculerJournauxComplets().map(function(j){
     var lignes=[];
@@ -6436,7 +6437,7 @@ function impDataJournal(f){
     });
     return {titre:j.code+' - '+j.lib,colonnes:[impCol('date','Date','left','date'),impCol('ref','Ref','left'),impCol('compte','Compte','left'),impCol('libelle','Libelle','left'),impCol('tiers','Tiers','left'),impCol('debit','Debit','right','montant'),impCol('credit','Credit','right','montant')],lignes:lignes,totaux:{debit:impSomme(lignes,'debit'),credit:impSomme(lignes,'credit')}};
   }).filter(function(s){return s.lignes.length;});
-  return {titre:'Journal (par code)',sousTitre:impPeriodeTxt(f)+IMP_NOTE_REGUL,sections:sections};
+  return {titre:'Journal (par code)',sousTitre:impPeriodeTxt(f),notes:[IMP_NOTE_REGUL],sections:sections};
 }
 
 // ---- Module : GRAND LIVRE ----
@@ -6450,7 +6451,7 @@ function impDataGrandLivre(f){
       lignes:lignes.map(function(l){return {date:l.date,journal:l.journal,ref:l.ref,libelle:l.libelle,debit:l.sens==='D'?l.montant:'',credit:l.sens==='C'?l.montant:'',soldeProg:l.soldeProg};}),
       totaux:{debit:lignes.reduce(function(a,l){return a+(l.sens==='D'?l.montant:0);},0),credit:lignes.reduce(function(a,l){return a+(l.sens==='C'?l.montant:0);},0),soldeProg:lignes.length?lignes[lignes.length-1].soldeProg:0}};
   }).filter(function(s){return s.lignes.length;});
-  return {titre:'Grand Livre',sousTitre:impPeriodeTxt(f)+IMP_NOTE_REGUL,sections:sections};
+  return {titre:'Grand Livre',sousTitre:impPeriodeTxt(f),notes:[IMP_NOTE_REGUL],sections:sections};
 }
 
 // ---- Module : BALANCE DES SOLDES ----
@@ -6458,7 +6459,7 @@ function impDataBalance(f){
   var codes=impComptesCodes(f);
   var bal=calculerBalanceComplete();
   var rows=bal.rows.filter(function(r){return !f.comptes||!f.comptes.length||codes.indexOf(r.code)>-1;});
-  return {titre:'Balance des soldes',sousTitre:'Arretee au '+fmtD(f.fin||today())+' (cumul depuis le debut)'+IMP_NOTE_REGUL,
+  return {titre:'Balance des soldes',sousTitre:'Arretee au '+fmtD(f.fin||today())+' (cumul depuis le debut)',notes:[IMP_NOTE_REGUL],
     sections:[{titre:null,colonnes:[impCol('code','Code','left'),impCol('lib','Libelle','left'),impCol('deb','Debit','right','montant'),impCol('cred','Credit','right','montant'),impCol('solde','Solde','right','montant')],
       lignes:rows,totaux:{deb:impSomme(rows,'deb'),cred:impSomme(rows,'cred'),solde:impSomme(rows,'deb')-impSomme(rows,'cred')}}]};
 }
@@ -6651,7 +6652,7 @@ function impDataProjets(f){
 // disposer d'une liste imprimable complete des comptes/journaux disponibles, y compris personnalises.
 function impDataPlanComptable(f){
   var lignes=(PLAN_COMPTES_ARR||[]).slice().sort(function(a,b){return String(a.code).localeCompare(String(b.code),undefined,{numeric:true});});
-  return {titre:'Plan comptable',sousTitre:'Comptes de base et personnalises - '+lignes.length+' comptes',
+  return {titre:'Plan comptable',notes:[IMP_NOTE_REGUL],sousTitre:'Comptes de base et personnalises - '+lignes.length+' comptes',
     sections:[{titre:null,colonnes:[impCol('code','Code','left'),impCol('lib','Libelle','left'),impCol('classe','Classe SYSCOHADA','left'),impCol('perso','Origine','left')],
       lignes:lignes.map(function(c){return {code:c.code,lib:c.lib,classe:c.classe,perso:c.personnalise?'Personnalise':'Standard'};})}]};
 }
@@ -6705,7 +6706,7 @@ function impDataSocial(f){
 // ---- Module : RAPPORT / INDICATEURS ----
 function impDataRapport(f){
   var y=(f.debut||today()).slice(0,4);
-  var rev=(D.revenus||[]).filter(function(r){return (r.date||'').slice(0,4)===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var rev=revenusStats().filter(function(r){return (r.date||'').slice(0,4)===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(d){return (d.date||'').slice(0,4)===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   var rows=[{lbl:'Revenus '+y,montant:rev},{lbl:'Depenses '+y,montant:dep},{lbl:'Epargne nette '+y,montant:rev-dep},
     {lbl:'Epargne cumulee (projets)',montant:(D.projets||[]).reduce(function(a,p){return a+Number(p.actuel);},0)},
@@ -7008,6 +7009,14 @@ function impConstruirePdf(modIds,f){
     else{y=nouvellePagePdf(doc,exerciceTxt);}
     y=impEnTeteModulePdf(doc,pageW,y,(data.titre||'').toUpperCase(),data.sousTitre);
     (data.sections||[]).forEach(function(sec){y=impSectionPdf(doc,y,pageW,exerciceTxt,sec);});
+    if(data.notes&&data.notes.length){
+      doc.setFont(pdfFontFamille(),'italic');doc.setFontSize((7.5)*pdfEchelle());doc.setTextColor(110);
+      var lignesN=[];data.notes.forEach(function(n,k){lignesN=lignesN.concat(doc.splitTextToSize((k+1)+'. '+sanitizePourPdf(n),pageW-30));});
+      if(y+4+lignesN.length*3.6>285)y=nouvellePagePdf(doc,exerciceTxt);
+      doc.setDrawColor(180);doc.line(15,y,15+40,y);y+=4;
+      lignesN.forEach(function(t){doc.text(t,15,y);y+=3.6;});
+      doc.setTextColor(0);y+=3;
+    }
   });
   dessinerPiedDePagePdf(doc);
   doc._nomFichier='CentreImpression_'+(modIds.length===1?modIds[0]+'_':'')+today()+'.pdf';
@@ -7044,6 +7053,7 @@ function impConstruireExcel(modIds,f){
       }
       aoa.push([]);
     });
+    (data.notes||[]).forEach(function(n,k){aoa.push([(k+1)+'. '+n]);});
     var ws=XLSX.utils.aoa_to_sheet(aoa);
     var base=(data.titre||id).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31)||id;
     var nom=base,cpt=1;
@@ -7095,6 +7105,7 @@ function impConstruireCsvModule(data){
     }
     L.push('');
   });
+  (data.notes||[]).forEach(function(n,k){L.push(impCsvEchapper('Note '+(k+1)+' : '+n));});
   return L.join('\r\n');
 }
 function impTelechargerBlob(contenu,nomFichier,mime){
@@ -7142,6 +7153,7 @@ function impConstruireHtmlModule(data){
     }
     html+='</tbody></table>';
   });
+  if(data.notes&&data.notes.length){html+='<div class="imp-print-notes"><b>Notes</b><ol>'+data.notes.map(function(n){return '<li>'+escHtml(n)+'</li>';}).join('')+'</ol></div>';}
   html+='</div>';
   return html;
 }
@@ -7156,6 +7168,7 @@ function imprimerDirectement(modIds,f){
     "h2{color:#0A1628;font-size:"+impPx(14)+";border-bottom:1px solid #D4A017;padding-bottom:4px}"+
     "h3{color:#0A1628;font-size:"+impPx(12)+";margin-top:14px}"+
     ".imp-print-sub{font-size:"+impPx(10.5)+";color:#777;margin-bottom:8px}"+
+    ".imp-print-notes{font-size:"+impPx(9.5)+";color:#666;border-top:1px solid #bbb;margin-top:12px;padding-top:6px}.imp-print-notes ol{margin:4px 0 0 16px;padding:0}"+
     ".imp-print-empty{font-size:"+impPx(11)+";color:#999}"+
     "table{width:100%;border-collapse:collapse;font-size:"+impPx(10)+";margin-bottom:8px}"+
     "th{background:#0A1628;color:#fff;padding:4px 6px;text-align:left}"+
@@ -13158,7 +13171,12 @@ function filtrerDepCat(cat){
 function depenseOfferte(d){return d&&d.compte==='Offert par un collegue';}
 // Depenses qui ont reellement sorti de l'argent de ma poche (hors depenses offertes) : base de TOUS les chiffres
 // "argent depense" du tableau de bord, des tendances, des ratios et de l'assistant IA.
-function depensesPayees(){return (D.depenses||[]).filter(function(d){return !depenseOfferte(d);});}
+// Mouvements de tresorerie (formulaire "Mouvement") ranges dans une categorie de revenu / depense : ils sont
+// comptabilises (journal TR, classes 7 / 6) mais n'etaient pas dans D.revenus / D.depenses, donc absents des totaux.
+function revenusMouvements(){return (D.transactions||[]).filter(function(t){return t.type==='credit'&&t.categorie;}).map(function(t){return {categorie:t.categorie,libelle:t.libelle,montant:t.montant,date:t.date,tiers:t.tiers,compte:t.compte,_mouvement:true};});}
+function depensesMouvements(){return (D.transactions||[]).filter(function(t){return t.type==='debit'&&t.categorie;}).map(function(t){return {categorie:t.categorie,libelle:t.libelle,montant:t.montant,date:t.date,tiers:t.tiers,compte:t.compte,_mouvement:true};});}
+function revenusStats(){return (D.revenus||[]).concat(revenusMouvements());}
+function depensesPayees(){return (D.depenses||[]).concat(depensesMouvements()).filter(function(d){return !depenseOfferte(d);});}
 function renderDep(){
   var cats={};(D.depenses||[]).forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(_depFiltreCat&&!(_depFiltreCat in cats))_depFiltreCat='';
@@ -13506,8 +13524,7 @@ function renderPilotage(){
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
       '<div style="background:var(--bg2);border-radius:10px;padding:11px"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Ce mois</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+couleurTaux(tauxMois)+'">'+tauxMois.toFixed(1)+' %</div></div>'+
       '<div style="background:var(--bg2);border-radius:10px;padding:11px"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Moyenne 3 mois</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+couleurTaux(tauxM3)+'">'+tauxM3.toFixed(1)+' %</div></div>'+
-    '</div>'+
-    '<div style="font-size:calc(11px*var(--fscale));color:var(--text3);margin-top:8px">Base sur les mouvements reels du compte epargne. &#x1F7E2; &ge;15% bon &middot; &#x1F7E0; 5-15% moyen &middot; &#x1F534; &lt;5% faible</div>';
+    '</div>';
 
 
   // CAF moyenne (3 mois) : meme methode comptable que la CAF de periode, seule la fenetre change -> pas de doublon de calcul
@@ -13589,7 +13606,7 @@ function renderPrevisions(cafMoy){
 }
 // Comparatifs Revenus/Depenses (sur la periode selectionnee) + Tresorerie/Dettes/Prets/Depots (soldes actuels)
 function renderComparatifs(per){
-  var rev=(D.revenus||[]).filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var rev=revenusStats().filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
@@ -13870,7 +13887,7 @@ function renderDash(){
 function updateHdr(){
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
   var hd=G('h-date');if(hd)hd.textContent=now.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
-  var rev=(D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var rev=revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var dettes=(D.dettes||[]).reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
@@ -13880,6 +13897,9 @@ function updateHdr(){
   // etre deduit du patrimoine net au meme titre que les dettes classiques, sinon un decaissement de pret
   // gonflerait artificiellement le patrimoine affiche (tresorerie en hausse sans contrepartie deduite).
   var dettesPatrimoine=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
+  var depot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
+  var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
+  var ep=epargneProjetsPhantome();
   var pat=patrimoineNetActuel();
   // Tresorerie actuelle = somme brute de tous les comptes de tresorerie.
   // Tresorerie disponible = ce qui reste une fois exclus l'argent qui ne vous appartient pas (depots pour
@@ -14069,7 +14089,7 @@ function renderRapport(){
   var y=new Date().getFullYear();
   var ry=G('rap-yr'),rn=G('rap-net'),rr=G('rap-rev'),rd=G('rap-dep'),re=G('rap-ep'),rdet=G('rap-det');
   if(ry)ry.textContent='Annee '+y;
-  var rev=(D.revenus||[]).filter(function(r){return new Date(r.date).getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var rev=revenusStats().filter(function(r){return new Date(r.date).getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(d){return new Date(d.date).getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   if(rn)rn.textContent=fmt(rev-dep)+' FCFA';if(rr)rr.textContent=fmt(rev);if(rd)rd.textContent=fmt(dep);
   if(re)re.textContent=fmt((D.projets||[]).reduce(function(a,p){return a+Number(p.actuel);},0));
@@ -14402,7 +14422,7 @@ function buildRevDepChart(){
   var ms=getMs(nbMoisForPeriode()),rl=[],dl=[],labs=[];
   ms.forEach(function(x){
     labs.push(x.lbl);
-    rl.push((D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
+    rl.push(revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
     dl.push(depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
   });
   charts['rd']=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Revenus',data:rl,backgroundColor:'rgba(16,185,129,.7)',borderRadius:5},{label:'Depenses',data:dl,backgroundColor:'rgba(239,68,68,.7)',borderRadius:5}]},options:chartOpts});
@@ -14429,7 +14449,7 @@ function buildTresChart(){
 function buildRevChart(){
   var ctx=G('ch-rev');if(!ctx)return;kc('rv');
   var ms=getMs(6),data=[],labs=[];
-  ms.forEach(function(x){labs.push(x.lbl);data.push((D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));});
+  ms.forEach(function(x){labs.push(x.lbl);data.push(revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));});
   charts['rv']=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label:'Revenus',data:data,borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.1)',tension:.4,fill:true,pointRadius:4}]},options:chartOpts});
 }
 function buildDepChart(){
@@ -14531,7 +14551,7 @@ function buildRapChart(){
   var ms=getMs(12),rl=[],dl=[],labs=[];
   ms.forEach(function(x){
     labs.push(x.lbl);
-    rl.push((D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
+    rl.push(revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
     dl.push(depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0));
   });
   charts['rp']=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label:'Revenus',data:rl,borderColor:'#10B981',tension:.4,pointRadius:3},{label:'Depenses',data:dl,borderColor:'#EF4444',tension:.4,pointRadius:3}]},options:chartOpts});
@@ -14649,7 +14669,7 @@ async function sendIA(){
   var typingDiv=document.createElement('div');typingDiv.className='ai-bub';typingDiv.id='ia-typing';typingDiv.textContent='Analyse en cours...';msgs.appendChild(typingDiv);
   msgs.scrollTop=msgs.scrollHeight;
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
-  var rev=(D.revenus||[]).filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
+  var rev=revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(d){var dd=new Date(d.date);return dd.getMonth()===m&&dd.getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
   var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
