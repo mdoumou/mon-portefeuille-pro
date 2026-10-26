@@ -663,13 +663,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 
   <div class="content">
 
+    <div class="ov" id="ov-formule" onclick="closeOv('ov-formule')"><div class="modal" onclick="event.stopPropagation()">
+      <div class="card-hd" id="of-titre">Detail</div>
+      <div id="of-corps" style="margin-top:8px;max-height:62vh;overflow-y:auto"></div>
+      <button class="btn-s" style="margin-top:12px;width:100%" onclick="closeOv('ov-formule')">Fermer</button>
+    </div></div>
+
     <!-- DASHBOARD -->
     <div id="pg-dashboard">
       <div class="pat-box" id="pat-box" onclick="togglePatBox()">
         <div class="pat-lbl"><span>Patrimoine net</span><span class="pat-chev">&#x25B2;</span></div>
-        <div class="pat-val"><span id="h-pat">0</span><span>FCFA</span></div>
-        <div class="pat-tres"><span class="pat-tres-lbl">Tresorerie actuelle</span><span id="h-tres-actuelle">0 FCFA</span></div>
-        <div class="pat-tres" style="margin-top:2px;padding-top:2px;border-top:none"><span class="pat-tres-lbl">Tresorerie disponible</span><span id="h-tres-disponible">0 FCFA</span></div>
+        <div class="pat-val" onclick="event.stopPropagation();openFormule('pat')" style="cursor:pointer"><span id="h-pat">0</span><span>FCFA</span></div>
+        <div class="pat-tres" style="cursor:pointer" onclick="event.stopPropagation();openFormule('tresact')"><span class="pat-tres-lbl">Tresorerie actuelle</span><span id="h-tres-actuelle">0 FCFA</span></div>
+        <div class="pat-tres" style="margin-top:2px;padding-top:2px;border-top:none;cursor:pointer" onclick="event.stopPropagation();openFormule('tresdispo')"><span class="pat-tres-lbl">Tresorerie disponible</span><span id="h-tres-disponible">0 FCFA</span></div>
         <div class="pat-sub">
           <span><span class="pdot" style="background:var(--green)"></span><span id="h-rev">Rev: 0</span></span>
           <span><span class="pdot" style="background:var(--red)"></span><span id="h-dep">Dep: 0</span></span>
@@ -714,10 +720,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         </div>
         <div class="acc-body">
           <div class="sg">
-            <div class="st" data-ico="&#x1F4B0;"><div class="st-lbl">CAF (<span id="an-caf-periode-lbl">mois</span>)</div><div class="st-val" id="pil-caf">0</div></div>
-            <div class="st" data-ico="&#x1F4C8;"><div class="st-lbl">CAF moyenne (3 mois)</div><div class="st-val" id="an-caf-moy">0</div></div>
-            <div class="st" data-ico="&#x1F4CA;"><div class="st-lbl">Taux d'epargne (mois)</div><div class="st-val" id="pil-taux-mois">0%</div></div>
-            <div class="st" data-ico="&#x2696;"><div class="st-lbl">BFR</div><div class="st-val" id="an-bfr">0</div></div>
+            <div class="st" style="cursor:pointer" onclick="openFormule('caf')" data-ico="&#x1F4B0;"><div class="st-lbl">CAF (<span id="an-caf-periode-lbl">mois</span>)</div><div class="st-val" id="pil-caf">0</div></div>
+            <div class="st" style="cursor:pointer" onclick="openFormule('cafmoy')" data-ico="&#x1F4C8;"><div class="st-lbl">CAF moyenne (3 mois)</div><div class="st-val" id="an-caf-moy">0</div></div>
+            <div class="st" style="cursor:pointer" onclick="openFormule('taux')" data-ico="&#x1F4CA;"><div class="st-lbl">Taux d'epargne (mois)</div><div class="st-val" id="pil-taux-mois">0%</div></div>
+            <div class="st" style="cursor:pointer" onclick="openFormule('bfr')" data-ico="&#x2696;"><div class="st-lbl">BFR</div><div class="st-val" id="an-bfr">0</div></div>
           </div>
           <div class="card">
             <div class="card-hd">Taux d'epargne - tendance</div>
@@ -8864,7 +8870,19 @@ function doRembourserInterne(mode,amt,frais,excedent){
       {compte:'467',lib:'Depot '+d.creancier,sens:'C',montant:amt,tiers:d.tiers||''}
     ],'');
     if(!refRembDepot){notif('Reclassement annule - l\'ecriture correspondante a echoue',true);return;}
-    D.depots.push({deposant:d.creancier,tiers:d.tiers||'',objet:'Restitue depuis une dette (401)',compte:destCpt,montant:amt,date:today(),restitution:''});
+    (function(){
+      var idxC=D.depots.findIndex(function(x){return memeTiers(d.tiers||'',d.creancier,x.tiers,x.deposant);});
+      if(idxC>-1){
+        var repAv=depotRepartitions(D.depots[idxC]).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
+        var resD=fusionnerOuAjouter(D.depots,function(x){return memeTiers(d.tiers||'',d.creancier,x.tiers,x.deposant);},{deposant:d.creancier,tiers:d.tiers||'',objet:'Restitue depuis une dette (401)',montant:amt,date:today(),restitution:''});
+        var ex=repAv.find(function(x){return x.compte===destCpt;});
+        if(ex)ex.montant+=amt;else repAv.push({compte:destCpt,montant:amt});
+        D.depots[resD.idx].repartitions=repAv;
+        depotSyncMontantEtCompte(D.depots[resD.idx]);
+      } else {
+        D.depots.push({deposant:d.creancier,tiers:d.tiers||'',objet:'Restitue depuis une dette (401)',compte:destCpt,montant:amt,date:today(),restitution:''});
+      }
+    })();
     notif('Dette reclassee en depot pour autrui (467)');
     finaliserRemboursement();
   } else {
@@ -9222,7 +9240,27 @@ function ouvrirRegularisationFondsTiers(){
   var t=G('cft-texte');if(t)t.textContent='Argent de tiers utilise sans trace : '+txt+'. Ces montants seront retires du depot concerne et enregistres comme dette envers le tiers (ecriture 467 vers 401, visible dans Dettes). Les soldes des comptes ne changent pas. Continuer ?';
   openOv('ov-confirm-fonds-tiers');
 }
+function fusionnerDepotsDoublons(){
+  var fait=false;
+  for(var i=0;i<(D.depots||[]).length;i++){
+    for(var j=D.depots.length-1;j>i;j--){
+      var a=D.depots[i],b=D.depots[j];
+      if(!memeTiers(a.tiers,a.deposant,b.tiers,b.deposant))continue;
+      var rep=depotRepartitions(a).map(function(r){return {compte:r.compte,montant:Number(r.montant||0)};});
+      depotRepartitions(b).forEach(function(r){var ex=rep.find(function(x){return x.compte===r.compte;});if(ex)ex.montant+=Number(r.montant||0);else rep.push({compte:r.compte,montant:Number(r.montant||0)});});
+      if(a.montantInitial==null)a.montantInitial=Number(a.montant||0);
+      a.montantInitial=Number(a.montantInitial||0)+Number(b.montantInitial!=null?b.montantInitial:(b.montant||0));
+      a.objet=[a.objet,b.objet].filter(function(x){return x;}).join(' + ');
+      if(b.restitution&&(!a.restitution||b.restitution<a.restitution))a.restitution=b.restitution;
+      a.repartitions=rep;
+      depotSyncMontantEtCompte(a);
+      D.depots.splice(j,1);fait=true;
+    }
+  }
+  if(fait)save();
+}
 function renderDepots(){
+  try{fusionnerDepotsDoublons();}catch(e){}
   var tot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
   var e1=G('dp-tot'),e2=G('dp-nb');
   if(e1)e1.textContent=fmt(tot)+' F';if(e2)e2.textContent=(D.depots||[]).length;
@@ -13145,14 +13183,14 @@ function renderTxList(f,moisCourantSeulement){
 
 // ============ REVENUS ============
 function renderRev(){
-  var cats={};(D.revenus||[]).forEach(function(r){cats[r.categorie]=(cats[r.categorie]||0)+Number(r.montant);});
+  var cats={};revenusStats().forEach(function(r){cats[r.categorie]=(cats[r.categorie]||0)+Number(r.montant);});
   var sal=cats['Salaire net']||0,prim=(cats['Prime/Indemnite']||0)+(cats['Heures supp.']||0);
   var aut=Object.values(cats).reduce(function(a,v){return a+v;},0)-sal-prim;
   var es=G('r-sal'),ep=G('r-prim'),ea=G('r-aut'),et=G('r-tot');
   if(es)es.textContent=fmt(sal)+' F';if(ep)ep.textContent=fmt(prim)+' F';
   if(ea)ea.textContent=fmt(Math.max(0,aut))+' F';if(et)et.textContent=fmt(sal+prim+Math.max(0,aut))+' F';
   var el=G('r-list');if(!el)return;
-  el.innerHTML=(D.revenus||[]).length?[...(D.revenus||[])].reverse().map(function(r){
+  el.innerHTML=revenusStats().length?[...revenusStats()].sort(function(a,b){return (a.date||'').localeCompare(b.date||'');}).reverse().map(function(r){
     return '<div class="tx"><div class="tx-ico icr">+</div><div class="tx-inf"><div class="tx-lib">'+escHtml(r.libelle)+'</div><div class="tx-meta">'+fmtD(r.date)+(r.tiers?' - '+escHtml(r.tiers):'')+'</div><span class="tx-tag">'+escHtml(r.categorie)+' vers '+escHtml(r.compte)+'</span></div><div class="tx-amt acr">+'+fmt(r.montant)+' F</div></div>';
   }).join(''):'<div class="empty"><div class="empty-txt">Aucun revenu</div></div>';
   setTimeout(buildRevChart,100);
@@ -13173,14 +13211,36 @@ function depenseOfferte(d){return d&&d.compte==='Offert par un collegue';}
 // "argent depense" du tableau de bord, des tendances, des ratios et de l'assistant IA.
 // Mouvements de tresorerie (formulaire "Mouvement") ranges dans une categorie de revenu / depense : ils sont
 // comptabilises (journal TR, classes 7 / 6) mais n'etaient pas dans D.revenus / D.depenses, donc absents des totaux.
-function revenusMouvements(){return (D.transactions||[]).filter(function(t){return t.type==='credit'&&t.categorie;}).map(function(t){return {categorie:t.categorie,libelle:t.libelle,montant:t.montant,date:t.date,tiers:t.tiers,compte:t.compte,_mouvement:true};});}
-function depensesMouvements(){return (D.transactions||[]).filter(function(t){return t.type==='debit'&&t.categorie;}).map(function(t){return {categorie:t.categorie,libelle:t.libelle,montant:t.montant,date:t.date,tiers:t.tiers,compte:t.compte,_mouvement:true};});}
+// Anciens mouvements (sans categorie memorisee) : la categorie est retrouvee dans l'ecriture TR correspondante
+// (meme date, meme libelle, ligne de classe 7 au credit / classe 6 au debit du meme montant).
+function _mouvementCategorie(t){
+  if(t.categorie)return t.categorie;
+  var cls=t.type==='credit'?'7':'6',sens=t.type==='credit'?'C':'D',m=Math.round(Number(t.montant||0));
+  var e=(D.ecritures||[]).find(function(x){
+    return x.journal==='TR'&&x.date===t.date&&x.libelle===t.libelle&&(x.lignes||[]).some(function(l){return String(l.compte||'').charAt(0)===cls&&l.sens===sens&&Math.round(Number(l.montant||0))===m;});
+  });
+  if(!e)return '';
+  var l=e.lignes.find(function(l){return String(l.compte||'').charAt(0)===cls&&l.sens===sens&&Math.round(Number(l.montant||0))===m;});
+  return PLAN_COMPTES[l.compte]||l.compte;
+}
+function _mouvementsCat(type){
+  var out=[];
+  (D.transactions||[]).forEach(function(t){
+    if(t.type!==type)return;
+    var c=_mouvementCategorie(t);if(!c)return;
+    out.push({categorie:c,libelle:t.libelle,montant:t.montant,date:t.date,tiers:t.tiers,compte:t.compte,_mouvement:true});
+  });
+  return out;
+}
+function revenusMouvements(){return _mouvementsCat('credit');}
+function depensesMouvements(){return _mouvementsCat('debit');}
 function revenusStats(){return (D.revenus||[]).concat(revenusMouvements());}
 function depensesPayees(){return (D.depenses||[]).concat(depensesMouvements()).filter(function(d){return !depenseOfferte(d);});}
 function renderDep(){
-  var cats={};(D.depenses||[]).forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
+  var toutesDep=(D.depenses||[]).concat(depensesMouvements());
+  var cats={};toutesDep.forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(_depFiltreCat&&!(_depFiltreCat in cats))_depFiltreCat='';
-  var tot=(D.depenses||[]).reduce(function(a,d){return depenseOfferte(d)?a:a+Number(d.montant);},0);
+  var tot=toutesDep.reduce(function(a,d){return depenseOfferte(d)?a:a+Number(d.montant);},0);
   var pfx=['pfg','pfb','pfo','pfr','pfp'];
   var ec=G('dep-cats');
   var lstCats=Object.entries(cats).sort(function(a,b){return b[1]-a[1];});
@@ -13197,7 +13257,7 @@ function renderDep(){
     var x=G('dep-filtre-x');if(x)x.addEventListener('click',function(){filtrerDepCat(_depFiltreCat);});
   }
   var el=G('dep-list');if(!el)return;
-  var liste=(D.depenses||[]).filter(function(d){return !_depFiltreCat||d.categorie===_depFiltreCat;});
+  var liste=toutesDep.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');}).filter(function(d){return !_depFiltreCat||d.categorie===_depFiltreCat;});
   el.innerHTML=liste.length?[...liste].reverse().map(function(d){
     if(depenseOfferte(d))return '<div class="tx"><div class="tx-ico idb" style="opacity:.6">=</div><div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(d.tiers):'')+'</div><span class="tx-tag">'+escHtml(d.categorie)+' - offert, rien paye</span></div><div class="tx-amt" style="color:var(--text2)">'+fmt(d.montant)+' F</div></div>';
     return '<div class="tx"><div class="tx-ico idb">-</div><div class="tx-inf"><div class="tx-lib">'+escHtml(d.libelle)+'</div><div class="tx-meta">'+fmtD(d.date)+(d.tiers?' - '+escHtml(d.tiers):'')+'</div><span class="tx-tag">'+escHtml(d.categorie)+' depuis '+escHtml(d.compte)+'</span></div><div class="tx-amt adb">-'+fmt(d.montant)+' F</div></div>';
@@ -13550,6 +13610,101 @@ function renderPilotage(){
   }
 }
 // BFR (Besoin en Fonds de Roulement) adapte a la finance personnelle : creances (41,465,477,471) - dettes court terme (40,401,46)
+
+// ============ DETAIL D'UN INDICATEUR : formule + elements qui le constituent ============
+function _isoLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function _fRow(lbl,val,opts){
+  opts=opts||{};
+  var col=opts.color||(val<0?'var(--red)':'var(--text)');
+  return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);'+(opts.bold?'font-weight:800;':'')+'font-size:calc(13px*var(--fscale))"><span style="color:'+(opts.muted?'var(--text2)':'var(--text)')+'">'+escHtml(lbl)+'</span><span style="color:'+col+';white-space:nowrap">'+(opts.sign||'')+fmt(Math.round(val))+(opts.suffix||' F')+'</span></div>';
+}
+function _fTitre(t){return '<div style="margin:12px 0 2px;font-size:calc(11px*var(--fscale));color:var(--gold2);text-transform:uppercase;letter-spacing:.5px;font-weight:700">'+escHtml(t)+'</div>';}
+function _fNote(t){return '<div style="font-size:calc(11.5px*var(--fscale));color:var(--text2);margin:6px 0 4px;line-height:1.5">'+t+'</div>';}
+function _fCompteLib(c){return c+' - '+(PLAN_COMPTES[c]||('Compte '+c));}
+function _fListeComptes(det){return Object.keys(det).sort(function(a,b){return det[b]-det[a];}).map(function(c){return _fRow(_fCompteLib(c),det[c]);}).join('');}
+function openFormule(cle){
+  var h='',titre='Detail',now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  var tresParCompte=function(){return COMPTES_TRES.map(function(c){return {c:c,v:D.comptes[c]||0};}).filter(function(x){return Math.abs(x.v)>0.5;});};
+  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var dettesP=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
+  if(cle==='caf'){
+    var per=bornesPilotage(),c=calculerCAFPeriode(per.debut,per.fin);
+    titre='CAF - '+per.label;
+    h+=_fNote('CAF (SYSCOHADA revise) = resultat net + dotations - reprises + valeur comptable des cessions - produits des cessions.');
+    h+=_fTitre('Produits (classe 7)')+_fListeComptes(c.detailProduits)+_fRow('Total produits',c.produits,{bold:true,color:'var(--green)'});
+    h+=_fTitre('Charges (classe 6)')+_fListeComptes(c.detailCharges)+_fRow('Total charges',c.charges,{bold:true,color:'var(--red)'});
+    h+=_fTitre('Calcul')+_fRow('Resultat net (produits - charges)',c.resultatNet,{bold:true})+_fRow('+ Dotations',c.dotations,{muted:true})+_fRow('- Reprises',c.reprises,{muted:true})+_fRow('+ Valeur comptable des cessions',c.vnc,{muted:true})+_fRow('- Produits des cessions',c.cessions,{muted:true})+_fRow('= CAF',c.caf,{bold:true,color:c.caf>=0?'var(--green)':'var(--red)'});
+  } else if(cle==='cafmoy'){
+    titre='CAF moyenne (3 mois)';
+    var nb=nbMoisHistorique(3),tot=0;
+    h+=_fNote('Somme des CAF mensuelles des mois couverts par ton historique, divisee par leur nombre ('+nb+').');
+    h+=_fTitre('CAF par mois');
+    for(var i=2;i>=0;i--){
+      var d1=new Date(y,m-i,1),deb=_isoLocal(d1),fin=i===0?today():_isoLocal(new Date(y,m-i+1,0));
+      var cm=calculerCAFPeriode(deb,fin),inclus=i<nb;
+      if(inclus)tot+=cm.caf;
+      h+=_fRow(d1.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})+(inclus?'':' (avant ton historique : non compte)'),cm.caf,{muted:!inclus});
+    }
+    h+=_fTitre('Calcul')+_fRow('Total des mois comptes',tot)+_fRow('Nombre de mois',nb,{suffix:''})+_fRow('= CAF moyenne',tot/nb,{bold:true});
+  } else if(cle==='taux'){
+    titre="Taux d'epargne (mois)";
+    var deb0=firstOfMonthISO(y,m),ep=calculerEpargneReellePeriode(deb0,today()),cf=calculerCAFPeriode(deb0,today());
+    h+=_fNote("Epargne nette du mois (mouvements reels du compte Epargne) / produits du mois x 100. Sont exclus : soldes d'ouverture et argent d'autrui.");
+    h+=_fRow('Entrees sur le compte Epargne',ep.entrees,{muted:true})+_fRow('Sorties du compte Epargne',ep.sorties,{muted:true})+_fRow('Epargne nette',ep.net,{bold:true});
+    h+=_fRow('Produits du mois',cf.produits,{bold:true,color:'var(--green)'});
+    h+=_fRow("= Taux d'epargne",cf.produits>0?ep.net/cf.produits*100:0,{bold:true,suffix:' %'});
+    h+=_fNote('Lecture : 15 % et plus = bon, 5 a 15 % = moyen, moins de 5 % = faible.');
+  } else if(cle==='bfr'){
+    titre='BFR';
+    var CRE=['41','465','471','477'],DET=['40','476'],cre={},det={},tc=0,td=0;
+    (D.ecritures||[]).forEach(function(e){(e.lignes||[]).forEach(function(l){
+      var c=String(l.compte||''),mm=Number(l.montant||0),sg=(l.sens==='D'?mm:-mm);
+      if(CRE.some(function(x){return c.indexOf(x)===0;})){cre[c]=(cre[c]||0)+sg;tc+=sg;}
+      else if(DET.some(function(x){return c.indexOf(x)===0;})&&c.indexOf('401')!==0){det[c]=(det[c]||0)-sg;td-=sg;}
+    });});
+    h+=_fNote("BFR = creances a court terme - dettes d'exploitation. Exclus : tresorerie, emprunts, decouvert, pret de particuliers (401) et argent d'autrui.");
+    h+=_fTitre('Creances (41, 465, 471, 477)')+Object.keys(cre).sort().map(function(c){return _fRow(_fCompteLib(c),cre[c]);}).join('')+_fRow('Total creances',tc,{bold:true});
+    h+=_fTitre('Dettes (40, 476)')+Object.keys(det).sort().map(function(c){return _fRow(_fCompteLib(c),det[c]);}).join('')+_fRow("Total dettes d'exploitation",td,{bold:true});
+    h+=_fTitre('Calcul')+_fRow('= BFR',tc-td,{bold:true});
+  } else if(cle==='pat'){
+    titre='Patrimoine net';
+    var dep=totalFondsDeposantsAutrui(),tg=totalFondsTontinesGerees(),pr=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0),epp=epargneProjetsPhantome();
+    h+=_fNote("Patrimoine net = tresorerie - dettes propres - argent d'autrui (depots et tontines gerees) + prets a recuperer + epargne de depart des projets.");
+    h+=_fRow('Tresorerie actuelle',tres,{bold:true,color:'var(--blue)'});
+    h+=_fTitre('Dettes propres')+dettesHorsDecouvert().map(function(d){return _fRow(d.creancier||'Dette',Number(d.montant),{sign:'- ',color:'var(--red)'});}).join('')+_fRow('Capital restant du des emprunts',capitalRestantDuEmprunts(),{sign:'- ',color:'var(--red)'});
+    h+=_fTitre("Argent d'autrui")+_fRow('Depots recus',dep,{sign:'- ',color:'var(--red)'})+_fRow('Tontines gerees',tg,{sign:'- ',color:'var(--red)'});
+    h+=_fTitre('A recuperer / reserve')+_fRow('Prets a recuperer',pr,{sign:'+ ',color:'var(--green)'})+_fRow('Epargne de depart des projets',epp,{sign:'+ ',color:'var(--green)'});
+    h+=_fTitre('Resultat')+_fRow('= Patrimoine net',patrimoineNetActuel(),{bold:true});
+  } else if(cle==='tresact'){
+    titre='Tresorerie actuelle';
+    h+=_fNote('Somme des soldes de tous les comptes de tresorerie.')+tresParCompte().map(function(x){return _fRow(x.c,x.v,{color:'var(--blue)'});}).join('')+_fRow('= Tresorerie actuelle',tres,{bold:true,color:'var(--blue)'});
+  } else if(cle==='tresdispo'){
+    titre='Tresorerie disponible';
+    var ep2=(D.parametres&&D.parametres.epargneUrgence)?0:libreSurCompte('Banque Epargne');
+    h+=_fNote("Ce que tu peux depenser sans toucher a l'argent des autres ni a l'epargne (sauf option \"epargne en cas d'urgence\").");
+    h+=_fRow('Tresorerie actuelle',tres,{bold:true,color:'var(--blue)'})+_fRow('Depots recus (autrui)',totalFondsDeposantsAutrui(),{sign:'- ',color:'var(--red)'})+_fRow('Tontines gerees (autrui)',totalFondsTontinesGerees(),{sign:'- ',color:'var(--red)'})+_fRow('Epargne personnelle bloquee',ep2,{sign:'- ',color:'var(--red)'});
+    h+=_fRow('= Tresorerie disponible',tresorerieDisponibleGlobale(),{bold:true,color:'var(--green)'});
+  } else if(cle==='endett'){
+    titre="Taux d'endettement";
+    var pr2=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0),ep3=epargneProjetsPhantome();
+    var actif=tres-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()+pr2+ep3;
+    h+=_fNote("Taux d'endettement = dettes propres / actifs qui t'appartiennent x 100.");
+    h+=_fTitre('Dettes')+dettesHorsDecouvert().map(function(d){return _fRow(d.creancier||'Dette',Number(d.montant));}).join('')+_fRow('Capital restant du des emprunts',capitalRestantDuEmprunts())+_fRow('Total dettes',dettesP,{bold:true,color:'var(--red)'});
+    h+=_fTitre('Actifs')+_fRow('Tresorerie',tres)+_fRow("Argent d'autrui retire",totalFondsDeposantsAutrui()+totalFondsTontinesGerees(),{sign:'- ',muted:true})+_fRow('Prets a recuperer',pr2,{sign:'+ ',muted:true})+_fRow('Epargne de depart des projets',ep3,{sign:'+ ',muted:true})+_fRow('Total actifs',actif,{bold:true});
+    h+=_fRow('= Taux',actif>0?dettesP/actif*100:(dettesP>0?100:0),{bold:true,suffix:' %'});
+  } else if(cle==='couv'){
+    titre='Couverture des charges';
+    var nbm=nbMoisHistorique(3),ms3=getMs(3).slice(-nbm),dtot=0;
+    h+=_fNote('Couverture = tresorerie disponible / depenses mensuelles moyennes (mois couverts par ton historique, hors depenses offertes).');
+    h+=_fTitre('Depenses par mois');
+    ms3.forEach(function(x){var v=depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===x.m&&d.getFullYear()===x.y;}).reduce(function(a,r){return a+Number(r.montant);},0);dtot+=v;h+=_fRow(x.lbl+' '+x.y,v);});
+    var dm=dtot/nbm,td2=tresorerieDisponibleGlobale();
+    h+=_fTitre('Calcul')+_fRow('Depenses moyennes / mois',dm,{bold:true})+_fRow('Tresorerie disponible',td2,{color:'var(--green)'})+_fRow('= Couverture',dm>0?td2/dm:0,{bold:true,suffix:' mois'});
+  }
+  var t=G('of-titre'),b=G('of-corps');if(t)t.textContent=titre;if(b)b.innerHTML=h;
+  openOv('ov-formule');
+}
+
 function renderBFR(){
   // BFR = creances a court terme - dettes a court terme (hors tresorerie et hors emprunts 16, qui sont du
   // financement). Comptes (selon l'usage de l'appli) : creances 41x, 465, 471, 477 ; dettes 40x, 476. Les fonds
@@ -13588,8 +13743,8 @@ function renderRatiosPerso(){
   var el=G('an-ratios-perso');
   if(el)el.innerHTML=
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
-      '<div style="background:var(--bg2);border-radius:10px;padding:11px"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Taux d\'endettement</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+(tauxEndett<=30?'var(--green)':(tauxEndett<=60?'var(--orange)':'var(--red)'))+'">'+tauxEndett.toFixed(1)+' %</div><div style="font-size:calc(10px*var(--fscale));color:var(--text3);margin-top:2px">Dettes / actifs totaux</div></div>'+
-      '<div style="background:var(--bg2);border-radius:10px;padding:11px"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Couverture des charges</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+(moisCouv>=3?'var(--green)':(moisCouv>=1?'var(--orange)':'var(--red)'))+'">'+moisCouv.toFixed(1)+' mois</div><div style="font-size:calc(10px*var(--fscale));color:var(--text3);margin-top:2px">Tresorerie dispo / depenses moy.</div></div>'+
+      '<div style="background:var(--bg2);border-radius:10px;padding:11px;cursor:pointer" onclick="openFormule(\'endett\')"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Taux d\'endettement</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+(tauxEndett<=30?'var(--green)':(tauxEndett<=60?'var(--orange)':'var(--red)'))+'">'+tauxEndett.toFixed(1)+' %</div><div style="font-size:calc(10px*var(--fscale));color:var(--text3);margin-top:2px">Dettes / actifs totaux</div></div>'+
+      '<div style="background:var(--bg2);border-radius:10px;padding:11px;cursor:pointer" onclick="openFormule(\'couv\')"><div style="font-size:calc(10px*var(--fscale));color:var(--text2);text-transform:uppercase;margin-bottom:4px">Couverture des charges</div><div style="font-size:calc(17px*var(--fscale));font-weight:700;color:'+(moisCouv>=3?'var(--green)':(moisCouv>=1?'var(--orange)':'var(--red)'))+'">'+moisCouv.toFixed(1)+' mois</div><div style="font-size:calc(10px*var(--fscale));color:var(--text3);margin-top:2px">Tresorerie dispo / depenses moy.</div></div>'+
     '</div>';
 }
 // Previsions de tresorerie disponible a 3, 6 et 12 mois, basees sur la CAF moyenne des 3 derniers mois
