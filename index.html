@@ -479,6 +479,39 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   #rel-output .rel-table tfoot td{background:#ffffff;border-top-color:#0A1628;}
   .nav,.fab,.header,#ov-menu,#rel-actions{display:none !important;}
 }
+/* OUTILS : NOTES / CALCULATRICE / FEUILLE DE CALCUL */
+.note-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:9px;cursor:pointer;}
+.note-card.pin{border-left:3px solid var(--gold2);border-radius:0 var(--r2) var(--r2) 0;}
+.note-hd{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+.note-t{font-weight:700;font-size:calc(14.5px*var(--fscale));word-break:break-word;}
+.note-p{color:var(--text2);font-size:calc(12.5px*var(--fscale));margin:4px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;word-break:break-word;}
+.note-ft{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:calc(11.5px*var(--fscale));color:var(--text2);margin-top:6px;flex-wrap:wrap;}
+.note-cat{display:inline-block;padding:2px 9px;border-radius:12px;border:1px solid var(--border2);font-size:calc(11px*var(--fscale));color:var(--text2);}
+.note-lien{color:var(--gold2);}
+.calc-disp{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:12px;padding:10px 14px;text-align:right;margin-bottom:10px;min-height:84px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+.calc-expr{font-family:var(--font-mono);font-size:calc(13px*var(--fscale));color:var(--text2);min-height:18px;word-break:break-all;}
+.calc-res{font-family:var(--font-mono);font-size:calc(32px*var(--fscale));font-weight:600;color:var(--gold2);word-break:break-all;line-height:1.15;}
+.calc-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.calc-k{height:52px;border-radius:12px;background:var(--glass);border:1px solid var(--border);color:var(--text);font-size:calc(19px*var(--fscale));font-family:var(--font-body);cursor:pointer;}
+.calc-k:active{transform:scale(.96);background:var(--glass2);}
+.calc-k.op{background:rgba(212,160,23,.16);border-color:rgba(212,160,23,.35);color:var(--gold2);}
+.calc-k.eq{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0A1628;font-weight:700;border-color:transparent;}
+.has-calc{position:relative;}
+.has-calc>.fc{padding-right:50px;}
+.calc-btn{position:absolute;right:5px;bottom:5px;width:36px;height:36px;border-radius:9px;border:1px solid var(--border2);background:var(--glass2);color:var(--gold2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.fe-wrap{overflow:auto;max-height:56vh;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,.25);-webkit-overflow-scrolling:touch;}
+.fe-tab{border-collapse:separate;border-spacing:0;font-size:calc(13px*var(--fscale));min-width:100%;}
+.fe-tab th{background:var(--bg3);color:var(--text2);font-weight:600;position:sticky;top:0;z-index:2;padding:7px 4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-width:84px;}
+.fe-tab th.fe-rh{position:sticky;left:0;z-index:1;top:auto;min-width:34px;width:34px;}
+.fe-tab th.fe-corner{left:0;z-index:3;min-width:34px;width:34px;}
+.fe-tab td{padding:8px 7px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-width:84px;max-width:160px;height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:cell;}
+.fe-tab td.n{text-align:right;font-family:var(--font-mono);}
+.fe-tab td.err{color:var(--red);text-align:center;}
+.fe-tab td.sel{outline:2px solid var(--gold2);outline-offset:-2px;background:rgba(212,160,23,.12);}
+.fe-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.fe-ref{min-width:46px;text-align:center;background:var(--glass);border:1px solid var(--border2);border-radius:8px;padding:11px 6px;color:var(--gold2);font-weight:700;font-size:calc(13px*var(--fscale));}
+.fe-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.fe-tools .chip{white-space:nowrap;}
 </style>
 </head>
 
@@ -657,6 +690,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <button class="nb" id="nb-controles" onclick="goPage('controles',this)"><span class="ni">&#x2705;</span>Controles</button>
       <button class="nb" id="nb-ia" onclick="goPage('ia',this)"><span class="ni">&#x1F916;</span>IA</button>
       <button class="nb" id="nb-conv" onclick="goPage('conv',this)"><span class="ni">&#x1F4B1;</span>Devises</button>
+      <button class="nb" id="nb-notes" onclick="goPage('notes',this)"><span class="ni">&#x1F5D2;</span>Notes</button>
+      <button class="nb" id="nb-feuille" onclick="goPage('feuille',this)"><span class="ni">&#x1F4D1;</span>Feuille</button>
+      <button class="nb" type="button" onclick="closeOv('nav-drawer');ouvrirCalc()"><span class="ni">&#x1F9EE;</span>Calculatrice</button>
     </div>
     <button type="button" class="btn-s" style="width:100%;margin-top:10px" onclick="closeOv('nav-drawer')">Fermer le menu</button>
   </div></div>
@@ -1083,6 +1119,46 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <div id="pr-f-list"></div>
       <div style="font-weight:700;font-size:calc(14px*var(--fscale));color:var(--green);margin:15px 0 9px">Ce qu'on m'a promis</div>
       <div id="pr-r-list"></div>
+    </div>
+
+    <!-- NOTES -->
+    <div id="pg-notes" style="display:none">
+      <div class="sec">Notes</div>
+      <div class="fg"><input class="fc" type="search" id="notes-q" placeholder="Rechercher dans les notes" oninput="renderNotes()"></div>
+      <div class="chips" id="notes-chips"></div>
+      <div id="notes-rappels"></div>
+      <div id="notes-list"></div>
+      <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px;margin-top:6px" onclick="ouvrirNouvelleNote()">+ Nouvelle note</button>
+    </div>
+
+    <!-- FEUILLES DE CALCUL -->
+    <div id="pg-feuille" style="display:none">
+      <div class="sec">Feuilles de calcul</div>
+      <div id="fe-liste-vue">
+        <div class="info-box" style="margin-bottom:10px">Formules : =A1+B1, =SOMME(A1:A10), =MOYENNE(B2:B9), =MIN, =MAX, =ARRONDI(A1;0), =SI(A1&gt;0;A1;0). Separez les valeurs par un point-virgule. Ces feuilles sont libres : elles ne touchent jamais votre comptabilite.</div>
+        <div id="fe-liste"></div>
+        <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px;margin-top:6px" onclick="nouvelleFeuille()">+ Nouvelle feuille</button>
+      </div>
+      <div id="fe-editeur-vue" style="display:none">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <button type="button" class="chip" onclick="fermerFeuille()">&#x2039; Feuilles</button>
+          <input class="fc" type="text" id="fe-nom" style="flex:1;padding:9px 12px" oninput="renommerFeuille()" placeholder="Nom de la feuille">
+        </div>
+        <div class="fe-bar">
+          <div class="fe-ref" id="fe-ref">A1</div>
+          <input class="fc" type="text" id="fe-input" style="flex:1;padding:10px 12px" placeholder="Valeur ou formule (=...)" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();feuilleValider(true);}">
+          <button type="button" class="chip on" onclick="feuilleValider(false)">OK</button>
+        </div>
+        <div class="fe-tools">
+          <button type="button" class="chip" onclick="feuilleSomme()">&#x03A3; Somme</button>
+          <button type="button" class="chip" onclick="feuilleEffacerCellule()">Effacer</button>
+          <button type="button" class="chip" onclick="feuilleAjouterLigne()">+ Ligne</button>
+          <button type="button" class="chip" onclick="feuilleAjouterColonne()">+ Colonne</button>
+          <button type="button" class="chip" onclick="feuilleExporterExcel()">Excel</button>
+          <button type="button" class="chip" id="fe-suppr" onclick="feuilleSupprimer()" style="color:var(--red);border-color:var(--red)">Supprimer</button>
+        </div>
+        <div class="fe-wrap" id="fe-grille"></div>
+      </div>
     </div>
 
     <!-- TONTINES -->
@@ -2002,6 +2078,52 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-p btn-gold" onclick="saveProm()">Enregistrer</button>
   <button class="btn-p" style="margin-top:8px" onclick="promToDette()">Convertir en dette reelle</button>
   <button class="btn-s" onclick="closeOv('ov-prom')">Annuler</button>
+</div></div>
+
+<!-- MODAL NOTE -->
+<div class="ov" id="ov-note"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title" id="note-modal-titre">Note</div>
+  <div class="fg"><label class="fl">Titre</label><input class="fc" type="text" id="note-titre" placeholder="ex: Mamadou : paiement vendredi" maxlength="120"></div>
+  <div class="fg"><label class="fl">Note</label><textarea class="fc" id="note-texte" rows="6" placeholder="Ecrivez ici..." style="resize:vertical"></textarea></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Categorie</label><select class="fc" id="note-cat"></select></div>
+    <div class="fg"><label class="fl">Rappel (facultatif)</label><input class="fc" type="date" id="note-rappel"></div>
+  </div>
+  <div class="fg"><label class="fl">Lier a un tiers (facultatif)</label><select class="fc" id="note-tiers"></select></div>
+  <div class="fg" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="note-epingle" style="width:20px;height:20px"><label for="note-epingle" style="font-size:calc(14px*var(--fscale))">Epingler en haut de la liste</label></div>
+  <button class="btn-p btn-gold" onclick="saveNote()">Enregistrer</button>
+  <button class="btn-s" id="note-suppr" style="color:var(--red);border-color:var(--red)" onclick="supprimerNote()">Supprimer</button>
+  <button class="btn-s" onclick="closeOv('ov-note')">Annuler</button>
+</div></div>
+
+<!-- MODAL CALCULATRICE -->
+<div class="ov" id="ov-calc" style="z-index:9600" onclick="fermerCalc()"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div>
+  <div class="modal-title" style="display:flex;justify-content:space-between;align-items:center">Calculatrice<button type="button" class="chip" onclick="fermerCalc()" aria-label="Fermer">&#x2715;</button></div>
+  <div class="calc-disp"><div class="calc-expr" id="calc-expr"></div><div class="calc-res" id="calc-res">0</div></div>
+  <div class="calc-pad">
+    <button type="button" class="calc-k op" onclick="calcKey('C')">C</button>
+    <button type="button" class="calc-k op" onclick="calcKey('%')">%</button>
+    <button type="button" class="calc-k op" onclick="calcKey('DEL')" aria-label="Effacer le dernier caractere">&#x232B;</button>
+    <button type="button" class="calc-k op" onclick="calcKey('/')">&divide;</button>
+    <button type="button" class="calc-k" onclick="calcKey('7')">7</button>
+    <button type="button" class="calc-k" onclick="calcKey('8')">8</button>
+    <button type="button" class="calc-k" onclick="calcKey('9')">9</button>
+    <button type="button" class="calc-k op" onclick="calcKey('*')">&times;</button>
+    <button type="button" class="calc-k" onclick="calcKey('4')">4</button>
+    <button type="button" class="calc-k" onclick="calcKey('5')">5</button>
+    <button type="button" class="calc-k" onclick="calcKey('6')">6</button>
+    <button type="button" class="calc-k op" onclick="calcKey('-')">&minus;</button>
+    <button type="button" class="calc-k" onclick="calcKey('1')">1</button>
+    <button type="button" class="calc-k" onclick="calcKey('2')">2</button>
+    <button type="button" class="calc-k" onclick="calcKey('3')">3</button>
+    <button type="button" class="calc-k op" onclick="calcKey('+')">+</button>
+    <button type="button" class="calc-k" onclick="calcKey('0')">0</button>
+    <button type="button" class="calc-k" onclick="calcKey('000')">000</button>
+    <button type="button" class="calc-k" onclick="calcKey('.')">,</button>
+    <button type="button" class="calc-k eq" onclick="calcKey('=')">=</button>
+  </div>
+  <button class="btn-p btn-gold" style="margin-top:12px" onclick="calcUtiliser()">Utiliser ce montant</button>
 </div></div>
 
 <!-- MODAL REGULARISATION -->
@@ -3037,7 +3159,9 @@ var FAB_CTX={
   promesses:['Promesse',function(){ouvrirNouvellePromesse();}],
   tontines:['Tontine',function(){ouvrirNouvelleTontine();}],
   famille:['Membre',function(){ouvrirNouvelleFam();}],
-  projets:['Projet',function(){ouvrirNouveauProjet();}]
+  projets:['Projet',function(){ouvrirNouveauProjet();}],
+  notes:['Note',function(){ouvrirNouvelleNote();}],
+  feuille:['Feuille',function(){nouvelleFeuille();}]
 };
 function majFabCtx(p){
   var b=G('fab-ctx'),f=G('fab');
@@ -3565,7 +3689,7 @@ function ensureDDefaults(){
   if(D.parametres.decouvertAutorise==null)D.parametres.decouvertAutorise=false;
   if(D.parametres.decouvertPlafond==null)D.parametres.decouvertPlafond=0;
   if(D.parametres.epargneUrgence==null)D.parametres.epargneUrgence=false;
-  ['transactions','revenus','depenses','dettes','promesses','tontines','projets','famille','foyer','depots','ecritures','tiers','prets','regularisations','emprunts','historiqueImpressions','journalAudit','iaHistorique','iaConversationsArchivees','comptesPersonnalises','journauxPersonnalises','manquants','excedents'].forEach(function(k){if(!D[k])D[k]=[];});
+  ['transactions','revenus','depenses','dettes','promesses','tontines','projets','famille','foyer','depots','ecritures','tiers','prets','regularisations','emprunts','historiqueImpressions','journalAudit','iaHistorique','iaConversationsArchivees','comptesPersonnalises','journauxPersonnalises','manquants','excedents','notes','feuilles'].forEach(function(k){if(!D[k])D[k]=[];});
   migrerRetenuesVersManquants();
   ensureMenuRapide();
   ensureDdm();
@@ -7495,6 +7619,11 @@ function verifierIntegriteDonnees(donnees){
   (d.depenses||[]).forEach(function(dp){checkTiersOrphelin(dp.tiers,'Depenses',dp.libelle,correctifViderChamp(dp,'tiers','Depenses',dp.libelle));});
   (d.emprunts||[]).forEach(function(e){checkTiersOrphelin(e.tiers,'Emprunts',e.organisme,correctifViderChamp(e,'tiers','Emprunts',e.organisme));});
 
+  // 5bis) Notes liees a un tiers supprime (donnees libres : aucun effet comptable)
+  (d.notes||[]).forEach(function(n){
+    if(n&&n.tiers&&!codesT[n.tiers])ctrlAnomalie(anomalies,'avertissement','Reference note orpheline','Note "'+(n.titre||'Sans titre')+'" liee au tiers "'+n.tiers+'" qui n\'existe plus','Le texte de la note reste intact, seul le lien vers le tiers est rompu',estDonneesVivantes?correctifViderChamp(n,'tiers','Notes',n.titre||'Sans titre'):null);
+  });
+
   // 6) References projet orphelines (Depenses, Revenus, Dettes pointant vers un projet supprime)
   (d.depenses||[]).forEach(function(dp){
     if(dp.projet&&!codesP[dp.projet])ctrlAnomalie(anomalies,'avertissement','Reference projet orpheline','Depense "'+dp.libelle+'" ('+fmt(dp.montant)+' F) reference le projet "'+dp.projet+'" qui n\'existe plus','L\'ecriture comptable reste correcte, seul le lien vers le projet est rompu',estDonneesVivantes?correctifViderChamp(dp,'projet','Depenses',dp.libelle):null);
@@ -8096,11 +8225,11 @@ function renderBalance(){
     (e.lignes||[]).forEach(function(l){
       if(cptFilter && l.compte!==cptFilter)return;
       var key=l.compte;
-      // Si tiers present, on cree une sous-ligne par code tiers pour comptes de tiers (classe 4)
-      if(l.tiers && l.compte && l.compte.charAt(0)==='4'){
+      // Une sous-ligne par tiers pour TOUS les comptes (classes 1 a 7) ; les ecritures sans tiers restent sur la ligne du compte seul
+      if(l.tiers && l.compte){
         key=l.compte+'/'+cleTiersLigne(l);
       }
-      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:l.tiers||'',cle:(l.tiers&&l.compte&&l.compte.charAt(0)==='4')?cleTiersLigne(l):'',nom:nomLigneTiers(l)};
+      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:l.tiers||'',cle:(l.tiers&&l.compte)?cleTiersLigne(l):'',nom:nomLigneTiers(l)};
       if(l.sens==='D')soldes[key].deb+=Number(l.montant||0);
       else soldes[key].cred+=Number(l.montant||0);
     });
@@ -8126,7 +8255,7 @@ function renderBalance(){
       '<span style="font-size:calc(12px*var(--fscale))">'+lib+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'D')+'">'+fmt(s.deb)+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'C')+'">'+fmt(s.cred)+'</span>';
-    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers);});
+    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers||'__NONE__');});
     el.appendChild(row);
   });
   var rowT=document.createElement('div');
@@ -8139,7 +8268,7 @@ function showBalanceDetail(code,lib,tiersFilter){
   var lines=[];
   (D.ecritures||[]).forEach(function(e){
     (e.lignes||[]).forEach(function(l){
-      if(l.compte===code && (!tiersFilter || ligneDansCle(l,tiersFilter)))lines.push({ref:e.ref,date:e.date,lib:e.libelle,sens:l.sens,montant:l.montant,tiers:l.tiers||'',nom:nomLigneTiers(l)});
+      if(l.compte===code && (!tiersFilter || (tiersFilter==='__NONE__'?!l.tiers:ligneDansCle(l,tiersFilter))))lines.push({ref:e.ref,date:e.date,lib:e.libelle,sens:l.sens,montant:l.montant,tiers:l.tiers||'',nom:nomLigneTiers(l)});
     });
   });
   var bd=G('bal-detail'),bt=G('bal-detail-title'),bl=G('bal-detail-list');
@@ -11374,7 +11503,8 @@ function renderCal(){
     var dt=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var isT=d===now.getDate()&&m===now.getMonth()&&y===now.getFullYear();
     var hasEv=[...(D.revenus||[]),...(D.depenses||[]),...historiqueTresorerieComplet()].some(function(r){return r.date===dt;})||
-      (D.emprunts||[]).some(function(em){return (em.echeancier||[]).some(function(ech){return ech.date===dt;});});
+      (D.emprunts||[]).some(function(em){return (em.echeancier||[]).some(function(ech){return ech.date===dt;});})||
+      (D.notes||[]).some(function(n){return n.rappel===dt;});
     html+='<div class="cal-d '+(isT?'today':'')+(hasEv?' has-ev':'')+'" data-date="'+dt+'">'+d+'</div>';
   }
   var cg=G('cal-grid');if(cg){
@@ -11795,7 +11925,7 @@ var MENU_PRESETS=[
   ['a:partage-trans',0x1F695,'Trajet partage',function(){ouvrirTrajet('61|Transport');}]
 ];
 var MENU_DEFAUT_SAISIE=MENU_ACTIONS_BASE.map(function(a){return a[0];});
-var MENU_DEFAUT_OUTILS=['g:rapport','g:impression','g:controles','g:ia','g:conv'];
+var MENU_DEFAUT_OUTILS=['g:rapport','g:impression','g:controles','g:ia','g:conv','g:notes','g:feuille','a:calc'];
 var MENU_EMOJIS=[0x1F4B0,0x1F4B8,0x1F6D2,0x1F68C,0x1F695,0x1F96A,0x2615,0x1F4F1,0x1F4A1,0x1F3E0,0x1F46A,0x1F381,0x1F48A,0x1F4DA,0x1F3AF,0x2B50,0x1F4C1,0x1F9FE,0x1F4B3,0x1F91D,0x1F4C8,0x1F512,0x1F4DD,0x1F527];
 var _mqEdit=false,_mqDrag=null,_mqStart=null,_mqTimer=null,_mqSuppress=false,_mqCtx=null,_mqResetArme=false;
 
@@ -11874,6 +12004,7 @@ function menuCatalogue(){
   add('f:compte','action','Autres formulaires',mqEm(0x1F4D2),'Nouveau compte',function(){ouvrirNouveauCompte();});
   add('f:journal','action','Autres formulaires',mqEm(0x1F4D6),'Nouveau journal',function(){ouvrirNouveauJournal();});
   add('f:recherche','action','Autres formulaires',mqEm(0x1F50E),'Recherche',function(){ouvrirRecherche();});
+  add('a:calc','action','Outils',mqEm(0x1F9EE),'Calculatrice',function(){ouvrirCalc();});
   add('f:seuils','action','Autres formulaires',mqEm(0x1F514),'Seuils alerte',function(){ouvrirSeuilsAlerte();});
   add('f:paramtres','action','Autres formulaires',mqEm(0x2699),'Param. tresorerie',function(){ouvrirParamTresorerie();});
   add('f:ecrmois','action','Autres formulaires',mqEm(0x1F5D3),'Ecritures du mois',function(){goPage('journal',G('nb-journal'));ouvrirEcrituresMoisCourant();});
@@ -14119,6 +14250,8 @@ function renderAll(){
     else if(curPage==='impression')renderImpression();
     else if(curPage==='controles')renderControles();
     else if(curPage==='ia')updateIAView();
+    else if(curPage==='notes')renderNotes();
+    else if(curPage==='feuille')renderFeuille();
   }catch(e){console.warn('renderAll:',curPage,e);}
 }
 
@@ -14369,7 +14502,7 @@ var rechTimer=null;
 var rechExpanded={ecritures:false,tiers:false,comptes:false};
 var rechDerniereQ='';
 function ouvrirRecherche(){
-  rechExpanded={ecritures:false,tiers:false,comptes:false};
+  rechExpanded={ecritures:false,tiers:false,comptes:false,notes:false};
   openOv('ov-recherche');
   setTimeout(function(){
     var inp=G('rech-input');
@@ -14421,7 +14554,7 @@ function ecritureMatchDate(e,dq){
 }
 function executerRecherche(q){
   rechDerniereQ=q;
-  var results={ecritures:[],tiers:[],comptes:[]};
+  var results={ecritures:[],tiers:[],comptes:[],notes:[]};
   if(!q){renderRechResults(results,q);return;}
   var qLow=q.toLowerCase();
   var dateQuery=parseDateQuery(q);
@@ -14450,6 +14583,10 @@ function executerRecherche(q){
     if(p.code.indexOf(q)>-1||(p.lib||'').toLowerCase().indexOf(qLow)>-1)results.comptes.push(p);
   });
 
+  (D.notes||[]).forEach(function(n){
+    if(((n.titre||'')+' '+(n.texte||'')+' '+(n.categorie||'')).toLowerCase().indexOf(qLow)>-1)results.notes.push(n);
+  });
+
   renderRechResults(results,q);
 }
 function rechItemEcriture(e){
@@ -14469,6 +14606,12 @@ function rechItemCompte(p){
     '<div><div style="font-size:calc(13.5px*var(--fscale));font-weight:600">'+p.code+' - '+p.lib+'</div><div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+(p.classe||'')+'</div></div>'+
     '<span style="font-size:calc(15px*var(--fscale));color:var(--text2)">&#x203A;</span></div>';
 }
+function rechItemNote(n){
+  return '<div class="rech-item" data-type="note" data-id="'+escHtml(n.id)+'" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-radius:8px;cursor:pointer;gap:8px">'+
+    '<div style="min-width:0"><div style="font-size:calc(13.5px*var(--fscale));font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(n.titre||'Sans titre')+'</div>'+
+    '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(n.texte||n.categorie||'')+'</div></div>'+
+    '<span style="font-size:calc(15px*var(--fscale));color:var(--text2)">&#x203A;</span></div>';
+}
 function rechSection(key,titre,items,renderItem){
   if(!items.length)return '';
   var show=rechExpanded[key]?items:items.slice(0,4);
@@ -14484,10 +14627,10 @@ function renderRechResults(results,q){
   var el=G('rech-results');if(!el)return;
   rechIndex=-1;
   if(!q){
-    el.innerHTML='<div style="text-align:center;padding:30px 14px;color:var(--text2);font-size:calc(13px*var(--fscale));line-height:1.7">Tapez pour rechercher une ecriture, un tiers ou un compte.<br><span style="opacity:.7">Astuce : "12/03", "mars 2026", un montant, un code de compte...</span></div>';
+    el.innerHTML='<div style="text-align:center;padding:30px 14px;color:var(--text2);font-size:calc(13px*var(--fscale));line-height:1.7">Tapez pour rechercher une ecriture, un tiers, un compte ou une note.<br><span style="opacity:.7">Astuce : "12/03", "mars 2026", un montant, un code de compte...</span></div>';
     return;
   }
-  var total=results.ecritures.length+results.tiers.length+results.comptes.length;
+  var total=results.ecritures.length+results.tiers.length+results.comptes.length+(results.notes||[]).length;
   if(!total){
     el.innerHTML='<div style="text-align:center;padding:30px 14px;color:var(--text2);font-size:calc(13px*var(--fscale))">Aucun resultat pour "'+q+'"</div>';
     return;
@@ -14496,6 +14639,7 @@ function renderRechResults(results,q){
   html+=rechSection('ecritures','Ecritures',results.ecritures,rechItemEcriture);
   html+=rechSection('tiers','Tiers',results.tiers,rechItemTiers);
   html+=rechSection('comptes','Comptes',results.comptes,rechItemCompte);
+  html+=rechSection('notes','Notes',results.notes||[],rechItemNote);
   el.innerHTML=html;
   el.querySelectorAll('.rech-item[data-type]').forEach(function(it){
     it.addEventListener('click',function(){activerResultat(it);});
@@ -14509,6 +14653,10 @@ function activerResultat(it){
   fermerRecherche();
   if(type==='ecriture'){
     showDetailEcriture(it.getAttribute('data-ref'));
+  } else if(type==='note'){
+    var nid=it.getAttribute('data-id');
+    goPage('notes',G('nb-notes'));
+    setTimeout(function(){ouvrirNote(nid);},120);
   } else if(type==='compte'){
     naviguerVersGrandLivre(it.getAttribute('data-code'));
   } else if(type==='tiers'){
@@ -14560,6 +14708,640 @@ document.addEventListener('keydown',function(e){
     if(!typing){e.preventDefault();ouvrirRecherche();}
   }
 });
+
+// ============ OUTILS : NOTES, CALCULATRICE, FEUILLE DE CALCUL ============
+// Donnees libres stockees dans D.notes et D.feuilles : elles suivent donc le chiffrement, l'export JSON et la
+// synchronisation Google Drive comme le reste, mais ne passent JAMAIS par le Journal (aucun effet sur la
+// tresorerie, le bilan ou le resultat).
+var NOTES_CATS=['Personnel','Travail','Caisse','DDM','Autre'];
+var _notesFiltreCat='',_noteEditId=null,_noteSupprArme=false;
+function ensureNotes(){
+  if(!Array.isArray(D.notes))D.notes=[];
+  if(!Array.isArray(D.feuilles))D.feuilles=[];
+}
+function idOutil(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function nomTiersNote(code){
+  if(!code)return '';
+  var t=(D.tiers||[]).find(function(x){return x.code===code;});
+  return t?t.nom:code;
+}
+
+// ---------- NOTES ----------
+function filtrerNotes(c){_notesFiltreCat=c||'';renderNotes();}
+function renderNotes(){
+  ensureNotes();
+  var el=G('notes-list');if(!el)return;
+  var q=((G('notes-q')||{}).value||'').trim().toLowerCase();
+  var chips=G('notes-chips');
+  if(chips){
+    chips.innerHTML=['Toutes'].concat(NOTES_CATS).map(function(c){
+      var on=c==='Toutes'?!_notesFiltreCat:_notesFiltreCat===c;
+      return '<button type="button" class="chip'+(on?' on':'')+'" data-cat="'+(c==='Toutes'?'':c)+'">'+c+'</button>';
+    }).join('');
+    if(!chips._init){chips._init=true;chips.addEventListener('click',function(e){
+      var b=e.target.closest('[data-cat]');if(!b)return;
+      filtrerNotes(b.getAttribute('data-cat'));
+    });}
+  }
+  var auj=today();
+  var rap=D.notes.filter(function(n){return n.rappel&&n.rappel<=auj;});
+  var re=G('notes-rappels');
+  if(re)re.innerHTML=rap.length?'<div class="info-box" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#FCD34D">'+rap.length+' rappel'+(rap.length>1?'s':'')+' a traiter : '+rap.slice(0,3).map(function(n){return escHtml(n.titre||'Sans titre');}).join(', ')+(rap.length>3?'...':'')+'</div>':'';
+  var liste=D.notes.filter(function(n){
+    if(_notesFiltreCat&&n.categorie!==_notesFiltreCat)return false;
+    if(!q)return true;
+    return ((n.titre||'')+' '+(n.texte||'')+' '+nomTiersNote(n.tiers)+' '+(n.categorie||'')).toLowerCase().indexOf(q)>-1;
+  }).sort(function(a,b){
+    if(!!a.epingle!==!!b.epingle)return a.epingle?-1:1;
+    return String(b.maj||'').localeCompare(String(a.maj||''));
+  });
+  if(!liste.length){
+    el.innerHTML='<div class="empty"><div class="empty-txt">'+(D.notes.length?'Aucune note ne correspond':'Aucune note. Appuyez sur "+ Nouvelle note" pour commencer.')+'</div></div>';
+  }else{
+    el.innerHTML=liste.map(function(n){
+      var rap2='';
+      if(n.rappel){
+        var c=n.rappel<auj?'var(--red)':(n.rappel===auj?'var(--gold2)':'var(--text2)');
+        rap2='<span style="color:'+c+'">&#x23F0; '+fmtD(n.rappel)+'</span>';
+      }else rap2='<span>'+fmtD(n.maj)+'</span>';
+      return '<div class="note-card'+(n.epingle?' pin':'')+'" data-id="'+escHtml(n.id)+'">'+
+        '<div class="note-hd"><span class="note-t">'+escHtml(n.titre||'Sans titre')+'</span>'+(n.epingle?'<span aria-label="Epinglee">&#x1F4CC;</span>':'')+'</div>'+
+        (n.texte?'<div class="note-p">'+escHtml(n.texte)+'</div>':'')+
+        '<div class="note-ft"><span>'+(n.categorie?'<span class="note-cat">'+escHtml(n.categorie)+'</span>':'')+(n.tiers?' <span class="note-lien">&#x1F517; '+escHtml(nomTiersNote(n.tiers))+'</span>':'')+'</span>'+rap2+'</div></div>';
+    }).join('');
+  }
+  if(!el._init){el._init=true;el.addEventListener('click',function(e){
+    var c=e.target.closest('.note-card');if(!c)return;
+    ouvrirNote(c.getAttribute('data-id'));
+  });}
+}
+function remplirSelectsNote(){
+  var sc=G('note-cat');
+  if(sc)sc.innerHTML=NOTES_CATS.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+  var st=G('note-tiers');
+  if(st)st.innerHTML='<option value="">- Aucun tiers -</option>'+(D.tiers||[]).map(function(t){return '<option value="'+escHtml(t.code)+'">'+escHtml(t.nom)+' ('+escHtml(t.code)+')</option>';}).join('');
+}
+function majBoutonSupprNote(){
+  var b=G('note-suppr');if(!b)return;
+  b.style.display=_noteEditId?'':'none';
+  b.textContent='Supprimer';_noteSupprArme=false;
+}
+function ouvrirNouvelleNote(){
+  ensureNotes();remplirSelectsNote();
+  _noteEditId=null;
+  G('note-modal-titre').textContent='Nouvelle note';
+  G('note-titre').value='';G('note-texte').value='';G('note-rappel').value='';G('note-epingle').checked=false;
+  G('note-cat').value=_notesFiltreCat||NOTES_CATS[0];G('note-tiers').value='';
+  majBoutonSupprNote();
+  openOv('ov-note');
+}
+function ouvrirNote(id){
+  ensureNotes();
+  var n=D.notes.find(function(x){return x.id===id;});if(!n)return;
+  remplirSelectsNote();
+  if(n.tiers&&!(D.tiers||[]).some(function(t){return t.code===n.tiers;})){
+    var st=G('note-tiers');if(st)st.insertAdjacentHTML('beforeend','<option value="'+escHtml(n.tiers)+'">'+escHtml(n.tiers)+' (introuvable)</option>');
+  }
+  _noteEditId=id;
+  G('note-modal-titre').textContent='Modifier la note';
+  G('note-titre').value=n.titre||'';G('note-texte').value=n.texte||'';G('note-rappel').value=n.rappel||'';G('note-epingle').checked=!!n.epingle;
+  G('note-cat').value=NOTES_CATS.indexOf(n.categorie)>-1?n.categorie:'Autre';G('note-tiers').value=n.tiers||'';
+  majBoutonSupprNote();
+  openOv('ov-note');
+}
+function saveNote(){
+  ensureNotes();
+  var titre=(G('note-titre').value||'').trim(),texte=(G('note-texte').value||'').trim();
+  if(!titre&&!texte){notif('Saisissez un titre ou un texte',true);return;}
+  var o={titre:titre||texte.split('\n')[0].slice(0,60),texte:texte,categorie:G('note-cat').value,tiers:G('note-tiers').value||'',rappel:G('note-rappel').value||'',epingle:!!G('note-epingle').checked,maj:today()};
+  if(_noteEditId){
+    var n=D.notes.find(function(x){return x.id===_noteEditId;});
+    if(n)Object.assign(n,o);else{o.id=_noteEditId;o.creee=today();D.notes.push(o);}
+  }else{
+    o.id=idOutil('N');o.creee=today();D.notes.push(o);
+  }
+  save();closeOv('ov-note');renderNotes();notif('Note enregistree');
+}
+function supprimerNote(){
+  if(!_noteEditId)return;
+  var b=G('note-suppr');
+  if(!_noteSupprArme){_noteSupprArme=true;if(b)b.textContent='Confirmer la suppression';return;}
+  D.notes=(D.notes||[]).filter(function(x){return x.id!==_noteEditId;});
+  save();closeOv('ov-note');renderNotes();notif('Note supprimee');
+}
+
+// ---------- MOTEUR DE FORMULES (partage par la calculatrice et la feuille de calcul) ----------
+// Analyseur maison (aucun eval) : nombres, chaines, references A1, plages A1:B5, + - * / ^ %, comparaisons,
+// parentheses et quelques fonctions (noms francais ou anglais). Les erreurs sont levees puis converties en #ERR.
+function FErr(c){this.code=c;}
+function fTokens(s){
+  var t=[],i=0,m;
+  while(i<s.length){
+    var ch=s.charAt(i);
+    if(/\s/.test(ch)){i++;continue;}
+    var rest=s.slice(i);
+    if((m=rest.match(/^\d+(?:[.,]\d+)?|^\.\d+/))){t.push({k:'n',v:parseFloat(m[0].replace(',','.'))});i+=m[0].length;continue;}
+    if(ch==='"'){var j=s.indexOf('"',i+1);if(j<0)throw new FErr('#ERR');t.push({k:'s',v:s.slice(i+1,j)});i=j+1;continue;}
+    if((m=rest.match(/^[A-Za-zÀ-ÿ_][A-Za-zÀ-ÿ_0-9.]*/))){
+      var w=m[0];i+=w.length;
+      if(s.charAt(i)==='(')t.push({k:'f',v:w.toUpperCase()});
+      else if(/^[A-Za-z]\d+$/.test(w))t.push({k:'r',v:w.toUpperCase()});
+      else throw new FErr('#NOM');
+      continue;
+    }
+    var two=s.substr(i,2);
+    if(two==='<>'||two==='<='||two==='>='){t.push({k:'o',v:two});i+=2;continue;}
+    if('+-*/^%()=<>:;,'.indexOf(ch)>-1){t.push({k:'o',v:ch});i++;continue;}
+    throw new FErr('#ERR');
+  }
+  return t;
+}
+function fColNum(l){return l.charCodeAt(0)-64;}
+function fPlage(a,b){
+  var ma=a.match(/^([A-Z])(\d+)$/),mb=b.match(/^([A-Z])(\d+)$/);
+  if(!ma||!mb)throw new FErr('#REF');
+  var c1=Math.min(fColNum(ma[1]),fColNum(mb[1])),c2=Math.max(fColNum(ma[1]),fColNum(mb[1]));
+  var r1=Math.min(+ma[2],+mb[2]),r2=Math.max(+ma[2],+mb[2]);
+  if((c2-c1+1)*(r2-r1+1)>5000)throw new FErr('#REF');
+  var refs=[];
+  for(var r=r1;r<=r2;r++)for(var c=c1;c<=c2;c++)refs.push(String.fromCharCode(64+c)+r);
+  return refs;
+}
+// src : formule SANS le "=" ; getRef(ref) : valeur d'une cellule (nombre, texte ou null si vide)
+function evaluerFormule(src,getRef){
+  var tk=fTokens(src),p=0;
+  function peek(){return tk[p];}
+  function isOp(v){var x=tk[p];return x&&x.k==='o'&&x.v===v;}
+  function num(v){
+    if(v&&v.rng)throw new FErr('#VALEUR');
+    if(v==null||v==='')return 0;
+    if(typeof v==='number')return v;
+    if(typeof v==='boolean')return v?1:0;
+    var x=parseFloat(String(v).replace(/\s/g,'').replace(',','.'));
+    if(isNaN(x)||!/^[-+]?[\d\s]*[.,]?\d+$/.test(String(v).trim()))throw new FErr('#VALEUR');
+    return x;
+  }
+  function plat(args){
+    var out=[];
+    args.forEach(function(a){
+      if(a&&a.rng)a.rng.forEach(function(v){if(typeof v==='number')out.push(v);});
+      else if(typeof a==='number')out.push(a);
+      else if(a!=null&&a!==''&&!isNaN(parseFloat(String(a).replace(',','.')))&&/^[-+]?[\d\s]*[.,]?\d+$/.test(String(a).trim()))out.push(parseFloat(String(a).replace(/\s/g,'').replace(',','.')));
+    });
+    return out;
+  }
+  function fonction(nom,args){
+    var n;
+    switch(nom){
+      case 'SOMME':case 'SUM':return plat(args).reduce(function(a,b){return a+b;},0);
+      case 'MOYENNE':case 'AVERAGE':n=plat(args);if(!n.length)throw new FErr('#DIV/0');return n.reduce(function(a,b){return a+b;},0)/n.length;
+      case 'MIN':n=plat(args);return n.length?Math.min.apply(null,n):0;
+      case 'MAX':n=plat(args);return n.length?Math.max.apply(null,n):0;
+      case 'NB':case 'COUNT':return plat(args).length;
+      case 'PRODUIT':case 'PRODUCT':n=plat(args);return n.length?n.reduce(function(a,b){return a*b;},1):0;
+      case 'ABS':return Math.abs(num(args[0]));
+      case 'ENT':case 'INT':return Math.floor(num(args[0]));
+      case 'ARRONDI':case 'ROUND':var d=args.length>1?num(args[1]):0,f=Math.pow(10,d);return Math.round(num(args[0])*f)/f;
+      case 'SI':case 'IF':
+        var cond=args[0],vrai=!!cond&&!cond.rng&&(cond===true||(typeof cond==='number'&&cond!==0)||(typeof cond==='string'&&cond!==''));
+        return vrai?(args.length>1?args[1]:true):(args.length>2?args[2]:false);
+      default:throw new FErr('#NOM');
+    }
+  }
+  function comparaison(){
+    var a=additif();
+    while(peek()&&peek().k==='o'&&['=','<>','<','>','<=','>='].indexOf(peek().v)>-1){
+      var op=tk[p++].v,b=additif(),x=a,y=b;
+      if(x&&x.rng||y&&y.rng)throw new FErr('#VALEUR');
+      var nx=typeof x==='number'||x==null||x==='',ny=typeof y==='number'||y==null||y==='';
+      if(nx&&ny){x=num(x);y=num(y);}else{x=String(x==null?'':x).toLowerCase();y=String(y==null?'':y).toLowerCase();}
+      a=op==='='?x===y:op==='<>'?x!==y:op==='<'?x<y:op==='>'?x>y:op==='<='?x<=y:x>=y;
+    }
+    return a;
+  }
+  function additif(){
+    var a=terme();
+    while(isOp('+')||isOp('-')){var op=tk[p++].v,b=terme();a=op==='+'?num(a)+num(b):num(a)-num(b);}
+    return a;
+  }
+  function terme(){
+    var a=puissance();
+    while(isOp('*')||isOp('/')){
+      var op=tk[p++].v,b=puissance();
+      if(op==='*')a=num(a)*num(b);
+      else{var dv=num(b);if(dv===0)throw new FErr('#DIV/0');a=num(a)/dv;}
+    }
+    return a;
+  }
+  function puissance(){
+    var a=unaire();
+    while(isOp('^')){p++;var b=unaire();a=Math.pow(num(a),num(b));}
+    return a;
+  }
+  function unaire(){
+    if(isOp('-')){p++;return -num(unaire());}
+    if(isOp('+')){p++;return num(unaire());}
+    return postfixe();
+  }
+  function postfixe(){
+    var a=primaire();
+    while(isOp('%')){p++;a=num(a)/100;}
+    return a;
+  }
+  function primaire(){
+    var x=tk[p];if(!x)throw new FErr('#ERR');
+    if(x.k==='n'){p++;return x.v;}
+    if(x.k==='s'){p++;return x.v;}
+    if(x.k==='r'){
+      p++;
+      if(isOp(':')){
+        p++;var y=tk[p++];if(!y||y.k!=='r')throw new FErr('#REF');
+        return {rng:fPlage(x.v,y.v).map(getRef)};
+      }
+      return getRef(x.v);
+    }
+    if(x.k==='f'){
+      p++;
+      if(!isOp('('))throw new FErr('#ERR');
+      p++;
+      var args=[];
+      if(!isOp(')')){
+        for(;;){
+          args.push(comparaison());
+          if(isOp(';')||isOp(',')){p++;continue;}
+          break;
+        }
+      }
+      if(!isOp(')'))throw new FErr('#ERR');
+      p++;
+      return fonction(x.v,args);
+    }
+    if(x.k==='o'&&x.v==='('){
+      p++;var v=comparaison();
+      if(!isOp(')'))throw new FErr('#ERR');
+      p++;return v;
+    }
+    throw new FErr('#ERR');
+  }
+  var res=comparaison();
+  if(p<tk.length)throw new FErr('#ERR');
+  if(res&&res.rng)throw new FErr('#VALEUR');
+  return res;
+}
+function fmtNombreOutil(v,dec){
+  if(typeof v!=='number'||!isFinite(v))return '';
+  var r=Math.round(v*1e10)/1e10;
+  return r.toLocaleString('fr-FR',{maximumFractionDigits:dec==null?6:dec});
+}
+
+// ---------- CALCULATRICE ----------
+var _calc={expr:'',prev:'',frais:false,cible:null};
+function calcEstOp(c){return c==='+'||c==='-'||c==='*'||c==='/';}
+function calcEvaluer(expr){
+  if(!expr)return null;
+  try{
+    // "200+10%" -> 220 (pourcentage "de telephone" : s'applique au montant de gauche pour + et -)
+    var m=expr.match(/^(.*[\d)])([+\-])(\d+(?:\.\d+)?)%$/);
+    if(m){
+      var g=evaluerFormule(m[1],function(){return 0;});
+      var pc=parseFloat(m[3]);
+      return typeof g==='number'?(m[2]==='+'?g+g*pc/100:g-g*pc/100):null;
+    }
+    var v=evaluerFormule(expr,function(){return 0;});
+    return typeof v==='number'&&isFinite(v)?v:null;
+  }catch(e){return null;}
+}
+function calcAffExpr(e){
+  return e.replace(/\d+(?:\.\d*)?/g,function(m){
+    var p=m.split('.');
+    return p[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ')+(p.length>1?','+p[1]:'');
+  }).replace(/\*/g,' × ').replace(/\//g,' ÷ ').replace(/\+/g,' + ').replace(/(.)-/g,function(m,a){return a+' − ';}).replace(/^-/,'−');
+}
+function calcRender(){
+  var ex=G('calc-expr'),rs=G('calc-res');if(!ex||!rs)return;
+  var e=_calc.expr;
+  var aOp=/[+\-*\/%]/.test(e.replace(/^-/,''));
+  var v=calcEvaluer(e);
+  if(_calc.frais){ex.textContent=calcAffExpr(_calc.prev)+' =';rs.textContent=v==null?'Erreur':fmtNombreOutil(v);return;}
+  if(aOp){
+    ex.textContent=calcAffExpr(e);
+    var vv=v;
+    if(vv==null&&/[+\-*\/]$/.test(e))vv=calcEvaluer(e.slice(0,-1));
+    rs.textContent=vv==null?'...':fmtNombreOutil(vv);
+  }
+  else{ex.textContent='';rs.textContent=e?calcAffExpr(e):'0';}
+}
+function calcKey(k){
+  var e=_calc.expr,dernier=e.charAt(e.length-1);
+  if(k==='C'){_calc.expr='';_calc.prev='';_calc.frais=false;}
+  else if(k==='DEL'){if(_calc.frais){_calc.frais=false;}_calc.expr=e.slice(0,-1);}
+  else if(k==='='){
+    var v=calcEvaluer(e);
+    if(v!=null){_calc.prev=e;var rr=Math.round(v*1e10)/1e10,rs2=String(rr);if(/e/i.test(rs2))rs2=rr.toFixed(10).replace(/0+$/,'').replace(/\.$/,'');_calc.expr=rs2;_calc.frais=true;}
+  }
+  else if(calcEstOp(k)){
+    if(_calc.frais)_calc.frais=false;
+    if(!e){if(k==='-')_calc.expr='-';}
+    else if(calcEstOp(dernier)){_calc.expr=(e.length===1&&dernier==='-')?e:e.slice(0,-1)+k;}
+    else if(dernier==='%'){_calc.expr=e+k;}
+    else _calc.expr=e+k;
+  }
+  else if(k==='%'){
+    if(_calc.frais)_calc.frais=false;
+    if(/\d$/.test(e))_calc.expr=e+'%';
+  }
+  else if(k==='.'){
+    if(_calc.frais){_calc.expr='0.';_calc.frais=false;}
+    else{
+      var nb=e.split(/[+\-*\/%]/).pop();
+      if(nb.indexOf('.')<0)_calc.expr=e+(/\d$/.test(e)?'.':'0.');
+    }
+  }
+  else{ // chiffres
+    if(_calc.frais){_calc.expr='';_calc.frais=false;e='';}
+    if(dernier==='%')return;
+    var cur=e.split(/[+\-*\/%]/).pop();
+    if(cur==='0'&&k!=='000'&&cur.indexOf('.')<0)_calc.expr=e.slice(0,-1)+k;
+    else if(cur===''&&k==='000')_calc.expr=e+'0';
+    else if(cur==='0')return;
+    else _calc.expr=e+k;
+  }
+  if(_calc.expr.length>40)_calc.expr=_calc.expr.slice(0,40);
+  calcRender();
+}
+function ouvrirCalc(cible){
+  _calc.cible=cible||_calc.cible||null;
+  _calc.expr='';_calc.prev='';_calc.frais=false;
+  // pre-remplit avec le montant deja present dans le champ vise
+  if(_calc.cible&&_calc.cible.value&&/^\d+(?:[.,]\d+)?$/.test(String(_calc.cible.value).trim())){
+    _calc.expr=String(_calc.cible.value).trim().replace(',','.');
+  }
+  calcRender();
+  openOv('ov-calc');
+}
+function fermerCalc(){closeOv('ov-calc');}
+function calcUtiliser(){
+  var v=calcEvaluer(_calc.expr);
+  if(v==null){notif('Calculez d\'abord un montant valide',true);return;}
+  v=Math.round(v*100)/100;
+  var c=_calc.cible;
+  if(c&&document.body.contains(c)&&!c.readOnly&&!c.disabled){
+    c.value=String(v);
+    try{c.dispatchEvent(new Event('input',{bubbles:true}));c.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
+    fermerCalc();
+    try{c.focus();}catch(e){}
+    notif('Montant '+fmtNombreOutil(v,2)+' reporte dans le champ');
+    return;
+  }
+  var txt=String(v);
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){notif('Montant '+fmtNombreOutil(v,2)+' copie');},function(){notif('Copie impossible',true);});}
+    else notif('Montant : '+fmtNombreOutil(v,2));
+  }catch(e){notif('Montant : '+fmtNombreOutil(v,2));}
+}
+// Petit bouton calculatrice ajoute (a la demande) sur les champs de montant des formulaires
+document.addEventListener('focusin',function(e){
+  var t=e.target;
+  if(!t||t.tagName!=='INPUT'||t.type!=='number')return;
+  var fg=t.parentNode;
+  if(!fg||!fg.classList||!fg.classList.contains('fg')||!t.closest('.modal'))return;
+  if(t.closest('#ov-calc'))return;
+  _calc.cible=t;
+  var ex=fg.querySelector('.calc-btn');
+  if(ex){ex.style.top=(t.offsetTop+(t.offsetHeight-36)/2)+'px';return;}
+  fg.classList.add('has-calc');
+  var b=document.createElement('button');
+  b.type='button';b.className='calc-btn';b.setAttribute('aria-label','Ouvrir la calculatrice');
+  b.textContent='\uD83E\uDDEE';
+  b.style.bottom='auto';b.style.top=(t.offsetTop+(t.offsetHeight-36)/2)+'px';
+  b.addEventListener('pointerdown',function(ev){ev.preventDefault();});
+  b.addEventListener('click',function(){var inp=fg.querySelector('input[type=number]');ouvrirCalc(inp);});
+  fg.appendChild(b);
+});
+
+// ---------- FEUILLE DE CALCUL ----------
+var _feuilleId=null,_feuilleSel='A1',_feuilleSupprArme=false,_feuilleSaveT=null;
+function feuilleCourante(){
+  ensureNotes();
+  return D.feuilles.find(function(f){return f.id===_feuilleId;})||null;
+}
+function feuilleSauverDiffere(){
+  clearTimeout(_feuilleSaveT);
+  _feuilleSaveT=setTimeout(function(){save();},600);
+}
+function renderFeuille(){
+  ensureNotes();
+  var vl=G('fe-liste-vue'),ve=G('fe-editeur-vue');if(!vl||!ve)return;
+  var f=feuilleCourante();
+  if(!f){
+    _feuilleId=null;
+    vl.style.display='';ve.style.display='none';
+    var el=G('fe-liste');
+    el.innerHTML=D.feuilles.length?D.feuilles.slice().sort(function(a,b){return String(b.maj||'').localeCompare(String(a.maj||''));}).map(function(x){
+      var nbCell=Object.keys(x.cells||{}).filter(function(k){return x.cells[k]!=='';}).length;
+      return '<div class="note-card" data-fid="'+escHtml(x.id)+'"><div class="note-hd"><span class="note-t">'+escHtml(x.nom||'Feuille')+'</span><span style="color:var(--text2)">&#x203A;</span></div>'+
+        '<div class="note-ft"><span>'+nbCell+' cellule'+(nbCell>1?'s':'')+' remplie'+(nbCell>1?'s':'')+'</span><span>'+fmtD(x.maj)+'</span></div></div>';
+    }).join(''):'<div class="empty"><div class="empty-txt">Aucune feuille. Creez-en une pour vos budgets, simulations ou listes.</div></div>';
+    if(!el._init){el._init=true;el.addEventListener('click',function(e){
+      var c=e.target.closest('[data-fid]');if(!c)return;
+      ouvrirFeuille(c.getAttribute('data-fid'));
+    });}
+    return;
+  }
+  vl.style.display='none';ve.style.display='';
+  var nom=G('fe-nom');if(nom&&document.activeElement!==nom)nom.value=f.nom||'';
+  feuilleDessiner();
+}
+function nouvelleFeuille(){
+  ensureNotes();
+  var n=D.feuilles.length+1;
+  var f={id:idOutil('F'),nom:'Feuille '+n,nbL:30,nbC:6,cells:{},creee:today(),maj:today()};
+  D.feuilles.push(f);save();
+  ouvrirFeuille(f.id);
+}
+function ouvrirFeuille(id){
+  _feuilleId=id;_feuilleSel='A1';_feuilleSupprArme=false;
+  var b=G('fe-suppr');if(b)b.textContent='Supprimer';
+  renderFeuille();
+  feuilleSelectionner('A1');
+}
+function fermerFeuille(){
+  clearTimeout(_feuilleSaveT);save();
+  _feuilleId=null;renderFeuille();
+}
+function renommerFeuille(){
+  var f=feuilleCourante();if(!f)return;
+  f.nom=(G('fe-nom').value||'').trim()||'Feuille';f.maj=today();feuilleSauverDiffere();
+}
+// Calcule les valeurs de la feuille a la demande (memoisation + detection des references circulaires).
+// Renvoie une fonction ref -> nombre | texte | null (cellule vide) | FErr (erreur propagee).
+function feuilleEvaluerAvecPropagation(f){
+  var cache={},pile={};
+  function brut(ref){var v=f.cells[ref];return v==null?'':String(v);}
+  function valeur(ref){
+    if(ref in cache){if(cache[ref] instanceof FErr)throw cache[ref];return cache[ref];}
+    if(pile[ref])throw new FErr('#CIRC');
+    var raw=brut(ref);
+    if(raw==='')return null;
+    if(raw.charAt(0)!=='='){
+      var t=raw.trim();
+      if(/^[-+]?\d[\d\s]*([.,]\d+)?$/.test(t)||/^[-+]?[.,]\d+$/.test(t))return (cache[ref]=parseFloat(t.replace(/\s/g,'').replace(',','.')));
+      return (cache[ref]=raw);
+    }
+    pile[ref]=true;
+    try{
+      var r=evaluerFormule(raw.slice(1),valeur);
+      cache[ref]=(typeof r==='boolean')?(r?'VRAI':'FAUX'):r;
+    }catch(e){
+      cache[ref]=(e instanceof FErr)?e:new FErr('#ERR');
+      delete pile[ref];
+      throw cache[ref];
+    }
+    delete pile[ref];
+    return cache[ref];
+  }
+  return function(ref){
+    try{return valeur(ref);}catch(e){return (e instanceof FErr)?e:new FErr('#ERR');}
+  };
+}
+function feuilleDessiner(){
+  var f=feuilleCourante(),g=G('fe-grille');if(!f||!g)return;
+  var sx=g.scrollLeft,sy=g.scrollTop;
+  var val=feuilleEvaluerAvecPropagation(f);
+  var cols=[];for(var i=0;i<f.nbC;i++)cols.push(String.fromCharCode(65+i));
+  var h='<table class="fe-tab"><thead><tr><th class="fe-corner"></th>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+  for(var r=1;r<=f.nbL;r++){
+    h+='<tr><th class="fe-rh">'+r+'</th>';
+    cols.forEach(function(c){
+      var ref=c+r,v=val(ref),cls='',aff='';
+      if(v instanceof FErr){cls='err';aff=v.code;}
+      else if(typeof v==='number'){cls='n';aff=fmtNombreOutil(v,2);}
+      else if(v!=null)aff=escHtml(v);
+      if(ref===_feuilleSel)cls+=' sel';
+      h+='<td data-r="'+ref+'" class="'+cls.trim()+'">'+aff+'</td>';
+    });
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  g.innerHTML=h;
+  g.scrollLeft=sx;g.scrollTop=sy;
+  if(!g._init){
+    g._init=true;
+    g.addEventListener('mousedown',function(e){if(e.target.closest('td'))e.preventDefault();});
+    g.addEventListener('click',function(e){
+      var td=e.target.closest('td[data-r]');if(!td)return;
+      var ref=td.getAttribute('data-r'),inp=G('fe-input');
+      // formule en cours de saisie : un appui sur une cellule insere sa reference
+      if(inp&&document.activeElement===inp&&inp.value.charAt(0)==='='&&/[=+\-*\/(;:^<>]$/.test(inp.value)){
+        inp.value+=ref;return;
+      }
+      if(ref===_feuilleSel&&inp){inp.focus();return;}
+      feuilleSelectionner(ref);
+    });
+  }
+}
+// Fait defiler la grille pour que la cellule soit entierement visible, sans passer sous les en-tetes figes
+function feuilleVoirCellule(td){
+  var g=G('fe-grille');if(!g||!td)return;
+  var th=g.querySelector('thead th'),rh=g.querySelector('th.fe-rh');
+  var hauteurEnTete=th?th.offsetHeight:30,largeurEnTete=rh?rh.offsetWidth:34;
+  var l=td.offsetLeft,r=l+td.offsetWidth,t=td.offsetTop,b=t+td.offsetHeight;
+  if(l<g.scrollLeft+largeurEnTete)g.scrollLeft=Math.max(0,l-largeurEnTete);
+  else if(r>g.scrollLeft+g.clientWidth)g.scrollLeft=r-g.clientWidth;
+  if(t<g.scrollTop+hauteurEnTete)g.scrollTop=Math.max(0,t-hauteurEnTete);
+  else if(b>g.scrollTop+g.clientHeight)g.scrollTop=b-g.clientHeight;
+}
+function feuilleSelectionner(ref){
+  var f=feuilleCourante();if(!f)return;
+  var ancien=document.querySelector('#fe-grille td.sel');if(ancien)ancien.classList.remove('sel');
+  _feuilleSel=ref;
+  var td=document.querySelector('#fe-grille td[data-r="'+ref+'"]');
+  if(td){td.classList.add('sel');feuilleVoirCellule(td);}
+  var r=G('fe-ref');if(r)r.textContent=ref;
+  var inp=G('fe-input');if(inp)inp.value=f.cells[ref]==null?'':f.cells[ref];
+}
+function feuilleValider(descendre){
+  var f=feuilleCourante();if(!f)return;
+  var inp=G('fe-input'),v=(inp.value||'').trim();
+  if(v==='')delete f.cells[_feuilleSel];else f.cells[_feuilleSel]=v;
+  f.maj=today();save();
+  var m=_feuilleSel.match(/^([A-Z])(\d+)$/),suivant=_feuilleSel;
+  if(descendre&&m&&+m[2]<f.nbL)suivant=m[1]+(+m[2]+1);
+  feuilleDessiner();
+  feuilleSelectionner(suivant);
+  if(descendre&&inp)inp.focus();
+}
+function feuilleEffacerCellule(){
+  var f=feuilleCourante();if(!f)return;
+  delete f.cells[_feuilleSel];f.maj=today();save();
+  feuilleDessiner();feuilleSelectionner(_feuilleSel);
+}
+function feuilleSomme(){
+  var f=feuilleCourante();if(!f)return;
+  var m=_feuilleSel.match(/^([A-Z])(\d+)$/);if(!m)return;
+  var col=m[1],row=+m[2],val=feuilleEvaluerAvecPropagation(f),formule='';
+  function estNb(ref){var v=val(ref);return typeof v==='number';}
+  var r=row-1;while(r>=1&&estNb(col+r))r--;
+  if(r<row-1)formule='=SOMME('+col+(r+1)+':'+col+(row-1)+')';
+  else{
+    var c=m[1].charCodeAt(0)-1;
+    while(c>=65&&estNb(String.fromCharCode(c)+row))c--;
+    if(c<m[1].charCodeAt(0)-1)formule='=SOMME('+String.fromCharCode(c+1)+row+':'+String.fromCharCode(m[1].charCodeAt(0)-1)+row+')';
+  }
+  if(!formule){notif('Placez-vous sous une colonne (ou a droite d\'une ligne) de nombres',true);return;}
+  G('fe-input').value=formule;
+  feuilleValider(false);
+}
+function feuilleAjouterLigne(){
+  var f=feuilleCourante();if(!f)return;
+  if(f.nbL>=500){notif('Maximum 500 lignes',true);return;}
+  f.nbL=Math.min(500,f.nbL+10);save();feuilleDessiner();
+}
+function feuilleAjouterColonne(){
+  var f=feuilleCourante();if(!f)return;
+  if(f.nbC>=26){notif('Maximum 26 colonnes (A a Z)',true);return;}
+  f.nbC++;save();feuilleDessiner();
+}
+function feuilleSupprimer(){
+  var f=feuilleCourante();if(!f)return;
+  var b=G('fe-suppr');
+  if(!_feuilleSupprArme){_feuilleSupprArme=true;if(b)b.textContent='Confirmer';return;}
+  D.feuilles=D.feuilles.filter(function(x){return x.id!==f.id;});
+  save();_feuilleId=null;_feuilleSupprArme=false;if(b)b.textContent='Supprimer';
+  renderFeuille();notif('Feuille supprimee');
+}
+var FEUILLE_FN_EN={'SOMME':'SUM','MOYENNE':'AVERAGE','NB':'COUNT','PRODUIT':'PRODUCT','ENT':'INT','ARRONDI':'ROUND','SI':'IF'};
+function feuilleFormuleExcel(raw){
+  return raw.slice(1).replace(/(\d),(\d)/g,'$1.$2').replace(/"[^"]*"|[A-Za-zÀ-ÿ_]+(?=\()|;/g,function(m){
+    if(m===';')return ',';
+    if(m.charAt(0)==='"')return m;
+    var u=m.toUpperCase();return FEUILLE_FN_EN[u]||u;
+  });
+}
+function feuilleExporterExcel(){
+  var f=feuilleCourante();if(!f)return;
+  if(typeof XLSX==='undefined'){notif('Export Excel indisponible hors ligne (bibliotheque non chargee)',true);return;}
+  var val=feuilleEvaluerAvecPropagation(f),ws={},maxR=0,maxC=0;
+  Object.keys(f.cells).forEach(function(ref){
+    var raw=String(f.cells[ref]==null?'':f.cells[ref]);if(raw==='')return;
+    var m=ref.match(/^([A-Z])(\d+)$/);if(!m)return;
+    var c=m[1].charCodeAt(0)-65,r=+m[2]-1;
+    maxR=Math.max(maxR,r);maxC=Math.max(maxC,c);
+    var v=val(ref),cell;
+    if(raw.charAt(0)==='='){
+      if(v instanceof FErr)cell={t:'e',v:15};
+      else if(typeof v==='number')cell={t:'n',v:v,f:feuilleFormuleExcel(raw)};
+      else cell={t:'s',v:String(v==null?'':v),f:feuilleFormuleExcel(raw)};
+    }else if(typeof v==='number')cell={t:'n',v:v};
+    else cell={t:'s',v:raw};
+    ws[XLSX.utils.encode_cell({r:r,c:c})]=cell;
+  });
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxR,c:maxC}});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,(f.nom||'Feuille').replace(/[\\\/?*\[\]:]/g,' ').slice(0,31)||'Feuille');
+  XLSX.writeFile(wb,(f.nom||'Feuille').replace(/[^\w\- ]+/g,'_')+'_'+today()+'.xlsx');
+  notif('Feuille exportee en Excel');
+}
 
 // ============ CHARTS ============
 var charts={};
