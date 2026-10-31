@@ -507,11 +507,34 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .fe-tab td{padding:8px 7px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-width:84px;max-width:160px;height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:cell;}
 .fe-tab td.n{text-align:right;font-family:var(--font-mono);}
 .fe-tab td.err{color:var(--red);text-align:center;}
-.fe-tab td.sel{outline:2px solid var(--gold2);outline-offset:-2px;background:rgba(212,160,23,.12);}
+.fe-tab td.sel{}
 .fe-bar{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
 .fe-ref{min-width:46px;text-align:center;background:var(--glass);border:1px solid var(--border2);border-radius:8px;padding:11px 6px;color:var(--gold2);font-weight:700;font-size:calc(13px*var(--fscale));}
 .fe-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .fe-tools .chip{white-space:nowrap;}
+.fe-plein{position:fixed;inset:0;z-index:9400;background:var(--bg);display:flex;flex-direction:column;height:100vh;height:100dvh;padding:10px 10px calc(10px + env(safe-area-inset-bottom));}
+.fe-plein .fe-wrap{flex:1;max-height:none;min-height:0;}
+.fe-plein .fe-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.fe-plein .fe-tools::-webkit-scrollbar{display:none;}
+.fe-plein .fe-bar,.fe-plein .fe-entete{flex-shrink:0;}
+.fe-tab td{height:40px;}
+.fe-tab td{position:relative;}
+.fe-tab td.sel::after{content:'';position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(212,160,23,.22);pointer-events:none;}
+.fe-tab td.act{outline:2px solid var(--gold2);outline-offset:-2px;}
+.fe-inner{position:relative;display:block;width:max-content;min-width:100%;}
+.fe-poignee{position:absolute;width:28px;height:28px;z-index:1;touch-action:none;cursor:crosshair;}
+.fe-poignee::after{content:'';position:absolute;left:8px;top:8px;width:12px;height:12px;border-radius:50%;background:var(--gold2);border:2px solid #0A1628;}
+.fe-fmt{flex-shrink:0;border-top:1px solid var(--border2);margin-top:8px;padding-top:8px;}
+.fe-fmt-hd{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:calc(13px*var(--fscale));}
+.fe-lb{font-size:calc(11px*var(--fscale));color:var(--text2);margin:9px 0 5px;}
+.fe-row{display:flex;gap:6px;flex-wrap:wrap;}
+.fe-sw{display:flex;gap:9px;}
+.fe-sw span{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:13px;}
+.fe-sw span.on{outline:2px solid var(--gold2);outline-offset:2px;}
+.fe-gr{flex-shrink:0;max-height:42%;overflow:auto;border-top:1px solid var(--border2);margin-top:8px;padding-top:4px;}
+.fe-gr-hd{display:flex;justify-content:space-between;font-weight:600;padding:6px 2px;cursor:pointer;font-size:calc(13px*var(--fscale));}
+.fe-gr-c{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:10px;padding:8px;margin-top:6px;}
+.fe-gr-t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:calc(13px*var(--fscale));margin-bottom:4px;}
 </style>
 </head>
 
@@ -1136,13 +1159,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <div class="sec">Feuilles de calcul</div>
       <div id="fe-liste-vue">
         <div class="info-box" style="margin-bottom:10px">Formules : =A1+B1, =SOMME(A1:A10), =MOYENNE(B2:B9), =MIN, =MAX, =ARRONDI(A1;0), =SI(A1&gt;0;A1;0). Separez les valeurs par un point-virgule. Ces feuilles sont libres : elles ne touchent jamais votre comptabilite.</div>
+        <div class="chips" id="fe-tri" style="margin-bottom:10px"></div>
         <div id="fe-liste"></div>
         <button class="btn-p btn-gold" style="font-size:calc(14px*var(--fscale));padding:11px;margin-top:6px" onclick="nouvelleFeuille()">+ Nouvelle feuille</button>
       </div>
       <div id="fe-editeur-vue" style="display:none">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <div class="fe-entete" style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
           <button type="button" class="chip" onclick="fermerFeuille()">&#x2039; Feuilles</button>
           <input class="fc" type="text" id="fe-nom" style="flex:1;padding:9px 12px" oninput="renommerFeuille()" placeholder="Nom de la feuille">
+          <button type="button" class="chip" id="fe-undo" onclick="feuilleAnnuler()" aria-label="Annuler" style="padding:8px 11px;font-size:calc(16px*var(--fscale))">&#x21B6;</button>
+          <button type="button" class="chip" id="fe-redo" onclick="feuilleRetablir()" aria-label="Retablir" style="padding:8px 11px;font-size:calc(16px*var(--fscale))">&#x21B7;</button>
         </div>
         <div class="fe-bar">
           <div class="fe-ref" id="fe-ref">A1</div>
@@ -1150,14 +1176,47 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
           <button type="button" class="chip on" onclick="feuilleValider(false)">OK</button>
         </div>
         <div class="fe-tools">
+          <button type="button" class="chip" id="fe-t-etendre" onclick="feuilleBasculerEtendre()">Etendre</button>
+          <button type="button" class="chip" onclick="feuilleCopier()">Copier</button>
+          <button type="button" class="chip" onclick="feuilleColler()">Coller</button>
+          <button type="button" class="chip" onclick="feuilleRecopierBas()">Recopier &#x2193;</button>
+          <button type="button" class="chip" onclick="feuilleBasculerFmt()">Bordures</button>
+          <button type="button" class="chip" id="fe-t-fusion" onclick="feuilleFusion()">Fusionner</button>
+          <button type="button" class="chip" onclick="feuilleOuvrirGraphique()">Graphique</button>
           <button type="button" class="chip" onclick="feuilleSomme()">&#x03A3; Somme</button>
           <button type="button" class="chip" onclick="feuilleEffacerCellule()">Effacer</button>
+          <button type="button" class="chip" onclick="feuilleOuvrirLC()">Lignes / Colonnes</button>
           <button type="button" class="chip" onclick="feuilleAjouterLigne()">+ Ligne</button>
           <button type="button" class="chip" onclick="feuilleAjouterColonne()">+ Colonne</button>
           <button type="button" class="chip" onclick="feuilleExporterExcel()">Excel</button>
           <button type="button" class="chip" id="fe-suppr" onclick="feuilleSupprimer()" style="color:var(--red);border-color:var(--red)">Supprimer</button>
         </div>
         <div class="fe-wrap" id="fe-grille"></div>
+        <div class="fe-fmt" id="fe-fmt" style="display:none">
+          <div class="fe-fmt-hd"><span id="fe-fmt-titre">Mise en forme</span><button type="button" class="chip on" onclick="feuilleBasculerFmt()">Termine</button></div>
+          <div class="fe-lb">Bordures</div>
+          <div class="fe-row">
+            <button type="button" class="chip" onclick="feuilleBordures('toutes')">Toutes</button>
+            <button type="button" class="chip" onclick="feuilleBordures('contour')">Contour</button>
+            <button type="button" class="chip" onclick="feuilleBordures('interieur')">Interieur</button>
+            <button type="button" class="chip" onclick="feuilleBordures('haut')">Haut</button>
+            <button type="button" class="chip" onclick="feuilleBordures('bas')">Bas</button>
+            <button type="button" class="chip" onclick="feuilleBordures('aucune')">Aucune</button>
+          </div>
+          <div class="fe-lb">Couleur de fond</div>
+          <div class="fe-sw" id="fe-sw"></div>
+          <div class="fe-lb">Texte</div>
+          <div class="fe-row">
+            <button type="button" class="chip" id="fe-b-gras" onclick="feuilleGras()"><b>G</b> Gras</button>
+            <button type="button" class="chip" id="fe-al-l" onclick="feuilleAlign('l')">Gauche</button>
+            <button type="button" class="chip" id="fe-al-c" onclick="feuilleAlign('c')">Centre</button>
+            <button type="button" class="chip" id="fe-al-r" onclick="feuilleAlign('r')">Droite</button>
+          </div>
+        </div>
+        <div class="fe-gr" id="fe-gr" style="display:none">
+          <div class="fe-gr-hd" onclick="feuilleBasculerGraphiques()"><span id="fe-gr-titre">Graphiques</span><span id="fe-gr-chev">&#x25BE;</span></div>
+          <div id="fe-gr-corps"></div>
+        </div>
       </div>
     </div>
 
@@ -2078,6 +2137,51 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-p btn-gold" onclick="saveProm()">Enregistrer</button>
   <button class="btn-p" style="margin-top:8px" onclick="promToDette()">Convertir en dette reelle</button>
   <button class="btn-s" onclick="closeOv('ov-prom')">Annuler</button>
+</div></div>
+
+<!-- MODAL GRAPHIQUE (FEUILLE) -->
+<div class="ov" id="ov-fe-graph" style="z-index:9600" onclick="closeOv('ov-fe-graph')"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title" id="feg-modal-titre">Graphique</div>
+  <div class="chips" id="feg-types" style="margin-bottom:8px">
+    <button type="button" class="chip on" data-t="bar" onclick="feuilleGrType('bar')">Barres</button>
+    <button type="button" class="chip" data-t="line" onclick="feuilleGrType('line')">Courbe</button>
+    <button type="button" class="chip" data-t="pie" onclick="feuilleGrType('pie')">Camembert</button>
+  </div>
+  <div id="feg-apercu" style="background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:12px;font-size:calc(13px*var(--fscale))"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Plage de cellules</label><input class="fc" type="text" id="feg-plage" placeholder="A1:C3" autocapitalize="characters" oninput="feuilleGrApercu()"></div>
+    <div class="fg"><label class="fl">Titre</label><input class="fc" type="text" id="feg-titre" placeholder="ex: Prevu et reel" maxlength="60" oninput="feuilleGrApercu()"></div>
+  </div>
+  <button class="btn-p btn-gold" id="feg-ok" onclick="feuilleGrValider()">Inserer sous le tableau</button>
+  <button class="btn-s" id="feg-suppr" style="color:var(--red);border-color:var(--red)" onclick="feuilleGrSupprimer()">Supprimer le graphique</button>
+  <button class="btn-s" onclick="closeOv('ov-fe-graph')">Annuler</button>
+</div></div>
+
+<!-- MODAL LIGNES / COLONNES -->
+<div class="ov" id="ov-fe-lc" onclick="closeOv('ov-fe-lc')"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Lignes et colonnes</div>
+  <div class="info-box" id="felc-info" style="margin-bottom:10px"></div>
+  <button type="button" class="btn-s" id="felc-lh" onclick="feuilleLC('lh')"></button>
+  <button type="button" class="btn-s" id="felc-lb" onclick="feuilleLC('lb')"></button>
+  <button type="button" class="btn-s" id="felc-cg" onclick="feuilleLC('cg')"></button>
+  <button type="button" class="btn-s" id="felc-cd" onclick="feuilleLC('cd')"></button>
+  <button type="button" class="btn-s" id="felc-sl" style="color:var(--red);border-color:var(--red)" onclick="feuilleLC('sl')"></button>
+  <button type="button" class="btn-s" id="felc-sc" style="color:var(--red);border-color:var(--red)" onclick="feuilleLC('sc')"></button>
+  <button type="button" class="btn-s" onclick="closeOv('ov-fe-lc')">Fermer</button>
+</div></div>
+
+<!-- MODAL OPTIONS FEUILLE -->
+<div class="ov" id="ov-fe-gerer" onclick="closeOv('ov-fe-gerer')"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Options de la feuille</div>
+  <div class="fg"><label class="fl">Nom</label><input class="fc" type="text" id="feo-nom" maxlength="60"></div>
+  <div class="fr">
+    <button type="button" class="btn-s" onclick="feuilleDeplacer(-1)">&#x2191; Monter</button>
+    <button type="button" class="btn-s" onclick="feuilleDeplacer(1)">&#x2193; Descendre</button>
+  </div>
+  <button class="btn-p btn-gold" style="margin-top:12px" onclick="feuilleGererEnregistrer()">Enregistrer le nom</button>
+  <button class="btn-s" onclick="feuilleDupliquer()">Dupliquer</button>
+  <button class="btn-s" id="feo-suppr" style="color:var(--red);border-color:var(--red)" onclick="feuilleGererSupprimer()">Supprimer</button>
+  <button class="btn-s" onclick="closeOv('ov-fe-gerer')">Fermer</button>
 </div></div>
 
 <!-- MODAL NOTE -->
@@ -8225,11 +8329,14 @@ function renderBalance(){
     (e.lignes||[]).forEach(function(l){
       if(cptFilter && l.compte!==cptFilter)return;
       var key=l.compte;
-      // Une sous-ligne par tiers pour TOUS les comptes (classes 1 a 7) ; les ecritures sans tiers restent sur la ligne du compte seul
-      if(l.tiers && l.compte){
+      // Solde CUMULE par compte (une seule ligne, tous tiers confondus) ; seuls les comptes de tiers (classe 4)
+      // restent separes par tiers, car le solde de chaque tiers y a un sens propre (dette, creance...).
+      // L'historique ligne par ligne (tiers, libelle, date) s'affiche en bas au clic sur la ligne.
+      var estClasse4=!!(l.compte&&l.compte.charAt(0)==='4');
+      if(l.tiers && estClasse4){
         key=l.compte+'/'+cleTiersLigne(l);
       }
-      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:l.tiers||'',cle:(l.tiers&&l.compte)?cleTiersLigne(l):'',nom:nomLigneTiers(l)};
+      if(!soldes[key])soldes[key]={deb:0,cred:0,compte:l.compte,tiers:estClasse4?(l.tiers||''):'',cle:(l.tiers&&estClasse4)?cleTiersLigne(l):'',nom:estClasse4?nomLigneTiers(l):'',classe4:estClasse4};
       if(l.sens==='D')soldes[key].deb+=Number(l.montant||0);
       else soldes[key].cred+=Number(l.montant||0);
     });
@@ -8255,7 +8362,7 @@ function renderBalance(){
       '<span style="font-size:calc(12px*var(--fscale))">'+lib+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'D')+'">'+fmt(s.deb)+'</span>'+
       '<span style="text-align:right;color:'+couleurSens(code,'C')+'">'+fmt(s.cred)+'</span>';
-    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers||'__NONE__');});
+    row.addEventListener('click',function(){showBalanceDetail(code,lib,s.cle||s.tiers||(s.classe4?'__NONE__':''));});
     el.appendChild(row);
   });
   var rowT=document.createElement('div');
@@ -14842,6 +14949,8 @@ function fTokens(s){
     var rest=s.slice(i);
     if((m=rest.match(/^\d+(?:[.,]\d+)?|^\.\d+/))){t.push({k:'n',v:parseFloat(m[0].replace(',','.'))});i+=m[0].length;continue;}
     if(ch==='"'){var j=s.indexOf('"',i+1);if(j<0)throw new FErr('#ERR');t.push({k:'s',v:s.slice(i+1,j)});i=j+1;continue;}
+    if(ch==='#')throw new FErr('#REF');
+    if((m=rest.match(/^\$?[A-Za-z]\$?\d+(?![A-Za-z0-9_(.])/))){t.push({k:'r',v:m[0].replace(/\$/g,'').toUpperCase()});i+=m[0].length;continue;}
     if((m=rest.match(/^[A-Za-zÀ-ÿ_][A-Za-zÀ-ÿ_0-9.]*/))){
       var w=m[0];i+=w.length;
       if(s.charAt(i)==='(')t.push({k:'f',v:w.toUpperCase()});
@@ -15120,14 +15229,100 @@ document.addEventListener('focusin',function(e){
 });
 
 // ---------- FEUILLE DE CALCUL ----------
-var _feuilleId=null,_feuilleSel='A1',_feuilleSupprArme=false,_feuilleSaveT=null;
+// Donnees d'une feuille (D.feuilles[]) : {id,nom,nbL,nbC,cells:{A1:'brut'},fmt:{A1:{bg,b,al}},bords:{'H2,3':1,'V2,3':1},
+// merges:[{r1,c1,r2,c2}],graphiques:[{id,type,titre,plage}],creee,maj}. Bordures stockees par ARETE (H = trait au-dessus de la
+// ligne r, V = trait a gauche de la colonne c) : une arete partagee entre 2 cellules n'est donc jamais doublee.
+var FE_COULEURS=['','#D4A017','#F5C842','#10B981','#3B82F6','#EF4444','#8B5CF6'];
+var FE_PAL=['#D4A017','#3B82F6','#10B981','#EF4444','#8B5CF6','#14B8A6','#F97316','#EC4899'];
+var _feuilleId=null,_feA='A1',_feB='A1',_feEtendre=false,_feSupprArme=false,_feSaveT=null,_feClip=null;
+var _feGrOuvert=true,_feGrEdit=null,_feGrType='bar',_feGerId=null,_feGerSupprArme=false,_feGrSupprArme=false,_feDrag=false,_feFmtOuvert=false,_feTds={};
+function feRC(ref){var m=String(ref).match(/^([A-Z])(\d+)$/);return m?{c:m[1].charCodeAt(0)-64,r:+m[2]}:null;}
+function feRef(r,c){return String.fromCharCode(64+c)+r;}
+function feuilleAssurer(f){
+  if(!f.cells)f.cells={};
+  if(!f.fmt)f.fmt={};
+  if(!f.bords)f.bords={};
+  if(!Array.isArray(f.merges))f.merges=[];
+  if(!Array.isArray(f.graphiques))f.graphiques=[];
+  if(!f.nbL)f.nbL=30;
+  if(!f.nbC)f.nbC=6;
+  return f;
+}
 function feuilleCourante(){
   ensureNotes();
-  return D.feuilles.find(function(f){return f.id===_feuilleId;})||null;
+  var f=D.feuilles.find(function(x){return x.id===_feuilleId;});
+  return f?feuilleAssurer(f):null;
 }
 function feuilleSauverDiffere(){
-  clearTimeout(_feuilleSaveT);
-  _feuilleSaveT=setTimeout(function(){save();},600);
+  clearTimeout(_feSaveT);
+  _feSaveT=setTimeout(function(){save();},600);
+}
+function feFusionDe(f,r,c){
+  for(var i=0;i<f.merges.length;i++){var m=f.merges[i];if(r>=m.r1&&r<=m.r2&&c>=m.c1&&c<=m.c2)return m;}
+  return null;
+}
+// Plage selectionnee, agrandie pour contenir entierement toute cellule fusionnee qu'elle touche
+function feRect(f){
+  var a=feRC(_feA)||{r:1,c:1},b=feRC(_feB)||a;
+  var R={r1:Math.min(a.r,b.r),r2:Math.max(a.r,b.r),c1:Math.min(a.c,b.c),c2:Math.max(a.c,b.c)};
+  var ch=true,garde=0;
+  while(ch&&garde++<60){
+    ch=false;
+    f.merges.forEach(function(m){
+      if(m.r1<=R.r2&&m.r2>=R.r1&&m.c1<=R.c2&&m.c2>=R.c1){
+        if(m.r1<R.r1){R.r1=m.r1;ch=true;}
+        if(m.r2>R.r2){R.r2=m.r2;ch=true;}
+        if(m.c1<R.c1){R.c1=m.c1;ch=true;}
+        if(m.c2>R.c2){R.c2=m.c2;ch=true;}
+      }
+    });
+  }
+  return R;
+}
+function feRectStr(R){var a=feRef(R.r1,R.c1);return (R.r1===R.r2&&R.c1===R.c2)?a:a+':'+feRef(R.r2,R.c2);}
+function feBoucle(R,fn){for(var r=R.r1;r<=R.r2;r++)for(var c=R.c1;c<=R.c2;c++)fn(r,c,feRef(r,c));}
+function feActive(f){
+  var a=feRC(_feA)||{r:1,c:1},m=feFusionDe(f,a.r,a.c);
+  return m?feRef(m.r1,m.c1):feRef(a.r,a.c);
+}
+function feSimple(R){return R.r1===R.r2&&R.c1===R.c2;}
+function feTexteSur(bg){
+  var m=/^#([0-9a-f]{6})$/i.exec(bg||'');if(!m)return '';
+  var n=parseInt(m[1],16),r=n>>16,g=(n>>8)&255,b=n&255;
+  return (0.299*r+0.587*g+0.114*b)>150?'#0A1628':'#F8FAFC';
+}
+// Decale les references relatives d'une formule (comme un copier-coller Excel) ; $A$1 reste fixe
+function feShiftFormule(raw,dr,dc){
+  if(!raw||raw.charAt(0)!=='=')return raw;
+  return raw.split(/("[^"]*")/).map(function(seg,i){
+    if(i%2===1)return seg;
+    return seg.replace(/(^|[^A-Za-z0-9_.$])(\$?)([A-Za-z])(\$?)(\d+)(?![A-Za-z0-9_(])/g,function(m,pre,ca,col,ra,row){
+      var c=col.toUpperCase().charCodeAt(0)-64,r=+row;
+      if(!ca)c+=dc;
+      if(!ra)r+=dr;
+      if(c<1||c>26||r<1)return pre+'#REF';
+      return pre+ca+String.fromCharCode(64+c)+ra+r;
+    });
+  }).join('');
+}
+function feSetFmt(f,ref,cle,v){
+  var o=f.fmt[ref]||(f.fmt[ref]={});
+  if(v===''||v==null||v===false)delete o[cle];else o[cle]=v;
+  if(!Object.keys(o).length)delete f.fmt[ref];
+}
+function feTouch(f){f.maj=today();save();}
+
+// ---------- liste des feuilles ----------
+function feTri(){return (D.parametres&&D.parametres.triFeuilles)||'maj';}
+function feuillesVisibles(){
+  var l=D.feuilles.slice(),t=feTri();
+  if(t==='nom')l.sort(function(a,b){return String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base',numeric:true});});
+  else if(t==='maj')l.sort(function(a,b){return String(b.maj||'').localeCompare(String(a.maj||''));});
+  return l;
+}
+function feuilleTrier(t){
+  if(!D.parametres)D.parametres={};
+  D.parametres.triFeuilles=t;save();renderFeuille();
 }
 function renderFeuille(){
   ensureNotes();
@@ -15135,20 +15330,27 @@ function renderFeuille(){
   var f=feuilleCourante();
   if(!f){
     _feuilleId=null;
-    vl.style.display='';ve.style.display='none';
+    vl.style.display='';ve.style.display='none';ve.classList.remove('fe-plein');
+    var tr=G('fe-tri');
+    if(tr){
+      tr.innerHTML=[['maj','Recentes'],['nom','Nom'],['ordre','Mon ordre']].map(function(x){return '<button type="button" class="chip'+(feTri()===x[0]?' on':'')+'" data-tri="'+x[0]+'">'+x[1]+'</button>';}).join('');
+      if(!tr._init){tr._init=true;tr.addEventListener('click',function(e){var b=e.target.closest('[data-tri]');if(b)feuilleTrier(b.getAttribute('data-tri'));});}
+    }
     var el=G('fe-liste');
-    el.innerHTML=D.feuilles.length?D.feuilles.slice().sort(function(a,b){return String(b.maj||'').localeCompare(String(a.maj||''));}).map(function(x){
+    el.innerHTML=D.feuilles.length?feuillesVisibles().map(function(x){
       var nbCell=Object.keys(x.cells||{}).filter(function(k){return x.cells[k]!=='';}).length;
-      return '<div class="note-card" data-fid="'+escHtml(x.id)+'"><div class="note-hd"><span class="note-t">'+escHtml(x.nom||'Feuille')+'</span><span style="color:var(--text2)">&#x203A;</span></div>'+
-        '<div class="note-ft"><span>'+nbCell+' cellule'+(nbCell>1?'s':'')+' remplie'+(nbCell>1?'s':'')+'</span><span>'+fmtD(x.maj)+'</span></div></div>';
+      return '<div class="note-card" data-fid="'+escHtml(x.id)+'"><div class="note-hd"><span class="note-t">'+escHtml(x.nom||'Feuille')+'</span><button type="button" class="chip fe-opt" data-opt="'+escHtml(x.id)+'" aria-label="Options de la feuille" style="padding:3px 11px">&#x22EE;</button></div>'+
+        '<div class="note-ft"><span>'+nbCell+' cellule'+(nbCell>1?'s':'')+' remplie'+(nbCell>1?'s':'')+((x.graphiques||[]).length?' &middot; '+x.graphiques.length+' graphique'+(x.graphiques.length>1?'s':''):'')+'</span><span>'+fmtD(x.maj)+'</span></div></div>';
     }).join(''):'<div class="empty"><div class="empty-txt">Aucune feuille. Creez-en une pour vos budgets, simulations ou listes.</div></div>';
     if(!el._init){el._init=true;el.addEventListener('click',function(e){
+      var o=e.target.closest('[data-opt]');
+      if(o){e.stopPropagation();feuilleOptions(o.getAttribute('data-opt'));return;}
       var c=e.target.closest('[data-fid]');if(!c)return;
       ouvrirFeuille(c.getAttribute('data-fid'));
     });}
     return;
   }
-  vl.style.display='none';ve.style.display='';
+  vl.style.display='none';ve.style.display='flex';ve.classList.add('fe-plein');
   var nom=G('fe-nom');if(nom&&document.activeElement!==nom)nom.value=f.nom||'';
   feuilleDessiner();
 }
@@ -15160,20 +15362,62 @@ function nouvelleFeuille(){
   ouvrirFeuille(f.id);
 }
 function ouvrirFeuille(id){
-  _feuilleId=id;_feuilleSel='A1';_feuilleSupprArme=false;
+  _feuilleId=id;_feA='A1';_feB='A1';_feSupprArme=false;_feEtendre=false;_feFmtOuvert=false;_feClip=_feClip||null;
   var b=G('fe-suppr');if(b)b.textContent='Supprimer';
+  var p=G('fe-fmt');if(p)p.style.display='none';
   renderFeuille();
-  feuilleSelectionner('A1');
+  feuilleSelectionner('A1',false);
 }
 function fermerFeuille(){
-  clearTimeout(_feuilleSaveT);save();
-  _feuilleId=null;renderFeuille();
+  clearTimeout(_feSaveT);save();
+  _feuilleId=null;_feFmtOuvert=false;renderFeuille();
 }
 function renommerFeuille(){
   var f=feuilleCourante();if(!f)return;
   f.nom=(G('fe-nom').value||'').trim()||'Feuille';f.maj=today();feuilleSauverDiffere();
 }
-// Calcule les valeurs de la feuille a la demande (memoisation + detection des references circulaires).
+// options d'une feuille depuis la liste : renommer, deplacer, dupliquer, supprimer
+function feuilleOptions(id){
+  var f=D.feuilles.find(function(x){return x.id===id;});if(!f)return;
+  _feGerId=id;_feGerSupprArme=false;
+  G('feo-nom').value=f.nom||'';
+  var b=G('feo-suppr');if(b)b.textContent='Supprimer';
+  openOv('ov-fe-gerer');
+}
+function feuilleGererEnregistrer(){
+  var f=D.feuilles.find(function(x){return x.id===_feGerId;});if(!f)return;
+  f.nom=(G('feo-nom').value||'').trim()||'Feuille';
+  save();closeOv('ov-fe-gerer');renderFeuille();notif('Feuille renommee');
+}
+function feuilleDeplacer(dir){
+  var i=D.feuilles.findIndex(function(x){return x.id===_feGerId;});if(i<0)return;
+  if(feTri()!=='ordre'){ // fige l'ordre actuellement affiche avant de deplacer
+    D.feuilles=feuillesVisibles();
+    if(!D.parametres)D.parametres={};
+    D.parametres.triFeuilles='ordre';
+    i=D.feuilles.findIndex(function(x){return x.id===_feGerId;});
+  }
+  var j=i+dir;if(j<0||j>=D.feuilles.length)return;
+  var t=D.feuilles[i];D.feuilles[i]=D.feuilles[j];D.feuilles[j]=t;
+  save();renderFeuille();
+}
+function feuilleDupliquer(){
+  var f=D.feuilles.find(function(x){return x.id===_feGerId;});if(!f)return;
+  var c=JSON.parse(JSON.stringify(f));
+  c.id=idOutil('F');c.nom=(f.nom||'Feuille')+' (copie)';c.creee=today();c.maj=today();
+  (c.graphiques||[]).forEach(function(g){g.id=idOutil('G');});
+  D.feuilles.splice(D.feuilles.indexOf(f)+1,0,c);
+  save();closeOv('ov-fe-gerer');renderFeuille();notif('Feuille dupliquee');
+}
+function feuilleGererSupprimer(){
+  var b=G('feo-suppr');
+  if(!_feGerSupprArme){_feGerSupprArme=true;if(b)b.textContent='Confirmer la suppression';return;}
+  D.feuilles=D.feuilles.filter(function(x){return x.id!==_feGerId;});
+  save();closeOv('ov-fe-gerer');renderFeuille();notif('Feuille supprimee');
+}
+
+// ---------- calcul ----------
+// Calcule les valeurs a la demande (memoisation + detection des references circulaires).
 // Renvoie une fonction ref -> nombre | texte | null (cellule vide) | FErr (erreur propagee).
 function feuilleEvaluerAvecPropagation(f){
   var cache={},pile={};
@@ -15204,41 +15448,89 @@ function feuilleEvaluerAvecPropagation(f){
     try{return valeur(ref);}catch(e){return (e instanceof FErr)?e:new FErr('#ERR');}
   };
 }
+
+// ---------- grille ----------
+function feOmbres(f,r,c,m){
+  var B=f.bords,r2=m?m.r2:r,c2=m?m.c2:c,s=[];
+  if(B['H'+r+','+c])s.push('inset 0 2px 0 #F5C842');
+  if(B['V'+r+','+c])s.push('inset 2px 0 0 #F5C842');
+  if(r2===f.nbL&&B['H'+(r2+1)+','+c])s.push('inset 0 -2px 0 #F5C842');
+  if(c2===f.nbC&&B['V'+r+','+(c2+1)])s.push('inset -2px 0 0 #F5C842');
+  return s.join(',');
+}
 function feuilleDessiner(){
   var f=feuilleCourante(),g=G('fe-grille');if(!f||!g)return;
   var sx=g.scrollLeft,sy=g.scrollTop;
   var val=feuilleEvaluerAvecPropagation(f);
-  var cols=[];for(var i=0;i<f.nbC;i++)cols.push(String.fromCharCode(65+i));
-  var h='<table class="fe-tab"><thead><tr><th class="fe-corner"></th>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+  var ancres={},cachees={};
+  f.merges.forEach(function(m){
+    for(var r=m.r1;r<=m.r2;r++)for(var c=m.c1;c<=m.c2;c++){
+      if(r===m.r1&&c===m.c1)ancres[r+','+c]=m;else cachees[r+','+c]=1;
+    }
+  });
+  var h='<div class="fe-inner"><table class="fe-tab"><thead><tr><th class="fe-corner"></th>';
+  for(var i=1;i<=f.nbC;i++)h+='<th>'+String.fromCharCode(64+i)+'</th>';
+  h+='</tr></thead><tbody>';
   for(var r=1;r<=f.nbL;r++){
     h+='<tr><th class="fe-rh">'+r+'</th>';
-    cols.forEach(function(c){
-      var ref=c+r,v=val(ref),cls='',aff='';
+    for(var c=1;c<=f.nbC;c++){
+      var k=r+','+c;
+      if(cachees[k])continue;
+      var ref=feRef(r,c),v=val(ref),cls='',aff='',m=ancres[k]||null,fm=f.fmt[ref]||{},st=[];
       if(v instanceof FErr){cls='err';aff=v.code;}
       else if(typeof v==='number'){cls='n';aff=fmtNombreOutil(v,2);}
       else if(v!=null)aff=escHtml(v);
-      if(ref===_feuilleSel)cls+=' sel';
-      h+='<td data-r="'+ref+'" class="'+cls.trim()+'">'+aff+'</td>';
-    });
+      if(fm.bg){st.push('background:'+fm.bg);var tc=feTexteSur(fm.bg);if(tc)st.push('color:'+tc);}
+      if(fm.b)st.push('font-weight:700');
+      if(fm.al)st.push('text-align:'+(fm.al==='c'?'center':fm.al==='r'?'right':'left'));
+      var om=feOmbres(f,r,c,m);if(om)st.push('box-shadow:'+om);
+      h+='<td data-r="'+ref+'" class="'+cls+'"'+(m?' colspan="'+(m.c2-m.c1+1)+'" rowspan="'+(m.r2-m.r1+1)+'"':'')+(st.length?' style="'+st.join(';')+'"':'')+'>'+aff+'</td>';
+    }
     h+='</tr>';
   }
-  h+='</tbody></table>';
+  h+='</tbody></table><div class="fe-poignee" id="fe-poignee" aria-label="Etendre la selection"></div></div>';
   g.innerHTML=h;
   g.scrollLeft=sx;g.scrollTop=sy;
+  _feTds={};
+  var tds=g.querySelectorAll('td[data-r]');
+  for(var j=0;j<tds.length;j++)_feTds[tds[j].getAttribute('data-r')]=tds[j];
   if(!g._init){
     g._init=true;
     g.addEventListener('mousedown',function(e){if(e.target.closest('td'))e.preventDefault();});
-    g.addEventListener('click',function(e){
-      var td=e.target.closest('td[data-r]');if(!td)return;
-      var ref=td.getAttribute('data-r'),inp=G('fe-input');
-      // formule en cours de saisie : un appui sur une cellule insere sa reference
-      if(inp&&document.activeElement===inp&&inp.value.charAt(0)==='='&&/[=+\-*\/(;:^<>]$/.test(inp.value)){
-        inp.value+=ref;return;
-      }
-      if(ref===_feuilleSel&&inp){inp.focus();return;}
-      feuilleSelectionner(ref);
+    g.addEventListener('click',feClicGrille);
+    g.addEventListener('pointerdown',function(e){
+      var p=e.target.closest('.fe-poignee');if(!p)return;
+      e.preventDefault();_feDrag=true;
+      try{p.setPointerCapture(e.pointerId);}catch(er){}
     });
+    g.addEventListener('pointermove',feDeplacerPoignee);
+    var fin=function(){_feDrag=false;};
+    g.addEventListener('pointerup',fin);g.addEventListener('pointercancel',fin);
   }
+  feMajSelection(false);
+  feuilleDessinerGraphiques();
+}
+function feClicGrille(e){
+  var td=e.target.closest('td[data-r]');if(!td)return;
+  var f=feuilleCourante();if(!f)return;
+  var ref=td.getAttribute('data-r'),inp=G('fe-input');
+  // formule en cours de saisie : un appui sur une cellule insere sa reference
+  if(inp&&document.activeElement===inp&&inp.value.charAt(0)==='='&&/[=+\-*\/(;:^<>]$/.test(inp.value)){
+    inp.value+=ref;return;
+  }
+  if(_feEtendre){_feEtendre=false;feMajChips();feuilleSelectionner(ref,true);return;}
+  if(feSimple(feRect(f))&&ref===feActive(f)&&inp){inp.focus();return;}
+  feuilleSelectionner(ref,false);
+}
+function feDeplacerPoignee(e){
+  if(!_feDrag)return;
+  var g=G('fe-grille'),f=feuilleCourante();if(!g||!f)return;
+  var els=document.elementsFromPoint?document.elementsFromPoint(e.clientX,e.clientY):[],td=null;
+  for(var i=0;i<els.length;i++){if(els[i].matches&&els[i].matches('td[data-r]')){td=els[i];break;}}
+  if(td&&td.getAttribute('data-r')!==_feB){_feB=td.getAttribute('data-r');feMajSelection(false);}
+  var b=g.getBoundingClientRect();
+  if(e.clientX>b.right-34)g.scrollLeft+=14;else if(e.clientX<b.left+70)g.scrollLeft-=14;
+  if(e.clientY>b.bottom-34)g.scrollTop+=14;else if(e.clientY<b.top+60)g.scrollTop-=14;
 }
 // Fait defiler la grille pour que la cellule soit entierement visible, sans passer sous les en-tetes figes
 function feuilleVoirCellule(td){
@@ -15251,46 +15543,84 @@ function feuilleVoirCellule(td){
   if(t<g.scrollTop+hauteurEnTete)g.scrollTop=Math.max(0,t-hauteurEnTete);
   else if(b>g.scrollTop+g.clientHeight)g.scrollTop=b-g.clientHeight;
 }
-function feuilleSelectionner(ref){
+function feMajChips(){
+  var f=feuilleCourante();
+  var e=G('fe-t-etendre');if(e)e.classList.toggle('on',!!_feEtendre);
+  var fu=G('fe-t-fusion');
+  if(fu&&f){
+    var R=feRect(f),m=feFusionDe(f,R.r1,R.c1);
+    fu.textContent=(m&&m.r1===R.r1&&m.c1===R.c1&&m.r2===R.r2&&m.c2===R.c2)?'Defusionner':'Fusionner';
+  }
+}
+// Met a jour la mise en evidence de la plage, l'etiquette, la poignee (voir=true : fait defiler jusqu'a la cellule)
+function feMajSelection(voir){
   var f=feuilleCourante();if(!f)return;
-  var ancien=document.querySelector('#fe-grille td.sel');if(ancien)ancien.classList.remove('sel');
-  _feuilleSel=ref;
-  var td=document.querySelector('#fe-grille td[data-r="'+ref+'"]');
-  if(td){td.classList.add('sel');feuilleVoirCellule(td);}
-  var r=G('fe-ref');if(r)r.textContent=ref;
-  var inp=G('fe-input');if(inp)inp.value=f.cells[ref]==null?'':f.cells[ref];
+  var R=feRect(f),act=feActive(f);
+  var anciens=document.querySelectorAll('#fe-grille td.sel,#fe-grille td.act');
+  for(var i=0;i<anciens.length;i++)anciens[i].classList.remove('sel','act');
+  feBoucle(R,function(r,c,ref){var td=_feTds[ref];if(td)td.classList.add('sel');});
+  if(_feTds[act])_feTds[act].classList.add('act');
+  var lab=G('fe-ref');if(lab)lab.textContent=feRectStr(R);
+  var fm=G('fe-fmt-titre');if(fm)fm.textContent='Mise en forme · '+feRectStr(R);
+  var m=feFusionDe(f,R.r2,R.c2),refFin=m?feRef(m.r1,m.c1):feRef(R.r2,R.c2),tdFin=_feTds[refFin],p=G('fe-poignee');
+  if(p&&tdFin){p.style.left=(tdFin.offsetLeft+tdFin.offsetWidth-14)+'px';p.style.top=(tdFin.offsetTop+tdFin.offsetHeight-14)+'px';p.style.display='';}
+  else if(p)p.style.display='none';
+  feMajChips();
+  feMajBoutonsFmt(f,act);
+  feMajHist();
+  if(voir&&_feTds[refFin])feuilleVoirCellule(_feTds[refFin]);
+}
+function feuilleSelectionner(ref,etendre){
+  var f=feuilleCourante();if(!f)return;
+  if(etendre)_feB=ref;else{_feA=ref;_feB=ref;}
+  var act=feActive(f),inp=G('fe-input');
+  if(inp)inp.value=f.cells[act]==null?'':f.cells[act];
+  feMajSelection(true);
+}
+function feuilleBasculerEtendre(){
+  _feEtendre=!_feEtendre;feMajChips();
+  if(_feEtendre)notif('Touchez la derniere cellule de la plage');
 }
 function feuilleValider(descendre){
   var f=feuilleCourante();if(!f)return;
-  var inp=G('fe-input'),v=(inp.value||'').trim();
-  if(v==='')delete f.cells[_feuilleSel];else f.cells[_feuilleSel]=v;
-  f.maj=today();save();
-  var m=_feuilleSel.match(/^([A-Z])(\d+)$/),suivant=_feuilleSel;
-  if(descendre&&m&&+m[2]<f.nbL)suivant=m[1]+(+m[2]+1);
+  var inp=G('fe-input'),v=(inp.value||'').trim(),act=feActive(f);
+  if(v==='')delete f.cells[act];else f.cells[act]=v;
+  feTouch(f);
+  var rc=feRC(act),suivant=act;
+  if(descendre&&rc){var m=feFusionDe(f,rc.r,rc.c),r2=m?m.r2:rc.r;if(r2<f.nbL)suivant=feRef(r2+1,rc.c);}
   feuilleDessiner();
-  feuilleSelectionner(suivant);
+  feuilleSelectionner(suivant,false);
   if(descendre&&inp)inp.focus();
 }
 function feuilleEffacerCellule(){
   var f=feuilleCourante();if(!f)return;
-  delete f.cells[_feuilleSel];f.maj=today();save();
-  feuilleDessiner();feuilleSelectionner(_feuilleSel);
+  feBoucle(feRect(f),function(r,c,ref){delete f.cells[ref];});
+  feTouch(f);feuilleDessiner();feuilleSelectionner(feActive(f),true);
 }
 function feuilleSomme(){
   var f=feuilleCourante();if(!f)return;
-  var m=_feuilleSel.match(/^([A-Z])(\d+)$/);if(!m)return;
-  var col=m[1],row=+m[2],val=feuilleEvaluerAvecPropagation(f),formule='';
-  function estNb(ref){var v=val(ref);return typeof v==='number';}
-  var r=row-1;while(r>=1&&estNb(col+r))r--;
-  if(r<row-1)formule='=SOMME('+col+(r+1)+':'+col+(row-1)+')';
-  else{
-    var c=m[1].charCodeAt(0)-1;
-    while(c>=65&&estNb(String.fromCharCode(c)+row))c--;
-    if(c<m[1].charCodeAt(0)-1)formule='=SOMME('+String.fromCharCode(c+1)+row+':'+String.fromCharCode(m[1].charCodeAt(0)-1)+row+')';
+  var R=feRect(f),val=feuilleEvaluerAvecPropagation(f),cible=null,formule='';
+  function estNb(r,c){return typeof val(feRef(r,c))==='number';}
+  if(!feSimple(R)){
+    if(R.c1===R.c2){cible={r:R.r2+1,c:R.c1};formule='=SOMME('+feRectStr(R)+')';}
+    else if(R.r1===R.r2){cible={r:R.r1,c:R.c2+1};formule='=SOMME('+feRectStr(R)+')';}
+    else{notif('Selectionnez une colonne ou une ligne de nombres',true);return;}
+  }else{
+    var row=R.r1,col=R.c1,r=row-1;
+    while(r>=1&&estNb(r,col))r--;
+    if(r<row-1){cible={r:row,c:col};formule='=SOMME('+feRef(r+1,col)+':'+feRef(row-1,col)+')';}
+    else{
+      var c=col-1;
+      while(c>=1&&estNb(row,c))c--;
+      if(c<col-1){cible={r:row,c:col};formule='=SOMME('+feRef(row,c+1)+':'+feRef(row,col-1)+')';}
+    }
   }
   if(!formule){notif('Placez-vous sous une colonne (ou a droite d\'une ligne) de nombres',true);return;}
-  G('fe-input').value=formule;
-  feuilleValider(false);
+  if(cible.r>f.nbL){if(cible.r>500){notif('Maximum 500 lignes',true);return;}f.nbL=cible.r;}
+  if(cible.c>f.nbC){if(cible.c>26){notif('Maximum 26 colonnes (A a Z)',true);return;}f.nbC=cible.c;}
+  var ref=feRef(cible.r,cible.c);
+  f.cells[ref]=formule;feTouch(f);
+  feuilleDessiner();feuilleSelectionner(ref,false);
 }
 function feuilleAjouterLigne(){
   var f=feuilleCourante();if(!f)return;
@@ -15305,11 +15635,499 @@ function feuilleAjouterColonne(){
 function feuilleSupprimer(){
   var f=feuilleCourante();if(!f)return;
   var b=G('fe-suppr');
-  if(!_feuilleSupprArme){_feuilleSupprArme=true;if(b)b.textContent='Confirmer';return;}
+  if(!_feSupprArme){_feSupprArme=true;if(b)b.textContent='Confirmer';return;}
   D.feuilles=D.feuilles.filter(function(x){return x.id!==f.id;});
-  save();_feuilleId=null;_feuilleSupprArme=false;if(b)b.textContent='Supprimer';
+  save();_feuilleId=null;_feSupprArme=false;if(b)b.textContent='Supprimer';
   renderFeuille();notif('Feuille supprimee');
 }
+
+// ---------- copier / coller / recopier ----------
+function feuilleCopier(){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f),cells=[];
+  for(var r=R.r1;r<=R.r2;r++){
+    var ligne=[];
+    for(var c=R.c1;c<=R.c2;c++){
+      var ref=feRef(r,c);
+      ligne.push({raw:f.cells[ref]==null?'':String(f.cells[ref]),fmt:f.fmt[ref]?JSON.parse(JSON.stringify(f.fmt[ref])):null});
+    }
+    cells.push(ligne);
+  }
+  _feClip={r1:R.r1,c1:R.c1,h:cells.length,w:cells[0].length,cells:cells,txt:feRectStr(R)};
+  notif('Copie : '+_feClip.txt);
+}
+function feuilleColler(){
+  var f=feuilleCourante();if(!f)return;
+  if(!_feClip){notif('Rien a coller : copiez d\'abord des cellules',true);return;}
+  var R=feRect(f),r0=R.r1,c0=R.c1,dr=r0-_feClip.r1,dc=c0-_feClip.c1,rMax=r0,cMax=c0;
+  for(var i=0;i<_feClip.h;i++)for(var j=0;j<_feClip.w;j++){
+    var r=r0+i,c=c0+j;
+    if(r>500||c>26)continue;
+    if(r>f.nbL)f.nbL=r;
+    if(c>f.nbC)f.nbC=c;
+    var ref=feRef(r,c),src=_feClip.cells[i][j];
+    if(src.raw==='')delete f.cells[ref];else f.cells[ref]=feShiftFormule(src.raw,dr,dc);
+    if(src.fmt)f.fmt[ref]=JSON.parse(JSON.stringify(src.fmt));else delete f.fmt[ref];
+    rMax=Math.max(rMax,r);cMax=Math.max(cMax,c);
+  }
+  feTouch(f);
+  _feA=feRef(r0,c0);_feB=feRef(rMax,cMax);
+  feuilleDessiner();
+  var inp=G('fe-input');if(inp)inp.value=f.cells[feActive(f)]==null?'':f.cells[feActive(f)];
+  feMajSelection(true);
+  notif('Colle en '+feRectStr(feRect(f)));
+}
+// Recopie vers le bas : la 1re ligne de la plage est copiee sur les lignes suivantes (formules decalees) ;
+// une seule ligne selectionnee = copiee sur la ligne du dessous
+function feuilleRecopierBas(){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f),dernier=R.r2;
+  if(R.r1===R.r2){
+    if(R.r1>=500){notif('Maximum 500 lignes',true);return;}
+    dernier=R.r1+1;
+    if(dernier>f.nbL)f.nbL=dernier;
+  }
+  for(var c=R.c1;c<=R.c2;c++){
+    var srcRef=feRef(R.r1,c),raw=f.cells[srcRef]==null?'':String(f.cells[srcRef]),fm=f.fmt[srcRef];
+    for(var r=R.r1+1;r<=dernier;r++){
+      var ref=feRef(r,c);
+      if(raw==='')delete f.cells[ref];else f.cells[ref]=feShiftFormule(raw,r-R.r1,0);
+      if(fm)f.fmt[ref]=JSON.parse(JSON.stringify(fm));else delete f.fmt[ref];
+    }
+  }
+  feTouch(f);
+  _feA=feRef(R.r1,R.c1);_feB=feRef(dernier,R.c2);
+  feuilleDessiner();feMajSelection(true);
+  notif('Recopie vers le bas');
+}
+
+// ---------- fusion ----------
+function feuilleFusion(){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f);
+  var exist=f.merges.filter(function(m){return m.r1<=R.r2&&m.r2>=R.r1&&m.c1<=R.c2&&m.c2>=R.c1;});
+  var exacte=exist.length===1&&exist[0].r1===R.r1&&exist[0].c1===R.c1&&exist[0].r2===R.r2&&exist[0].c2===R.c2;
+  if(exacte){
+    f.merges=f.merges.filter(function(m){return m!==exist[0];});
+    feTouch(f);feuilleDessiner();notif('Cellules defusionnees');return;
+  }
+  if(feSimple(R)){notif('Selectionnez au moins deux cellules a fusionner',true);return;}
+  var perdu=false;
+  feBoucle(R,function(r,c,ref){
+    if(r===R.r1&&c===R.c1)return;
+    if(f.cells[ref]!=null&&f.cells[ref]!==''){perdu=true;delete f.cells[ref];}
+  });
+  f.merges=f.merges.filter(function(m){return exist.indexOf(m)<0;});
+  f.merges.push({r1:R.r1,c1:R.c1,r2:R.r2,c2:R.c2});
+  feTouch(f);
+  _feA=feRef(R.r1,R.c1);_feB=_feA;
+  feuilleDessiner();feuilleSelectionner(_feA,false);
+  notif(perdu?'Fusionnees : seule la valeur de la 1re cellule est conservee':'Cellules fusionnees');
+}
+
+// ---------- mise en forme (bordures, couleurs, texte) ----------
+function feuilleBasculerFmt(){
+  _feFmtOuvert=!_feFmtOuvert;
+  var p=G('fe-fmt');if(p)p.style.display=_feFmtOuvert?'':'none';
+  var sw=G('fe-sw');
+  if(sw&&!sw.children.length){
+    sw.innerHTML=FE_COULEURS.map(function(c){return '<span data-c="'+c+'" style="background:'+(c||'transparent')+'" aria-label="'+(c?'Couleur '+c:'Aucune couleur')+'">'+(c?'':'&#x2715;')+'</span>';}).join('');
+    sw.addEventListener('click',function(e){var s=e.target.closest('[data-c]');if(s)feuilleFond(s.getAttribute('data-c'));});
+  }
+  feuilleDessinerGraphiques();
+  feMajSelection(true);
+}
+function feMajBoutonsFmt(f,act){
+  var fm=f.fmt[act]||{};
+  var g=G('fe-b-gras');if(g)g.classList.toggle('on',!!fm.b);
+  ['l','c','r'].forEach(function(a){var e=G('fe-al-'+a);if(e)e.classList.toggle('on',fm.al===a);});
+  var sw=G('fe-sw');
+  if(sw)for(var i=0;i<sw.children.length;i++)sw.children[i].classList.toggle('on',(sw.children[i].getAttribute('data-c')||'')===(fm.bg||''));
+}
+function feuilleBordures(mode){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f),B=f.bords;
+  function poser(t,r,c,on){var k=t+r+','+c;if(on)B[k]=1;else delete B[k];}
+  feBoucle(R,function(r,c){
+    if(mode==='toutes'){poser('H',r,c,1);poser('H',r+1,c,1);poser('V',r,c,1);poser('V',r,c+1,1);}
+    else if(mode==='contour'){if(r===R.r1)poser('H',r,c,1);if(r===R.r2)poser('H',r+1,c,1);if(c===R.c1)poser('V',r,c,1);if(c===R.c2)poser('V',r,c+1,1);}
+    else if(mode==='interieur'){if(r>R.r1)poser('H',r,c,1);if(c>R.c1)poser('V',r,c,1);}
+    else if(mode==='haut'){if(r===R.r1)poser('H',r,c,1);}
+    else if(mode==='bas'){if(r===R.r2)poser('H',r+1,c,1);}
+    else if(mode==='aucune'){poser('H',r,c,0);poser('H',r+1,c,0);poser('V',r,c,0);poser('V',r,c+1,0);}
+  });
+  feTouch(f);feuilleDessiner();
+}
+function feuilleFond(couleur){
+  var f=feuilleCourante();if(!f)return;
+  feBoucle(feRect(f),function(r,c,ref){feSetFmt(f,ref,'bg',couleur);});
+  feTouch(f);feuilleDessiner();
+}
+function feuilleGras(){
+  var f=feuilleCourante();if(!f)return;
+  var nouveau=!(f.fmt[feActive(f)]||{}).b;
+  feBoucle(feRect(f),function(r,c,ref){feSetFmt(f,ref,'b',nouveau);});
+  feTouch(f);feuilleDessiner();
+}
+function feuilleAlign(a){
+  var f=feuilleCourante();if(!f)return;
+  var deja=(f.fmt[feActive(f)]||{}).al===a;
+  feBoucle(feRect(f),function(r,c,ref){feSetFmt(f,ref,'al',deja?'':a);});
+  feTouch(f);feuilleDessiner();
+}
+
+// ---------- graphiques ----------
+function feGraphDonnees(f,plage){
+  var m=String(plage||'').toUpperCase().replace(/\s/g,'').match(/^([A-Z])(\d+)(?::([A-Z])(\d+))?$/);
+  if(!m)return null;
+  var a={r:+m[2],c:m[1].charCodeAt(0)-64},b=m[3]?{r:+m[4],c:m[3].charCodeAt(0)-64}:a;
+  var r1=Math.min(a.r,b.r),r2=Math.max(a.r,b.r),c1=Math.min(a.c,b.c),c2=Math.max(a.c,b.c);
+  if(r2>f.nbL||c2>f.nbC)return null;
+  var val=feuilleEvaluerAvecPropagation(f);
+  function v(r,c){var x=val(feRef(r,c));return x instanceof FErr?null:x;}
+  function texte(x){return typeof x==='string'&&x!=='';}
+  var nbR=r2-r1+1,nbC=c2-c1+1,r,c,colLib=nbC>1;
+  if(colLib){var t=0,n=0;for(r=r1;r<=r2;r++){var x=v(r,c1);if(x!=null&&x!==''){n++;if(texte(x))t++;}}colLib=n>0&&t>=n*0.6;}
+  var dc1=colLib?c1+1:c1,hdr=false;
+  if(nbR>1){var t2=0,n2=0;for(c=dc1;c<=c2;c++){var y=v(r1,c);if(y!=null&&y!==''){n2++;if(texte(y))t2++;}}hdr=n2>0&&t2===n2;}
+  var dr1=hdr?r1+1:r1;
+  if(dc1>c2||dr1>r2)return null;
+  var labels=[],series=[];
+  for(r=dr1;r<=r2;r++){var lb=colLib?v(r,c1):null;labels.push(colLib?String(lb==null?'':lb):String(r-dr1+1));}
+  for(c=dc1;c<=c2;c++){
+    var vals=[],ok=false;
+    for(r=dr1;r<=r2;r++){var z=v(r,c);if(typeof z==='number')ok=true;vals.push(typeof z==='number'?z:0);}
+    if(ok){var nm=hdr?v(r1,c):null;series.push({nom:nm!=null&&nm!==''?String(nm):'Serie '+(series.length+1),vals:vals});}
+  }
+  if(!series.length)return null;
+  return {labels:labels,series:series};
+}
+function feFmtK(v){
+  var a=Math.abs(v);
+  if(a>=1e6)return (Math.round(v/1e5)/10)+' M';
+  if(a>=1000)return (Math.round(v/100)/10)+' k';
+  return String(Math.round(v*100)/100);
+}
+function feCourt(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s;}
+function feGraphSvg(type,d){
+  var W=320,H=200,TXT='#CBD5E1',GRID='rgba(255,255,255,.12)',o='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Graphique">';
+  var i,j,n=d.labels.length;
+  if(type==='pie'){
+    var s=d.series[0],tot=0,parts=[];
+    for(i=0;i<n;i++){if(s.vals[i]>0){tot+=s.vals[i];parts.push({l:d.labels[i],v:s.vals[i],i:i});}}
+    if(!tot)return '<div class="empty-txt" style="padding:14px;text-align:center">Le camembert demande des nombres positifs</div>';
+    var cx=86,cy=100,R=76,ang=-Math.PI/2;
+    if(parts.length===1)o+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+FE_PAL[0]+'"/>';
+    else parts.forEach(function(p,k){
+      var a2=ang+p.v/tot*2*Math.PI,x1=cx+R*Math.cos(ang),y1=cy+R*Math.sin(ang),x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+      o+='<path d="M'+cx+' '+cy+' L'+x1.toFixed(1)+' '+y1.toFixed(1)+' A'+R+' '+R+' 0 '+(p.v/tot>0.5?1:0)+' 1 '+x2.toFixed(1)+' '+y2.toFixed(1)+' Z" fill="'+FE_PAL[k%FE_PAL.length]+'" stroke="#0A1628" stroke-width="1.5"/>';
+      ang=a2;
+    });
+    parts.slice(0,9).forEach(function(p,k){
+      var y=26+k*19;
+      o+='<rect x="180" y="'+(y-9)+'" width="11" height="11" rx="2" fill="'+FE_PAL[k%FE_PAL.length]+'"/><text x="196" y="'+y+'" font-size="11" fill="'+TXT+'">'+escHtml(feCourt(p.l,11))+' · '+Math.round(p.v/tot*100)+' %</text>';
+    });
+    return o+'</svg>';
+  }
+  var L=44,Rr=8,T=12,B=d.series.length>1?48:32,pw=W-L-Rr,ph=H-T-B,tous=[];
+  d.series.forEach(function(se){tous=tous.concat(se.vals);});
+  var max=Math.max.apply(null,tous.concat([0])),min=Math.min.apply(null,tous.concat([0]));
+  if(max===min)max=min+1;
+  var pas=(max-min)/4,pow=Math.pow(10,Math.floor(Math.log(pas)/Math.LN10)),fr=pas/pow;
+  pas=(fr<=1?1:fr<=2?2:fr<=5?5:10)*pow;
+  var yMin=Math.floor(min/pas)*pas,yMax=Math.ceil(max/pas)*pas;
+  function Y(v){return T+ph*(1-(v-yMin)/(yMax-yMin));}
+  for(var t=yMin,garde=0;t<=yMax+pas/2&&garde<12;t+=pas,garde++){
+    o+='<line x1="'+L+'" y1="'+Y(t).toFixed(1)+'" x2="'+(W-Rr)+'" y2="'+Y(t).toFixed(1)+'" stroke="'+(Math.abs(t)<pas/1e6?'rgba(255,255,255,.4)':GRID)+'"/>'+
+      '<text x="'+(L-5)+'" y="'+(Y(t)+3.5).toFixed(1)+'" text-anchor="end" font-size="10" fill="'+TXT+'">'+feFmtK(t)+'</text>';
+  }
+  var cw=pw/n,saut=Math.ceil(n/8);
+  for(i=0;i<n;i+=saut)o+='<text x="'+(L+cw*i+cw/2).toFixed(1)+'" y="'+(T+ph+14)+'" text-anchor="middle" font-size="10" fill="'+TXT+'">'+escHtml(feCourt(d.labels[i],9))+'</text>';
+  var m=d.series.length;
+  if(type==='line'){
+    d.series.forEach(function(se,k){
+      var pts=se.vals.map(function(v,idx){return (L+cw*idx+cw/2).toFixed(1)+','+Y(v).toFixed(1);}).join(' ');
+      o+='<polyline points="'+pts+'" fill="none" stroke="'+FE_PAL[k%FE_PAL.length]+'" stroke-width="2.2" stroke-linejoin="round"/>';
+      se.vals.forEach(function(v,idx){o+='<circle cx="'+(L+cw*idx+cw/2).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="3.2" fill="'+FE_PAL[k%FE_PAL.length]+'"/>';});
+    });
+  }else{
+    var bw=Math.min(32,cw*0.8/m),gx=cw/2-bw*m/2,y0=Y(0);
+    d.series.forEach(function(se,k){
+      se.vals.forEach(function(v,idx){
+        var y1=Y(v),h=Math.max(1,Math.abs(y0-y1));
+        o+='<rect x="'+(L+cw*idx+gx+bw*k).toFixed(1)+'" y="'+Math.min(y0,y1).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2" fill="'+FE_PAL[k%FE_PAL.length]+'"/>';
+      });
+    });
+  }
+  if(m>1){
+    var x=L;
+    d.series.forEach(function(se,k){
+      o+='<rect x="'+x+'" y="'+(H-14)+'" width="10" height="10" rx="2" fill="'+FE_PAL[k%FE_PAL.length]+'"/><text x="'+(x+14)+'" y="'+(H-5)+'" font-size="10.5" fill="'+TXT+'">'+escHtml(feCourt(se.nom,12))+'</text>';
+      x+=24+Math.min(12,se.nom.length)*6;
+    });
+  }
+  return o+'</svg>';
+}
+function feuilleDessinerGraphiques(){
+  var f=feuilleCourante(),p=G('fe-gr');if(!f||!p)return;
+  if(!f.graphiques.length||_feFmtOuvert){p.style.display='none';return;}
+  p.style.display='';
+  G('fe-gr-titre').textContent='Graphiques ('+f.graphiques.length+')';
+  G('fe-gr-chev').textContent=_feGrOuvert?'▾':'▴';
+  var corps=G('fe-gr-corps');
+  if(!_feGrOuvert){corps.innerHTML='';return;}
+  corps.innerHTML=f.graphiques.map(function(gr){
+    var d=feGraphDonnees(f,gr.plage);
+    return '<div class="fe-gr-c"><div class="fe-gr-t"><span>'+escHtml(gr.titre||'Graphique')+' <span style="color:var(--text2);font-weight:400">('+escHtml(gr.plage)+')</span></span><button type="button" class="chip" data-gedit="'+escHtml(gr.id)+'">Modifier</button></div>'+
+      (d?feGraphSvg(gr.type,d):'<div class="empty-txt" style="padding:12px">Plage sans nombres ou hors de la feuille</div>')+'</div>';
+  }).join('');
+  if(!corps._init){corps._init=true;corps.addEventListener('click',function(e){var b=e.target.closest('[data-gedit]');if(b)feuilleOuvrirGraphique(b.getAttribute('data-gedit'));});}
+}
+function feuilleBasculerGraphiques(){_feGrOuvert=!_feGrOuvert;feuilleDessinerGraphiques();}
+// Region de donnees autour d'une cellule (comme "Ctrl+A" dans Excel) quand une seule cellule est selectionnee
+function feRegionAutour(f,r,c){
+  var vus={},file=[[r,c]],R={r1:r,r2:r,c1:c,c2:c};
+  function plein(a,b){var x=f.cells[feRef(a,b)];return x!=null&&x!=='';}
+  if(!plein(r,c))return null;
+  vus[r+','+c]=1;
+  while(file.length){
+    var p=file.pop();
+    for(var dr=-1;dr<=1;dr++)for(var dc=-1;dc<=1;dc++){
+      var a=p[0]+dr,b=p[1]+dc;
+      if(a<1||b<1||a>f.nbL||b>f.nbC||vus[a+','+b])continue;
+      if(plein(a,b)){vus[a+','+b]=1;file.push([a,b]);R.r1=Math.min(R.r1,a);R.r2=Math.max(R.r2,a);R.c1=Math.min(R.c1,b);R.c2=Math.max(R.c2,b);}
+    }
+  }
+  return R;
+}
+function feuilleOuvrirGraphique(id){
+  var f=feuilleCourante();if(!f)return;
+  _feGrSupprArme=false;
+  var sup=G('feg-suppr');if(sup)sup.textContent='Supprimer le graphique';
+  if(id){
+    var gr=f.graphiques.find(function(x){return x.id===id;});if(!gr)return;
+    _feGrEdit=id;_feGrType=gr.type;
+    G('feg-plage').value=gr.plage;G('feg-titre').value=gr.titre||'';
+    G('feg-modal-titre').textContent='Modifier le graphique';
+    G('feg-ok').textContent='Enregistrer';sup.style.display='';
+  }else{
+    var R=feRect(f);
+    if(feSimple(R)){var reg=feRegionAutour(f,R.r1,R.c1);if(!reg){notif('Selectionnez d\'abord les cellules a representer',true);return;}R=reg;}
+    _feGrEdit=null;_feGrType='bar';
+    G('feg-plage').value=feRectStr(R);G('feg-titre').value='';
+    G('feg-modal-titre').textContent='Nouveau graphique';
+    G('feg-ok').textContent='Inserer sous le tableau';sup.style.display='none';
+  }
+  openOv('ov-fe-graph');
+  feuilleGrApercu();
+}
+function feuilleGrType(t){_feGrType=t;feuilleGrApercu();}
+function feuilleGrApercu(){
+  var f=feuilleCourante();if(!f)return;
+  var chips=document.querySelectorAll('#feg-types [data-t]');
+  for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-t')===_feGrType);
+  var d=feGraphDonnees(f,G('feg-plage').value),t=(G('feg-titre').value||'').trim(),el=G('feg-apercu');
+  el.innerHTML=(t?'<div style="font-weight:600;margin-bottom:4px">'+escHtml(t)+'</div>':'')+(d?feGraphSvg(_feGrType,d):'<div class="empty-txt" style="padding:16px;text-align:center">Plage invalide, hors de la feuille ou sans nombres (exemple : A1:C3)</div>');
+}
+function feuilleGrValider(){
+  var f=feuilleCourante();if(!f)return;
+  var plage=(G('feg-plage').value||'').toUpperCase().replace(/\s/g,'');
+  if(!feGraphDonnees(f,plage)){notif('Plage invalide ou sans nombres',true);return;}
+  var titre=(G('feg-titre').value||'').trim();
+  if(_feGrEdit){
+    var gr=f.graphiques.find(function(x){return x.id===_feGrEdit;});
+    if(gr){gr.type=_feGrType;gr.titre=titre;gr.plage=plage;}
+  }else f.graphiques.push({id:idOutil('G'),type:_feGrType,titre:titre,plage:plage});
+  _feGrOuvert=true;feTouch(f);
+  closeOv('ov-fe-graph');feuilleDessiner();notif(_feGrEdit?'Graphique modifie':'Graphique insere');
+}
+function feuilleGrSupprimer(){
+  var f=feuilleCourante();if(!f||!_feGrEdit)return;
+  var b=G('feg-suppr');
+  if(!_feGrSupprArme){_feGrSupprArme=true;if(b)b.textContent='Confirmer la suppression';return;}
+  f.graphiques=f.graphiques.filter(function(x){return x.id!==_feGrEdit;});
+  feTouch(f);closeOv('ov-fe-graph');feuilleDessiner();notif('Graphique supprime');
+}
+
+// ---------- annuler / retablir ----------
+var _feHist={},_feLcArme='';
+function feSnap(f){return JSON.stringify({cells:f.cells,fmt:f.fmt,bords:f.bords,merges:f.merges,graphiques:f.graphiques,nbL:f.nbL,nbC:f.nbC});}
+function feHistDe(id){return _feHist[id]||(_feHist[id]={u:[],r:[]});}
+function fePush(id,snap){var h=feHistDe(id);h.u.push(snap);if(h.u.length>30)h.u.shift();h.r=[];}
+function feRestaurer(f,snap){
+  var o=JSON.parse(snap);
+  f.cells=o.cells;f.fmt=o.fmt;f.bords=o.bords;f.merges=o.merges;f.graphiques=o.graphiques;f.nbL=o.nbL;f.nbC=o.nbC;
+  ['_feA','_feB'].forEach(function(n){
+    var rc=feRC(n==='_feA'?_feA:_feB);
+    if(!rc||rc.r>f.nbL||rc.c>f.nbC){if(n==='_feA')_feA='A1';else _feB=_feA;}
+  });
+  _feB=_feB||_feA;
+  feTouch(f);feuilleDessiner();
+  var inp=G('fe-input');if(inp){var a=feActive(f);inp.value=f.cells[a]==null?'':f.cells[a];}
+  feMajSelection(true);
+}
+function feuilleAnnuler(){
+  var f=feuilleCourante();if(!f)return;
+  var h=feHistDe(f.id);
+  if(!h.u.length){notif('Rien a annuler');return;}
+  h.r.push(feSnap(f));feRestaurer(f,h.u.pop());notif('Annule');
+}
+function feuilleRetablir(){
+  var f=feuilleCourante();if(!f)return;
+  var h=feHistDe(f.id);
+  if(!h.r.length){notif('Rien a retablir');return;}
+  h.u.push(feSnap(f));feRestaurer(f,h.r.pop());notif('Retabli');
+}
+function feMajHist(){
+  var f=feuilleCourante();if(!f)return;
+  var h=feHistDe(f.id),a=G('fe-undo'),b=G('fe-redo');
+  if(a)a.style.opacity=h.u.length?'1':'.35';
+  if(b)b.style.opacity=h.r.length?'1':'.35';
+}
+// Enveloppe une action : si elle a change la feuille, l'etat d'avant est range dans l'historique
+function feAvecHistorique(nom){
+  var o=window[nom];
+  window[nom]=function(){
+    var f=feuilleCourante(),av=f?feSnap(f):null,id=f?f.id:null;
+    var res=o.apply(this,arguments);
+    var f2=feuilleCourante();
+    if(f2&&f2.id===id&&av!==feSnap(f2)){fePush(id,av);feMajHist();}
+    return res;
+  };
+}
+
+// ---------- inserer / supprimer lignes et colonnes ----------
+// op = {t:'ins'|'del', p:position, q:derniere (suppression), n:nombre} ; ax = 'r' (lignes) ou 'c' (colonnes)
+function feIdx(x,op,role){
+  if(op.t==='ins')return x>=op.p?x+op.n:x;
+  if(x<op.p)return x;
+  if(x>op.q)return x-op.n;
+  return role==='start'?op.p:role==='end'?op.p-1:null;
+}
+function feRemapFormule(raw,ax,op){
+  if(typeof raw!=='string'||raw.charAt(0)!=='=')return raw;
+  return raw.split(/("[^"]*")/).map(function(seg,i){
+    if(i%2===1)return seg;
+    return seg.replace(/(^|[^A-Za-z0-9_.$])(\$?)([A-Za-z])(\$?)(\d+)(?::(\$?)([A-Za-z])(\$?)(\d+))?(?![A-Za-z0-9_(])/g,function(m,pre,ca,col,ra,row,cb,col2,rb,row2){
+      var c1=col.toUpperCase().charCodeAt(0)-64,r1=+row,rg=col2!==undefined,c2=rg?col2.toUpperCase().charCodeAt(0)-64:c1,r2=rg?+row2:r1;
+      var role1=rg?'start':'single',role2='end';
+      if(ax==='r'){r1=feIdx(r1,op,role1);if(rg)r2=feIdx(r2,op,role2);}
+      else{c1=feIdx(c1,op,role1);if(rg)c2=feIdx(c2,op,role2);}
+      if(r1==null||c1==null||r1<1||c1<1||c1>26)return pre+'#REF';
+      if(rg){if(r2<r1||c2<c1||c2>26)return pre+'#REF';}
+      var s=pre+ca+String.fromCharCode(64+c1)+ra+r1;
+      if(rg)s+=':'+cb+String.fromCharCode(64+c2)+rb+r2;
+      return s;
+    });
+  }).join('');
+}
+function feStructure(ax,op){
+  var f=feuilleCourante();if(!f)return;
+  function cellMap(x){return feIdx(x,op,'single');}
+  function edgeMap(e){
+    if(op.t==='ins'){if(e<op.p)return [e];if(e===op.p)return [e,e+op.n];return [e+op.n];}
+    if(e<=op.p)return [e];
+    if(e<=op.q)return [];
+    if(e===op.q+1)return [op.p];
+    return [e-op.n];
+  }
+  var nc={},nf={},nb={};
+  Object.keys(f.cells).forEach(function(k){
+    var rc=feRC(k);if(!rc)return;
+    var b=cellMap(ax==='r'?rc.r:rc.c);if(b==null)return;
+    nc[feRef(ax==='r'?b:rc.r,ax==='c'?b:rc.c)]=feRemapFormule(f.cells[k],ax,op);
+  });
+  Object.keys(f.fmt).forEach(function(k){
+    var rc=feRC(k);if(!rc)return;
+    var b=cellMap(ax==='r'?rc.r:rc.c);if(b==null)return;
+    nf[feRef(ax==='r'?b:rc.r,ax==='c'?b:rc.c)]=f.fmt[k];
+  });
+  Object.keys(f.bords).forEach(function(k){
+    var m=k.match(/^([HV])(\d+),(\d+)$/);if(!m)return;
+    var t=m[1],r=+m[2],c=+m[3];
+    if(t==='H'){
+      if(ax==='r')edgeMap(r).forEach(function(e){nb['H'+e+','+c]=1;});
+      else{var cc=cellMap(c);if(cc!=null)nb['H'+r+','+cc]=1;}
+    }else{
+      if(ax==='c')edgeMap(c).forEach(function(e){nb['V'+r+','+e]=1;});
+      else{var rr=cellMap(r);if(rr!=null)nb['V'+rr+','+c]=1;}
+    }
+  });
+  var nm=[];
+  f.merges.forEach(function(m){
+    var a1=ax==='r'?m.r1:m.c1,a2=ax==='r'?m.r2:m.c2,b1=feIdx(a1,op,'start'),b2=feIdx(a2,op,'end');
+    if(b2<b1)return;
+    var o={r1:m.r1,c1:m.c1,r2:m.r2,c2:m.c2};
+    if(ax==='r'){o.r1=b1;o.r2=b2;}else{o.c1=b1;o.c2=b2;}
+    if(o.r1===o.r2&&o.c1===o.c2)return;
+    nm.push(o);
+  });
+  var perdus=0,ng=[];
+  f.graphiques.forEach(function(g){
+    var p=feRemapFormule('='+g.plage,ax,op).slice(1);
+    if(p.indexOf('#')>=0){perdus++;return;}
+    g.plage=p;ng.push(g);
+  });
+  f.cells=nc;f.fmt=nf;f.bords=nb;f.merges=nm;f.graphiques=ng;
+  if(ax==='r')f.nbL=op.t==='ins'?f.nbL+op.n:Math.max(5,f.nbL-op.n);
+  else f.nbC=op.t==='ins'?f.nbC+op.n:Math.max(3,f.nbC-op.n);
+  return perdus;
+}
+function feLcTexte(R){
+  var nl=R.r2-R.r1+1,nc=R.c2-R.c1+1;
+  return {nl:nl,nc:nc,
+    l:nl>1?'lignes '+R.r1+' a '+R.r2:'ligne '+R.r1,
+    c:nc>1?'colonnes '+String.fromCharCode(64+R.c1)+' a '+String.fromCharCode(64+R.c2):'colonne '+String.fromCharCode(64+R.c1)};
+}
+function feuilleOuvrirLC(){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f),t=feLcTexte(R);
+  _feLcArme='';
+  G('felc-info').textContent='Selection : '+feRectStr(R)+' ('+t.l+', '+t.c+')';
+  G('felc-lh').textContent='Inserer '+t.nl+' ligne'+(t.nl>1?'s':'')+' au-dessus';
+  G('felc-lb').textContent='Inserer '+t.nl+' ligne'+(t.nl>1?'s':'')+' en dessous';
+  G('felc-cg').textContent='Inserer '+t.nc+' colonne'+(t.nc>1?'s':'')+' a gauche';
+  G('felc-cd').textContent='Inserer '+t.nc+' colonne'+(t.nc>1?'s':'')+' a droite';
+  G('felc-sl').textContent='Supprimer la '+t.l.replace('lignes','ligne(s)').replace(/^ligne /,'ligne ');
+  G('felc-sc').textContent='Supprimer la '+t.c.replace('colonnes','colonne(s)');
+  G('felc-sl').textContent='Supprimer : '+t.l;
+  G('felc-sc').textContent='Supprimer : '+t.c;
+  openOv('ov-fe-lc');
+}
+function feuilleLC(mode){
+  var f=feuilleCourante();if(!f)return;
+  var R=feRect(f),t=feLcTexte(R),perdus=0,msg='';
+  if(mode==='sl'||mode==='sc'){
+    if(_feLcArme!==mode){
+      _feLcArme=mode;
+      var b=G('felc-'+mode);if(b)b.textContent='Confirmer : supprimer '+(mode==='sl'?t.l:t.c);
+      return;
+    }
+    if(mode==='sl'){perdus=feStructure('r',{t:'del',p:R.r1,q:R.r2,n:t.nl});_feA=_feB=feRef(Math.min(R.r1,f.nbL),R.c1);msg=t.nl+' ligne'+(t.nl>1?'s':'')+' supprimee'+(t.nl>1?'s':'');}
+    else{perdus=feStructure('c',{t:'del',p:R.c1,q:R.c2,n:t.nc});_feA=_feB=feRef(R.r1,Math.min(R.c1,f.nbC));msg=t.nc+' colonne'+(t.nc>1?'s':'')+' supprimee'+(t.nc>1?'s':'');}
+  }else if(mode==='lh'||mode==='lb'){
+    if(f.nbL+t.nl>500){notif('Maximum 500 lignes',true);return;}
+    var p=mode==='lh'?R.r1:R.r2+1;
+    feStructure('r',{t:'ins',p:p,n:t.nl});
+    _feA=feRef(p,R.c1);_feB=feRef(p+t.nl-1,R.c2);msg=t.nl+' ligne'+(t.nl>1?'s':'')+' inseree'+(t.nl>1?'s':'');
+  }else if(mode==='cg'||mode==='cd'){
+    if(f.nbC+t.nc>26){notif('Maximum 26 colonnes (A a Z)',true);return;}
+    var q=mode==='cg'?R.c1:R.c2+1;
+    feStructure('c',{t:'ins',p:q,n:t.nc});
+    _feA=feRef(R.r1,q);_feB=feRef(R.r2,q+t.nc-1);msg=t.nc+' colonne'+(t.nc>1?'s':'')+' inseree'+(t.nc>1?'s':'');
+  }else return;
+  _feLcArme='';
+  feTouch(f);closeOv('ov-fe-lc');feuilleDessiner();
+  var inp=G('fe-input');if(inp){var a=feActive(f);inp.value=f.cells[a]==null?'':f.cells[a];}
+  feMajSelection(true);
+  notif(msg+(perdus?' ('+perdus+' graphique'+(perdus>1?'s':'')+' supprime'+(perdus>1?'s':'')+')':''));
+}
+
+['feuilleValider','feuilleEffacerCellule','feuilleSomme','feuilleAjouterLigne','feuilleAjouterColonne','feuilleColler','feuilleRecopierBas','feuilleFusion','feuilleBordures','feuilleFond','feuilleGras','feuilleAlign','feuilleGrValider','feuilleGrSupprimer','feuilleLC'].forEach(feAvecHistorique);
+var _feFermerOrig=fermerFeuille;
+fermerFeuille=function(){var f=feuilleCourante();if(f)delete _feHist[f.id];_feFermerOrig();};
+
+// ---------- export Excel ----------
 var FEUILLE_FN_EN={'SOMME':'SUM','MOYENNE':'AVERAGE','NB':'COUNT','PRODUIT':'PRODUCT','ENT':'INT','ARRONDI':'ROUND','SI':'IF'};
 function feuilleFormuleExcel(raw){
   return raw.slice(1).replace(/(\d),(\d)/g,'$1.$2').replace(/"[^"]*"|[A-Za-zÀ-ÿ_]+(?=\()|;/g,function(m){
@@ -15336,6 +16154,10 @@ function feuilleExporterExcel(){
     else cell={t:'s',v:raw};
     ws[XLSX.utils.encode_cell({r:r,c:c})]=cell;
   });
+  if(f.merges.length){
+    ws['!merges']=f.merges.map(function(m){return {s:{r:m.r1-1,c:m.c1-1},e:{r:m.r2-1,c:m.c2-1}};});
+    f.merges.forEach(function(m){maxR=Math.max(maxR,m.r2-1);maxC=Math.max(maxC,m.c2-1);});
+  }
   ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxR,c:maxC}});
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,(f.nom||'Feuille').replace(/[\\\/?*\[\]:]/g,' ').slice(0,31)||'Feuille');
