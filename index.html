@@ -909,6 +909,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
         </div>
       </div>
       <button class="btn-s" style="width:100%;margin-bottom:10px;font-size:calc(12.5px*var(--fscale))" onclick="ouvrirSoldeOuverture()">Saisir mes soldes d'ouverture</button>
+      <div class="acc" id="acc-soldesPer">
+        <div class="acc-hd" onclick="toggleAcc('soldesPer')">
+          <span class="acc-ico">&#x1F4CA;</span><span class="acc-ttl">Soldes de la periode</span><span id="t-soldes-per-resume" style="font-weight:700;color:var(--gold2);font-size:calc(13px*var(--fscale))"></span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body"><div id="per-bar-tres"></div><div id="t-soldes-per-body"></div></div>
+      </div>
       <div id="t-comptes"></div>
       <div class="card" id="t-fonds-tiers-card">
         <div class="card-hd">Fonds de tiers</div>
@@ -1051,6 +1057,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     <!-- REVENUS -->
     <div id="pg-revenus" style="display:none">
       <div class="sec">Revenus</div>
+      <div class="card" id="rev-per-card"><div id="per-bar-rev"></div><div id="rev-per-sum"></div></div>
       <div class="card">
         <div class="sr"><span>Salaire net</span><span id="r-sal">0 F</span></div>
         <div class="sr"><span>Primes et Indemnites</span><span id="r-prim">0 F</span></div>
@@ -1064,6 +1071,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
     <!-- DEPENSES -->
     <div id="pg-depenses" style="display:none">
       <div class="sec">Depenses</div>
+      <div class="card" id="dep-per-card"><div id="per-bar-dep"></div><div id="dep-per-sum"></div></div>
       <div class="card"><div class="card-hd">Repartition</div><div class="ch"><canvas id="ch-dep"></canvas></div></div>
       <div class="card"><div class="card-hd">Par categorie</div><div id="dep-cats"></div></div>
       <div class="card" id="dep-hist-card"><div class="card-hd" id="dep-hist-hd">Historique</div><div id="dep-list"></div></div>
@@ -1500,9 +1508,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <div id="rel-lib-status" style="font-size:calc(12px*var(--fscale));text-align:center;padding:6px;border-radius:8px;margin-bottom:10px"></div>
       <div class="card">
         <div class="card-hd">Periode et comptes</div>
+        <div class="chips" id="rel-chips"></div>
         <div class="fr">
-          <div class="fg"><label class="fl">Du</label><input class="fc" type="date" id="rel-debut"></div>
-          <div class="fg"><label class="fl">Au</label><input class="fc" type="date" id="rel-fin"></div>
+          <div class="fg"><label class="fl">Du</label><input class="fc" type="date" id="rel-debut" oninput="relDatesManuelles()"></div>
+          <div class="fg"><label class="fl">Au</label><input class="fc" type="date" id="rel-fin" oninput="relDatesManuelles()"></div>
         </div>
         <div class="fg">
           <label class="fl">Comptes a inclure</label>
@@ -1880,13 +1889,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <!-- MODAL TRESORERIE -->
 <div class="ov" id="ov-tx"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Mouvement de tresorerie</div>
-  <div class="fg"><label class="fl">Type</label><select class="fc" id="tx-type" onchange="majTxCats()"><option value="credit">Entree (credit)</option><option value="debit">Sortie (debit)</option></select></div>
-  <div class="fg"><label class="fl">Categorie</label><select class="fc" id="tx-cat"></select></div>
+  <div class="fg"><label class="fl">Type</label><select class="fc" id="tx-type" onchange="majTxCats();majTxFraisSeuls()"><option value="credit">Entree (credit)</option><option value="debit">Sortie (debit)</option></select></div>
+  <div class="fg" id="tx-cat-wrap"><label class="fl">Categorie</label><select class="fc" id="tx-cat"></select></div>
   <div class="fg"><label class="fl">Compte</label><select class="fc" id="tx-cpt"><option>Wave 76</option><option>Wave 77</option><option>Orange Money</option><option>Mix by Yas</option><option>XpressCash</option><option>Banque Courant</option><option>Banque Epargne</option><option>Especes</option></select></div>
   <div class="fg"><label class="fl">Libelle</label><input class="fc" type="text" id="tx-lib" placeholder="ex: Salaire du mois"></div>
   <div class="fg"><label class="fl">Code tiers</label><select class="fc" id="tx-tiers"><option value="">- Aucun tiers -</option></select></div>
-  <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="tx-amt"></div><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="tx-date"></div></div>
-  <div class="fg"><label class="fl">Frais (optionnel)</label><input class="fc" type="number" id="tx-frais" placeholder="ex: 100 (frais de transaction)"></div>
+  <div class="fr"><div class="fg"><label class="fl">Montant (FCFA)</label><input class="fc" type="number" id="tx-amt" oninput="majTxFraisSeuls()"></div><div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="tx-date"></div></div>
+  <div class="fg"><label class="fl">Frais (optionnel)</label><input class="fc" type="number" id="tx-frais" placeholder="ex: 100 (frais de transaction)" oninput="majTxFraisSeuls()"><div id="tx-frais-hint" style="font-size:calc(12px*var(--fscale));color:var(--text2);margin-top:6px;line-height:1.5"></div></div>
   <button class="btn-p btn-gold" onclick="saveTx()">Enregistrer</button><button class="btn-s" onclick="closeOv('ov-tx')">Annuler</button>
 </div></div>
 
@@ -1918,7 +1927,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <!-- MODAL DEPENSE -->
 <div class="ov" id="ov-dep"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Depense</div>
-  <div class="fg"><label class="fl">Categorie (OHADA Cl.6)</label><select class="fc" id="dep-cat"><option value="60|Alimentation">60 - Alimentation</option><option value="61|Transport">61 - Transport</option><option value="62|Logement">62 - Logement / Loyer</option><option value="622|Depenses domestiques">622 - Depenses domestiques (maison, ravitaillement, autres)</option><option value="63|Sante">63 - Sante</option><option value="64|Education">64 - Education</option><option value="65|Communication">65 - Communication</option><option value="66|Habillement">66 - Habillement</option><option value="67|Loisirs">67 - Loisirs</option><option value="68|Religion">68 - Religion / Zakat</option><option value="69|Charges familiales">69 - Charges familiales</option><option value="659|Cadeaux offerts">659 - Cadeaux (offerts, accordes)</option><option value="476|Charge a payer">476 - Charge a payer (non encore decaissee)</option><option value="79|Autre">79 - Autre</option></select></div>
+  <div class="fg"><label class="fl">Categorie (OHADA Cl.6)</label><select class="fc" id="dep-cat"><option value="60|Alimentation">60 - Alimentation</option><option value="61|Transport">61 - Transport</option><option value="62|Logement">62 - Logement / Loyer</option><option value="622|Depenses domestiques">622 - Depenses domestiques (maison, ravitaillement, autres)</option><option value="63|Sante">63 - Sante</option><option value="64|Education">64 - Education</option><option value="65|Communication">65 - Communication</option><option value="66|Habillement">66 - Habillement</option><option value="67|Loisirs">67 - Loisirs</option><option value="68|Religion">68 - Religion / Zakat</option><option value="69|Charges familiales">69 - Charges familiales</option><option value="659|Cadeaux offerts">659 - Cadeaux (offerts, accordes)</option><option value="699|Autres charges">699 - Autres charges</option></select></div>
   <div class="fg"><label class="fl">Compte decaissement</label><select class="fc" id="dep-cpt" onchange="majDepCreanceInfo()"><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Especes">Especes</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option><option value="476">476 - Pas encore decaisse</option></select></div>
   <label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="dep-multi" onchange="toggleDepMulti()" style="width:18px;height:18px"> Payer avec plusieurs comptes</label>
   <div id="dep-repart-rows" style="display:none"></div>
@@ -2858,6 +2867,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       <button class="btn-s" style="margin-top:9px" onclick="annulerFondsTiers()">Annuler</button>
     </div></div>
 
+    <!-- MODAL : verification des frais seuls (doublon / montant eleve) -->
+    <div class="ov" id="ov-confirm-frais"><div class="modal" onclick="event.stopPropagation()">
+      <div class="card-hd">Verification des frais</div>
+      <p id="cfr-texte" style="font-size:calc(13.5px*var(--fscale));color:var(--text2);line-height:1.6;margin:12px 0 18px"></p>
+      <button class="btn-p btn-gold" onclick="confirmerFraisSeuls()">Enregistrer quand meme</button>
+      <button class="btn-s" style="margin-top:9px" onclick="annulerFraisSeuls()">Annuler</button>
+    </div></div>
+
     <!-- MODAL : compte a reapprovisionner / repartition pour un remboursement -->
     <div class="ov" id="ov-remb-source"><div class="modal" onclick="event.stopPropagation()">
       <div class="card-hd">Compte non reapprovisionne</div>
@@ -3220,7 +3237,7 @@ function ouvrirNouvelleSaisie(ovId,textIds,tiersIds,dateIds){
   (tiersIds||[]).forEach(function(id){var e=G(id);if(e)e.value='';});
   openOv(ovId);
 }
-function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-frais'],['tx-tiers'],['tx-date']);try{majTxCats();}catch(e){}}
+function ouvrirNouveauTx(){ouvrirNouvelleSaisie('ov-tx',['tx-lib','tx-amt','tx-frais'],['tx-tiers'],['tx-date']);try{majTxCats();majTxFraisSeuls();}catch(e){}}
 function ouvrirNouveauRev(){ouvrirNouvelleSaisie('ov-rev',['rev-lib','rev-amt','rev-frais'],['rev-tiers'],['rev-date']);}
 function ouvrirNouvelleDep(){_chargeLinkIdPourDep='';ouvrirNouvelleSaisie('ov-dep',['dep-lib','dep-amt','dep-frais'],['dep-tiers'],['dep-date']);}
 function ouvrirNouveauDepot(){ouvrirNouvelleSaisie('ov-depot',['dpt-dep','dpt-obj','dpt-amt','dpt-rest','dpt-frais'],['dpt-tiers'],['dpt-date']);}
@@ -5767,7 +5784,7 @@ var PLAN_COMPTES_BASE={
   '533':'Orange Money','534':'Mix by Yas','535':'XpressCash','57':'Especes','585':'Transit','627':'Frais transferts',
   '60':'Alimentation','61':'Transport','62':'Logement','63':'Sante',
   '64':'Education','65':'Communication','66':'Habillement','67':'Loisirs',
-  '68':'Religion/Zakat','69':'Charges familiales','622':'Depenses domestiques','659':'Cadeaux offerts',
+  '68':'Religion/Zakat','69':'Charges familiales','699':'Autres charges','622':'Depenses domestiques','659':'Cadeaux offerts',
   '656':'Dons et abandons de creances accordes',
   '657':'Pertes sur creances irrecouvrables','658':'Amendes tontines payees',
   '661':'Interets emprunts bancaires','662':'TAF sur emprunts','663':'Assurance emprunt',
@@ -5816,6 +5833,7 @@ var PLAN_COMPTES_ARR_BASE=[
   {code:'67',lib:'Loisirs / Sorties',classe:'Classe 6 - Charges',sig:'trainDeVie'},
   {code:'68',lib:'Religion / Zakat / Aumone',classe:'Classe 6 - Charges',sig:'trainDeVie'},
   {code:'69',lib:'Charges familiales',classe:'Classe 6 - Charges',sig:'trainDeVie'},
+  {code:'699',lib:'Autres charges',classe:'Classe 6 - Charges',sig:'trainDeVie'},
   {code:'659',lib:'Cadeaux offerts / accordes',classe:'Classe 6 - Charges',sig:'hao'},
   {code:'656',lib:'Dons et abandons de creances accordes',classe:'Classe 6 - Charges',sig:'hao'},
   {code:'657',lib:'Pertes sur creances irrecouvrables',classe:'Classe 6 - Charges',sig:'hao'},
@@ -5888,7 +5906,7 @@ function initReleve(){
     });
     var el=G('rel-comptes-list');if(el)el.innerHTML=html;
     var rd=G('rel-debut'),rf=G('rel-fin');
-    if(rd&&!rd.value)rd.value=today().slice(0,4)+'-01-01';
+    if(rd&&!rd.value)rd.value=today().slice(0,7)+'-01';
     if(rf&&!rf.value)rf.value=today();
     var st=G('rel-lib-status');
     if(st){
@@ -5902,6 +5920,7 @@ function initReleve(){
     }
     _releveInit=true;
   }
+  try{renderRelChips();}catch(e){}
   // Liste des tiers rafraichie a chaque ouverture (peut evoluer entre deux visites)
   var tl=G('rel-tiers-list');
   if(tl){
@@ -11692,6 +11711,7 @@ function basculerVueTres(){
   notif(vueTresActuelle()==='liste'?'Affichage : liste verticale':'Affichage : grille');
 }
 function renderTres(){
+  try{renderSoldesPeriode();}catch(e){console.warn('soldes periode',e);}
   initDashAccordions();
   var el=G('t-comptes');if(!el)return;
   var ordre=ordreComptesTresActuel();
@@ -12072,7 +12092,7 @@ var MENU_ONGLETS=[
   ['compta','plan','Plan comptable',0x1F4D2],['compta','tiers','Tiers',0x1F464],['compta','journaux','Journaux',0x1F4D6],['compta','balance','Balance',0x2696],['compta','grandlivre','Grand Livre',0x1F4D8],
   ['etat','bilan','Bilan',0x1F3E6],['etat','resultat','Resultat',0x1F4B9],['etat','sig','SIG',0x1F4CA],['etat','tft','TFT',0x1F4B1],['etat','impression','Imprimer etats',0x1F5A8]
 ];
-var MENU_CAT_ICO={'60':0x1F37D,'61':0x1F695,'62':0x1F3E0,'622':0x1F6D2,'63':0x1F48A,'64':0x1F393,'65':0x1F4F1,'66':0x1F455,'67':0x1F3AE,'68':0x1F54C,'69':0x1F46A,'70':0x1F4B5,'71':0x1F381,'72':0x23F1,'73':0x1F3D8,'74':0x1F4B9,'79':0x1F4B0};
+var MENU_CAT_ICO={'60':0x1F37D,'61':0x1F695,'62':0x1F3E0,'622':0x1F6D2,'63':0x1F48A,'64':0x1F393,'65':0x1F4F1,'66':0x1F455,'67':0x1F3AE,'68':0x1F54C,'69':0x1F46A,'699':0x1F4E6,'70':0x1F4B5,'71':0x1F381,'72':0x23F1,'73':0x1F3D8,'74':0x1F4B9,'79':0x1F4B0};
 function mqAllerSection(accId){
   var sec=G('acc-'+accId);if(!sec)return;
   var pg=sec.closest('[id^="pg-"]');
@@ -13420,15 +13440,164 @@ function renderTxList(f,moisCourantSeulement){
 }
 
 // ============ REVENUS ============
+// ============ PERIODES (Releve / Tresorerie / Depenses / Revenus) ============
+// Un seul jeu de boutons de periode partage par les 4 ecrans ; chaque ecran garde sa propre selection.
+var _periodes={dep:'mois',rev:'mois',tres:'mois',rel:'mois'};
+var _periodePerso={dep:{d:'',f:''},rev:{d:'',f:''},tres:{d:'',f:''}};
+var PERIODES_LIBELLES=[['tout','Tout'],['mois','Ce mois'],['passe','Mois passe'],['7j','7 jours'],['trim','Trimestre'],['annee','Annee'],['perso','Dates...']];
+function _p2(n){return (n<10?'0':'')+n;}
+function _ymd(y,m,d){return y+'-'+_p2(m+1)+'-'+_p2(d);}
+function bornesPeriode(code,perso){
+  var t=today(),y=Number(t.slice(0,4)),m=Number(t.slice(5,7))-1,dd=Number(t.slice(8,10));
+  if(code==='tout')return {d:'0000-01-01',f:'9999-12-31',code:'tout'};
+  if(code==='mois')return {d:_ymd(y,m,1),f:t,code:'mois'};
+  if(code==='passe'){var pm=m===0?11:m-1,py=m===0?y-1:y;return {d:_ymd(py,pm,1),f:_ymd(py,pm,new Date(py,pm+1,0).getDate()),code:'passe'};}
+  if(code==='7j'){var dt=new Date(y,m,dd-6);return {d:_ymd(dt.getFullYear(),dt.getMonth(),dt.getDate()),f:t,code:'7j'};}
+  if(code==='trim')return {d:_ymd(y,Math.floor(m/3)*3,1),f:t,code:'trim'};
+  if(code==='annee')return {d:_ymd(y,0,1),f:t,code:'annee'};
+  var p=perso||{d:'',f:''};
+  return {d:p.d||'0000-01-01',f:p.f||t,code:'perso'};
+}
+// Periode de comparaison : meme duree juste avant (mois en cours -> memes jours du mois precedent ; annee -> annee precedente).
+function periodePrecedente(b){
+  if(b.code==='tout'||b.d==='0000-01-01')return null;
+  if(b.code==='mois'){
+    var y=Number(b.f.slice(0,4)),m=Number(b.f.slice(5,7))-1,dd=Number(b.f.slice(8,10));
+    var pm=m===0?11:m-1,py=m===0?y-1:y;
+    return {d:_ymd(py,pm,1),f:_ymd(py,pm,Math.min(dd,new Date(py,pm+1,0).getDate())),code:'prec'};
+  }
+  if(b.code==='passe'){
+    var y2=Number(b.d.slice(0,4)),m2=Number(b.d.slice(5,7))-1,pm2=m2===0?11:m2-1,py2=m2===0?y2-1:y2;
+    return {d:_ymd(py2,pm2,1),f:_ymd(py2,pm2,new Date(py2,pm2+1,0).getDate()),code:'prec'};
+  }
+  if(b.code==='annee'){
+    var y3=Number(b.f.slice(0,4)),m3=Number(b.f.slice(5,7))-1,d3=Number(b.f.slice(8,10));
+    return {d:_ymd(y3-1,0,1),f:_ymd(y3-1,m3,Math.min(d3,new Date(y3-1,m3+1,0).getDate())),code:'prec'};
+  }
+  var d0=new Date(b.d+'T00:00:00Z'),f0=new Date(b.f+'T00:00:00Z');
+  var n=Math.round((f0-d0)/86400000)+1;
+  if(!(n>0))return null;
+  var pf=new Date(d0.getTime()-86400000),pd=new Date(pf.getTime()-(n-1)*86400000);
+  return {d:pd.toISOString().slice(0,10),f:pf.toISOString().slice(0,10),code:'prec'};
+}
+function dansPeriode(date,b){
+  if(b.code==='tout')return true;
+  var s=String(date||'');return s>=b.d&&s<=b.f;
+}
+function periodeLibelle(b){return b.code==='tout'?'Tout l\'historique':fmtD(b.d)+' - '+fmtD(b.f);}
+function periodeBarHtml(cle){
+  var cur=_periodes[cle]||'mois';
+  var h='<div class="chips">'+PERIODES_LIBELLES.map(function(p){
+    return '<div class="chip'+(cur===p[0]?' on':'')+'" onclick="choisirPeriode(\''+cle+'\',\''+p[0]+'\')">'+p[1]+'</div>';
+  }).join('')+'</div>';
+  if(cur==='perso'){
+    var pp=_periodePerso[cle]||{d:'',f:''};
+    h+='<div class="fr"><div class="fg"><label class="fl">Du</label><input class="fc" type="date" value="'+escHtml(pp.d)+'" onchange="majPeriodePerso(\''+cle+'\',\'d\',this.value)"></div>'+
+       '<div class="fg"><label class="fl">Au</label><input class="fc" type="date" value="'+escHtml(pp.f)+'" onchange="majPeriodePerso(\''+cle+'\',\'f\',this.value)"></div></div>';
+  }
+  return h;
+}
+function periodeResumeHtml(lib,coul,tot,b,pb,prec,hausseBonne){
+  var h='<div style="font-size:calc(11px*var(--fscale));letter-spacing:.08em;text-transform:uppercase;color:var(--text2)">'+escHtml(lib)+' - '+escHtml(periodeLibelle(b))+'</div>'+
+        '<div style="font-size:calc(24px*var(--fscale));font-weight:700;color:'+coul+';margin:4px 0">'+fmt(tot)+' F</div>';
+  if(pb){
+    var diff=tot-prec,pct=prec>0?Math.round(diff/prec*100):null,bon=hausseBonne?diff>=0:diff<=0;
+    h+='<div style="display:flex;justify-content:space-between;gap:8px;font-size:calc(12px*var(--fscale));color:var(--text2)"><span>Periode precedente ('+escHtml(periodeLibelle(pb))+') : '+fmt(prec)+' F</span>'+
+       (pct===null?'':'<span style="font-weight:700;white-space:nowrap;color:'+(diff===0?'var(--text2)':bon?'var(--green)':'var(--red)')+'">'+(diff>0?'+':'')+pct+' %</span>')+'</div>';
+  }
+  return h;
+}
+function choisirPeriode(cle,code){
+  _periodes[cle]=code;
+  if(code==='perso'&&_periodePerso[cle]&&!_periodePerso[cle].d){var b=bornesPeriode('mois');_periodePerso[cle]={d:b.d,f:b.f};}
+  rerenderPeriode(cle);
+}
+function majPeriodePerso(cle,k,v){if(!_periodePerso[cle])return;_periodePerso[cle][k]=v;rerenderPeriode(cle);}
+function rerenderPeriode(cle){
+  try{if(cle==='dep')renderDep();else if(cle==='rev')renderRev();else if(cle==='tres')renderSoldesPeriode();}catch(e){console.warn('periode',e);}
+}
+// ---- Releve : boutons de periode (remplissent Du/Au puis generent le releve) ----
+var REL_PERIODES=[['mois','Ce mois'],['passe','Mois passe'],['7j','7 jours'],['trim','Trimestre'],['annee','Annee']];
+function renderRelChips(){
+  var el=G('rel-chips');if(!el)return;
+  el.innerHTML=REL_PERIODES.map(function(p){return '<div class="chip'+(_periodes.rel===p[0]?' on':'')+'" onclick="relPeriode(\''+p[0]+'\')">'+p[1]+'</div>';}).join('');
+}
+function relPeriode(code){
+  _periodes.rel=code;var b=bornesPeriode(code);
+  var rd=G('rel-debut'),rf=G('rel-fin');if(rd)rd.value=b.d;if(rf)rf.value=b.f;
+  renderRelChips();genererReleve();
+}
+function relDatesManuelles(){_periodes.rel='perso';renderRelChips();}
+// Depuis Tresorerie : ouvre le releve d'un seul compte sur la periode choisie.
+function ouvrirReleveCompte(code,cle){
+  var sel=_periodes[cle]||'mois',b=bornesPeriode(sel,_periodePerso[cle]);
+  goPage('releve',G('nb-releve'));
+  try{initReleve();}catch(e){}
+  document.querySelectorAll('#rel-comptes-list input[type=checkbox]').forEach(function(cb){cb.checked=(cb.value===code);});
+  document.querySelectorAll('#rel-tiers-list input[type=checkbox]').forEach(function(cb){cb.checked=false;});
+  var d=b.d;
+  if(d==='0000-01-01'){d=today().slice(0,4)+'-01-01';(D.ecritures||[]).forEach(function(e){if(e.date&&e.date<d)d=e.date;});}
+  var rd=G('rel-debut'),rf=G('rel-fin');if(rd)rd.value=d;if(rf)rf.value=b.f;
+  _periodes.rel=REL_PERIODES.some(function(p){return p[0]===sel;})?sel:'perso';
+  renderRelChips();genererReleve();
+}
+// ---- Tresorerie : soldes d'ouverture / entrees / sorties / cloture par compte, a partir du Journal ----
+function soldesPeriodeCompte(code,b,ecr){
+  var ouv=0,ent=0,sor=0,entHT=0,sorHT=0;
+  ecr.forEach(function(e){
+    var transit=(e.lignes||[]).some(function(l){return l.compte==='585';});
+    (e.lignes||[]).forEach(function(l){
+      if(l.compte!==code)return;
+      var m=Number(l.montant||0),dt=String(e.date||'');
+      if(b.code!=='tout'&&dt<b.d){ouv+=(l.sens==='D'?m:-m);}
+      else if(dt<=b.f){
+        if(l.sens==='D'){ent+=m;if(!transit)entHT+=m;}else{sor+=m;if(!transit)sorHT+=m;}
+      }
+    });
+  });
+  return {ouv:ouv,ent:ent,sor:sor,entHT:entHT,sorHT:sorHT,clot:ouv+ent-sor};
+}
+function renderSoldesPeriode(){
+  var bar=G('per-bar-tres'),body=G('t-soldes-per-body');if(!bar||!body)return;
+  bar.innerHTML=periodeBarHtml('tres');
+  var b=bornesPeriode(_periodes.tres||'mois',_periodePerso.tres),ecr=D.ecritures||[];
+  var noms=ordreComptesTresActuel().filter(function(n){return n!=='Frais Transfert'&&n!=='Transit 585';});
+  var tot={ouv:0,ent:0,sor:0,clot:0},rows='';
+  noms.forEach(function(n){
+    var code=cptCode(n),sd=soldesPeriodeCompte(code,b,ecr);
+    if(!sd.ouv&&!sd.ent&&!sd.sor&&!sd.clot)return;
+    tot.ouv+=sd.ouv;tot.ent+=sd.entHT;tot.sor+=sd.sorHT;tot.clot+=sd.clot;
+    rows+='<div style="padding:10px 0;border-top:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:700">'+escHtml(n)+'</span><span style="font-weight:700">'+fmt(sd.clot)+' F</span></div>'+
+      '<div style="display:flex;justify-content:space-between;gap:6px;font-size:calc(12px*var(--fscale));color:var(--text2);margin-top:3px"><span>Ouverture '+fmt(sd.ouv)+'</span><span style="color:var(--green)">+'+fmt(sd.ent)+'</span><span style="color:var(--red)">-'+fmt(sd.sor)+'</span></div>'+
+      '<span style="display:inline-block;color:var(--gold2);cursor:pointer;font-size:calc(12px*var(--fscale));padding:8px 0 2px" onclick="ouvrirReleveCompte(\''+escHtml(code)+'\',\'tres\')">Voir le releve de ce compte &rsaquo;</span></div>';
+  });
+  var head='<div style="font-size:calc(11px*var(--fscale));letter-spacing:.08em;text-transform:uppercase;color:var(--text2)">'+escHtml(periodeLibelle(b))+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:4px 0 8px"><span style="color:var(--text2)">Tresorerie totale</span><span style="font-size:calc(22px*var(--fscale));font-weight:700;color:var(--gold2)">'+fmt(tot.clot)+' F</span></div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:6px">'+
+      '<div style="flex:1;background:rgba(0,0,0,.25);border-radius:10px;padding:8px"><div style="font-size:calc(10.5px*var(--fscale));color:var(--text2)">Ouverture</div><div style="font-weight:700;font-size:calc(13px*var(--fscale))">'+fmt(tot.ouv)+' F</div></div>'+
+      '<div style="flex:1;background:rgba(0,0,0,.25);border-radius:10px;padding:8px"><div style="font-size:calc(10.5px*var(--fscale));color:var(--text2)">Entrees</div><div style="font-weight:700;font-size:calc(13px*var(--fscale));color:var(--green)">+'+fmt(tot.ent)+' F</div></div>'+
+      '<div style="flex:1;background:rgba(0,0,0,.25);border-radius:10px;padding:8px"><div style="font-size:calc(10.5px*var(--fscale));color:var(--text2)">Sorties</div><div style="font-weight:700;font-size:calc(13px*var(--fscale));color:var(--red)">-'+fmt(tot.sor)+' F</div></div></div>'+
+    '<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">Totaux hors transferts entre vos comptes.</div>';
+  body.innerHTML=head+(rows||'<div class="empty"><div class="empty-txt">Aucun mouvement</div></div>');
+  var rsm=G('t-soldes-per-resume');if(rsm)rsm.textContent=fmt(tot.clot)+' F';
+}
+
 function renderRev(){
-  var cats={};revenusStats().forEach(function(r){cats[r.categorie]=(cats[r.categorie]||0)+Number(r.montant);});
+  var bP=bornesPeriode(_periodes.rev||'mois',_periodePerso.rev),tousRev=revenusStats();
+  var revs=tousRev.filter(function(r){return dansPeriode(r.date,bP);});
+  var cats={};revs.forEach(function(r){cats[r.categorie]=(cats[r.categorie]||0)+Number(r.montant);});
   var sal=cats['Salaire net']||0,prim=(cats['Prime/Indemnite']||0)+(cats['Heures supp.']||0);
   var aut=Object.values(cats).reduce(function(a,v){return a+v;},0)-sal-prim;
+  var totRev=revs.reduce(function(a,r){return a+Number(r.montant||0);},0);
+  var pbR=periodePrecedente(bP),precRev=pbR?tousRev.filter(function(r){return dansPeriode(r.date,pbR);}).reduce(function(a,r){return a+Number(r.montant||0);},0):0;
+  var barR=G('per-bar-rev');if(barR)barR.innerHTML=periodeBarHtml('rev');
+  var sumR=G('rev-per-sum');if(sumR)sumR.innerHTML=periodeResumeHtml('Total des revenus','var(--green)',totRev,bP,pbR,precRev,true);
   var es=G('r-sal'),ep=G('r-prim'),ea=G('r-aut'),et=G('r-tot');
   if(es)es.textContent=fmt(sal)+' F';if(ep)ep.textContent=fmt(prim)+' F';
   if(ea)ea.textContent=fmt(Math.max(0,aut))+' F';if(et)et.textContent=fmt(sal+prim+Math.max(0,aut))+' F';
   var el=G('r-list');if(!el)return;
-  el.innerHTML=revenusStats().length?[...revenusStats()].sort(function(a,b){return (a.date||'').localeCompare(b.date||'');}).reverse().map(function(r){
+  el.innerHTML=revs.length?[...revs].sort(function(a,b){return (a.date||'').localeCompare(b.date||'');}).reverse().map(function(r){
     return '<div class="tx"><div class="tx-ico icr">+</div><div class="tx-inf"><div class="tx-lib">'+escHtml(r.libelle)+'</div><div class="tx-meta">'+fmtD(r.date)+(r.tiers?' - '+escHtml(r.tiers):'')+'</div><span class="tx-tag">'+escHtml(r.categorie)+' vers '+escHtml(r.compte)+'</span></div><div class="tx-amt acr">+'+fmt(r.montant)+' F</div></div>';
   }).join(''):'<div class="empty"><div class="empty-txt">Aucun revenu</div></div>';
   setTimeout(buildRevChart,100);
@@ -13475,10 +13644,14 @@ function depensesMouvements(){return _mouvementsCat('debit');}
 function revenusStats(){return (D.revenus||[]).concat(revenusMouvements());}
 function depensesPayees(){return (D.depenses||[]).concat(depensesMouvements()).filter(function(d){return !depenseOfferte(d);});}
 function renderDep(){
-  var toutesDep=(D.depenses||[]).concat(depensesMouvements());
+  var bP=bornesPeriode(_periodes.dep||'mois',_periodePerso.dep),toutesDepAll=(D.depenses||[]).concat(depensesMouvements());
+  var toutesDep=toutesDepAll.filter(function(d){return dansPeriode(d.date,bP);});
   var cats={};toutesDep.forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(_depFiltreCat&&!(_depFiltreCat in cats))_depFiltreCat='';
   var tot=toutesDep.reduce(function(a,d){return depenseOfferte(d)?a:a+Number(d.montant);},0);
+  var pbD=periodePrecedente(bP),precDep=pbD?toutesDepAll.filter(function(d){return !depenseOfferte(d)&&dansPeriode(d.date,pbD);}).reduce(function(a,d){return a+Number(d.montant||0);},0):0;
+  var barD=G('per-bar-dep');if(barD)barD.innerHTML=periodeBarHtml('dep');
+  var sumD=G('dep-per-sum');if(sumD)sumD.innerHTML=periodeResumeHtml('Total depense','var(--red)',tot,bP,pbD,precDep,false);
   var pfx=['pfg','pfb','pfo','pfr','pfp'];
   var ec=G('dep-cats');
   var lstCats=Object.entries(cats).sort(function(a,b){return b[1]-a[1];});
@@ -13749,7 +13922,7 @@ function calculerEpargneReellePeriode(debut,fin){
 function couleurTaux(t){return t>=15?'var(--green)':(t>=5?'var(--orange)':'var(--red)');}
 
 // ---- Rubriques repliables du tableau de bord (accordeons) ----
-var DASH_ACC_DEFAULT={pilotage:true,revdep:false,alertes:false,echeances:false,rapEvolution:true,rapClotures:false,rapExport:false,rapDrive:false,rapPwaDiag:false,rapSecurite:false,rapApparence:false,rapRegularisation:false,rapDanger:false,pertesCaisse:false,caisseManq:true,caisseExc:true,ddmCat:true,ddmSorties:true,ddmJeudis:false};
+var DASH_ACC_DEFAULT={soldesPer:false,pilotage:true,revdep:false,alertes:false,echeances:false,rapEvolution:true,rapClotures:false,rapExport:false,rapDrive:false,rapPwaDiag:false,rapSecurite:false,rapApparence:false,rapRegularisation:false,rapDanger:false,pertesCaisse:false,caisseManq:true,caisseExc:true,ddmCat:true,ddmSorties:true,ddmJeudis:false};
 function loadDashAccState(){try{return JSON.parse(localStorage.getItem('mp_dash_acc')||'{}');}catch(e){return {};}}
 function saveDashAccState(st){try{localStorage.setItem('mp_dash_acc',JSON.stringify(st));}catch(e){}}
 function initDashAccordions(){
@@ -16213,7 +16386,8 @@ function buildRevChart(){
 }
 function buildDepChart(){
   var ctx=G('ch-dep');if(!ctx)return;kc('dp');
-  var cats={};(D.depenses||[]).forEach(function(d){if(depenseOfferte(d))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
+  var bPc=bornesPeriode(_periodes.dep||'mois',_periodePerso.dep);
+  var cats={};(D.depenses||[]).concat(depensesMouvements()).forEach(function(d){if(depenseOfferte(d)||!dansPeriode(d.date,bPc))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(!Object.keys(cats).length)return;
   charts['dp']=new Chart(ctx,{type:'pie',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:C10,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94A3B8',font:{size:11}}}}}});
 }
@@ -16486,7 +16660,9 @@ function saveTx(){
   var lib=(G('tx-lib')||{}).value||'',amt=Number((G('tx-amt')||{}).value||0);
   var date=(G('tx-date')||{}).value||today(),tiers=(G('tx-tiers')||{}).value||'';
   var frais=Number((G('tx-frais')||{}).value||0);
-  if(!lib||!amt){notif('Libelle et montant obligatoires',true);return;}
+  var fraisSeuls=(type!=='credit'&&!amt&&frais>0);
+  if(!lib||(!amt&&!fraisSeuls)){notif('Libelle et montant obligatoires',true);return;}
+  if(fraisSeuls){saveFraisSeuls(cpt,frais,lib,date,tiers);return;}
   // Categorie choisie dans le formulaire (avant : 70 en dur pour toute entree, 60 en dur pour toute sortie).
   var txCatVal=(G('tx-cat')||{}).value||(type==='credit'?'70|Salaire net':'60|Alimentation'),txCatParts=txCatVal.split('|'),txCode=txCatParts[0],txCat=txCatParts[1]||txCatParts[0];
   function finaliserTx(){
@@ -16496,7 +16672,7 @@ function saveTx(){
     D.transactions.push({type:type,compte:cpt,libelle:lib,montant:amt,date:date,tiers:tiers,categorie:txCat});
     if(type==='credit')D.comptes[cpt]=(D.comptes[cpt]||0)+amt;
     appliquerFrais(cpt,frais,lib,date,tiers);
-    save();closeOv('ov-tx');notif('Operation enregistree'+(frais>0?' (frais: '+fmt(frais)+' F)':''));clr('tx-lib','tx-amt','tx-frais');
+    save();closeOv('ov-tx');notif('Operation enregistree'+(frais>0?' (frais: '+fmt(frais)+' F)':''));clr('tx-lib','tx-amt','tx-frais');try{majTxFraisSeuls();}catch(e){}
     try{renderAll();}catch(e){}
   }
   if(type!=='credit'){
@@ -16505,6 +16681,58 @@ function saveTx(){
     finaliserTx();
   }
 }
+// ---- Regularisation de frais seuls (Mouvement, sortie, montant 0) ----
+// Cas : frais de transfert supportes sans avoir enregistre l'operation elle-meme (argent recu puis
+// retransmis pour un tiers, sans depot). Ecriture unique : debit 627 / credit du compte de tresorerie,
+// via appliquerFrais() (journal FR, compteur "Frais Transfert" et controle d'integrite inclus).
+var SEUIL_ALERTE_FRAIS=2000;
+var _fraisSeulsPendingCtx=null;
+function txFraisSeuls(){
+  var type=(G('tx-type')||{}).value||'credit';
+  return type!=='credit'&&!Number((G('tx-amt')||{}).value||0)&&Number((G('tx-frais')||{}).value||0)>0;
+}
+function fraisDuMois(date){
+  var mois=String(date||today()).slice(0,7),tot=0;
+  (D.transactions||[]).forEach(function(t){
+    if(t.type==='debit'&&/^Frais/.test(String(t.libelle||''))&&String(t.date||'').slice(0,7)===mois)tot+=Number(t.montant||0);
+  });
+  return tot;
+}
+function majTxFraisSeuls(){
+  var on=txFraisSeuls(),w=G('tx-cat-wrap'),h=G('tx-frais-hint');
+  if(w)w.style.display=on?'none':'';
+  if(h){
+    var d=(G('tx-date')||{}).value||today();
+    h.textContent=(on?'Mode frais seuls : comptabilise en 627 - Frais sur transferts, preleve sur le compte choisi. ':'')+'Frais deja enregistres ce mois : '+fmt(fraisDuMois(d))+' F.';
+  }
+}
+function saveFraisSeuls(cpt,frais,lib,date,tiers){
+  if(date>today()){notif('Date dans le futur non autorisee pour des frais',true);return;}
+  var doublon=(D.transactions||[]).some(function(t){
+    return t.type==='debit'&&t.compte===cpt&&t.date===date&&Number(t.montant)===frais&&/^Frais/.test(String(t.libelle||''));
+  });
+  var alertes=[];
+  if(doublon)alertes.push('Des frais de meme montant ('+fmt(frais)+' F) existent deja sur '+cpt+' a cette date.');
+  if(frais>SEUIL_ALERTE_FRAIS)alertes.push('Montant de frais eleve : '+fmt(frais)+' F (seuil d\'alerte '+fmt(SEUIL_ALERTE_FRAIS)+' F).');
+  function go(){
+    var avant=Number(D.comptes['Frais Transfert']||0);
+    appliquerFrais(cpt,frais,'Regularisation : '+lib,date,tiers);
+    if(Number(D.comptes['Frais Transfert']||0)<=avant){return;} // refus (solde, ecriture) : deja signale par appliquerFrais
+    save();closeOv('ov-tx');notif('Frais regularises : '+fmt(frais)+' F (627)');
+    clr('tx-lib','tx-amt','tx-frais');try{majTxFraisSeuls();}catch(e){}
+    try{renderAll();}catch(e){}
+  }
+  if(alertes.length){
+    _fraisSeulsPendingCtx={onConfirm:go};
+    var t=G('cfr-texte');if(t)t.textContent=alertes.join(' ')+' Verifiez avant d\'enregistrer.';
+    openOv('ov-confirm-frais');
+  }else go();
+}
+function confirmerFraisSeuls(){
+  var ctx=_fraisSeulsPendingCtx;if(!ctx)return;
+  _fraisSeulsPendingCtx=null;closeOv('ov-confirm-frais');ctx.onConfirm();
+}
+function annulerFraisSeuls(){_fraisSeulsPendingCtx=null;closeOv('ov-confirm-frais');}
 function saveTransfert(){
   var from=(G('tr-from')||{}).value||'',to=(G('tr-to')||{}).value||'';
   var lib=(G('tr-lib')||{}).value||'',amt=Number((G('tr-amt')||{}).value||0);
