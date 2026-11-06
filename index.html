@@ -4317,13 +4317,13 @@ function libreAilleurs(cpt){
 // tontines gerees) + prets a recuperer + epargne de depart des projets. Le decouvert est deja dans le solde negatif
 // de la banque : il n'est pas rededuit (dettesHorsDecouvert).
 function patrimoineNetActuel(){
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var dettesP=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
   return tres-dettesP-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()+pretsTot+epargneProjetsPhantome();
 }
 function tresorerieDisponibleGlobale(){
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   // L'argent d'autrui deja retire ci-dessous ne doit pas l'etre une 2e fois via l'epargne : on n'exclut que la
   // part personnelle du compte Epargne.
   var soldeEpargne=(D.parametres&&D.parametres.epargneUrgence)?0:libreSurCompte('Banque Epargne');
@@ -7952,7 +7952,7 @@ function verifierIntegriteDonnees(donnees){
   // censee avoir trace une dette automatique (autoType 'fonds_tiers_reserve') a due concurrence. Recalcul
   // local (et non tresorerieDisponibleGlobale(), qui lit D directement) pour rester valable sur une copie.
   (function(){
-    var tresTotale=COMPTES_TRES.reduce(function(a,c){return a+Number((d.comptes||{})[c]||0);},0);
+    var tresTotale=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+Number((d.comptes||{})[c]||0);},0);
     var fondsDeposants=(d.depots||[]).reduce(function(a,dp){return a+Number(dp.montant||0);},0);
     var fondsTontinesGerees=0;
     (d.tontines||[]).forEach(function(t){
@@ -14035,8 +14035,8 @@ function _fCompteLib(c){return c+' - '+(PLAN_COMPTES[c]||('Compte '+c));}
 function _fListeComptes(det){return Object.keys(det).sort(function(a,b){return det[b]-det[a];}).map(function(c){return _fRow(_fCompteLib(c),det[c]);}).join('');}
 function openFormule(cle){
   var h='',titre='Detail',now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  var tresParCompte=function(){return COMPTES_TRES.map(function(c){return {c:c,v:D.comptes[c]||0};}).filter(function(x){return Math.abs(x.v)>0.5;});};
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tresParCompte=function(){return COMPTES_TRES.filter(function(c){return c!=='Frais Transfert';}).map(function(c){return {c:c,v:D.comptes[c]||0};}).filter(function(x){return Math.abs(x.v)>0.5;});};
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var dettesP=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   if(cle==='caf'){
     var per=bornesPilotage(),c=calculerCAFPeriode(per.debut,per.fin);
@@ -14142,7 +14142,7 @@ function renderRatiosPerso(){
   var dettes=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var pretsTot=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
   var ep=epargneProjetsPhantome();
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   // Actif qui m'appartient : on retire l'argent detenu pour des tiers (depots, tontines gerees) - meme logique que
   // le patrimoine net ; dettes et actif sont ainsi sur la meme base.
   var actifTotal=tres-totalFondsDeposantsAutrui()-totalFondsTontinesGerees()+pretsTot+ep;
@@ -14174,7 +14174,7 @@ function renderPrevisions(cafMoy){
 function renderComparatifs(per){
   var rev=revenusStats().filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(r){return r.date>=per.debut&&r.date<=per.fin;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var pret=(D.prets||[]).reduce(function(a,p){return a+pretReste(p);},0);
   var depot=(D.depots||[]).reduce(function(a,d){return a+Number(d.montant);},0);
@@ -14368,7 +14368,7 @@ function renderFondsTiers(){
   var el=G('t-fonds-tiers');if(!el)return;
   var depot=totalFondsDeposantsAutrui(),tonG=totalFondsTontinesGerees();
   var tot=depot+tonG;
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var soldeEpargneVerrou=(D.parametres&&D.parametres.epargneUrgence)?0:libreSurCompte('Banque Epargne');
   var dispo=tresorerieDisponibleGlobale();
   el.innerHTML=
@@ -14455,7 +14455,7 @@ function updateHdr(){
   var hd=G('h-date');if(hd)hd.textContent=now.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
   var rev=revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var dettes=(D.dettes||[]).reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   // Le decouvert bancaire (s'il existe) est deja reflete dans tres (solde negatif de Banque Courant) :
   // on l'exclut du total de dettes utilise dans le calcul du patrimoine pour ne pas le compter deux fois.
@@ -16604,7 +16604,7 @@ async function sendIA(){
   var now=new Date(),m=now.getMonth(),y=now.getFullYear();
   var rev=revenusStats().filter(function(r){var d=new Date(r.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce(function(a,r){return a+Number(r.montant);},0);
   var dep=depensesPayees().filter(function(d){var dd=new Date(d.date);return dd.getMonth()===m&&dd.getFullYear()===y;}).reduce(function(a,d){return a+Number(d.montant);},0);
-  var tres=COMPTES_TRES.reduce(function(a,c){return a+(D.comptes[c]||0);},0);
+  var tres=COMPTES_TRES.reduce(function(a,c){return c==='Frais Transfert'?a:a+(D.comptes[c]||0);},0);
   var det=dettesHorsDecouvert().reduce(function(a,d){return a+Number(d.montant);},0)+capitalRestantDuEmprunts();
   var projTxt=(D.projets||[]).filter(function(p){return p.statut!=='Annule';}).map(function(p){
     var r=recalcProjet(p);
