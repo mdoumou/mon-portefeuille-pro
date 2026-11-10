@@ -13293,9 +13293,9 @@ function renderManquants(){
       ((m.deductions||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerDerniereRetenueManquant(\''+m.id+'\')">Annuler la derniere retenue</button>':'')+
       (m.ref?'':'<button class="btn-s" style="flex:1;color:var(--red)" onclick="demanderSupprManquant(\''+m.id+'\')">Supprimer</button>')+'</div>';
     return '<div class="card" style="border-left:3px solid '+(enCours?'var(--red)':'var(--green)')+';margin-bottom:8px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(m.motif)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(m.motif)+'</div>'+
       '<div style="font-size:calc(11px*var(--fscale));color:var(--text2)">'+fmtD(m.date)+(m.tiersNom?' - '+escHtml(m.tiersNom):'')+' - '+TRL[m.traitement]+'</div></div>'+
-      '<div style="text-align:right"><div style="font-family:var(--font-mono);font-weight:700;color:var(--red)">'+fmt(m.montant)+' F</div>'+
+      '<div style="text-align:right;flex-shrink:0;white-space:nowrap"><div style="font-family:var(--font-mono);font-weight:700;color:var(--red)">'+fmt(m.montant)+' F</div>'+
       '<div style="font-size:calc(10.5px*var(--fscale));color:'+(enCours?'var(--red)':'var(--green)')+'">'+(enCours?'Reste '+fmt(reste)+' F':'Solde')+'</div></div></div>'+
       '<div style="font-size:calc(11.5px*var(--fscale));color:var(--text2);margin-top:6px;line-height:1.6">'+lignes.join('<br>')+'</div>'+
       detRet+actions+'</div>';
