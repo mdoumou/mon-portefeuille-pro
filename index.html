@@ -194,6 +194,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .acr{color:var(--green);}.adb{color:var(--red);}
 
 /* BADGE */
+.mp-hide{display:none!important;}
 .bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:calc(11px*var(--fscale));font-weight:600;cursor:pointer;}
 .bg{background:rgba(16,185,129,.15);color:var(--green);}
 .br{background:rgba(239,68,68,.15);color:var(--red);}
@@ -8958,9 +8959,114 @@ function savePretAccordeDepot(){
 // ============ DETTES (avec contrepartie nature/tresorerie) ============
 var _detteIdx=-1;
 var _excedentRembPending=null;
+// ============ PAIEMENT MULTI-COMPTES (un montant ET des frais par compte) ============
+// Meme principe que "Payer avec plusieurs comptes" des Depenses : la somme des lignes doit egaler le montant total ;
+// chaque ligne peut porter ses propres frais (preleves sur CE compte). Le bloc est injecte dans le formulaire
+// (apres le choix du compte) : le formulaire d'origine reste inchange quand la case n'est pas cochee.
+var MP_CFG={
+  remb:{sel:'remb-cpt',amt:'remb-amt',frais:'remb-frais',
+    total:function(){var d=(D.dettes||[])[_detteIdx];return Number((G('remb-amt')||{}).value||0)||(d?Number(d.montant):0);}},
+  rdep:{sel:'remb-depot-cpt',amt:'remb-depot-amt',frais:'remb-depot-frais',
+    total:function(){var d=(D.depots||[])[_depotRembIdx];return Number((G('remb-depot-amt')||{}).value||0)||(d?Number(d.montant):0);}}
+};
+function mpComptes(){return COMPTES_TRES.filter(function(c){return c!=='Frais Transfert'&&c!=='Transit 585';});}
+function mpInit(){
+  Object.keys(MP_CFG).forEach(function(k){
+    var c=MP_CFG[k],sel=G(c.sel);if(!sel||G('mp-box-'+k))return;
+    var row=sel.parentNode;if(!row||!row.parentNode)return;
+    var box=document.createElement('div');box.id='mp-box-'+k;
+    box.innerHTML='<label class="lbl" style="display:flex;align-items:center;gap:8px;margin:6px 0"><input type="checkbox" id="mp-on-'+k+'" onchange="mpToggle(\''+k+'\')" style="width:18px;height:18px"> Payer avec plusieurs comptes</label>'+
+      '<div id="mp-rows-'+k+'" style="display:none"></div>'+
+      '<div class="bdg bb" id="mp-add-'+k+'" style="display:none;margin-bottom:6px" onclick="mpAjouter(\''+k+'\')">+ Ajouter un compte</div>'+
+      '<div id="mp-info-'+k+'" style="display:none;font-size:calc(12px*var(--fscale));color:var(--text2);margin-bottom:10px"></div>';
+    row.parentNode.insertBefore(box,row.nextSibling);
+    var ai=G(c.amt);if(ai)ai.addEventListener('input',function(){mpInfo(k);});
+  });
+}
+function mpActif(k){var cb=G('mp-on-'+k);return !!(cb&&cb.checked&&G('mp-box-'+k)&&G('mp-box-'+k).style.display!=='none');}
+function mpReset(k){
+  var c=MP_CFG[k];if(!c)return;
+  var cb=G('mp-on-'+k);if(cb)cb.checked=false;
+  var sel=G(c.sel),fr=G(c.frais);
+  if(sel&&sel.parentNode)sel.parentNode.classList.remove('mp-hide');
+  if(fr&&fr.parentNode)fr.parentNode.classList.remove('mp-hide');
+  var rows=G('mp-rows-'+k),add=G('mp-add-'+k),inf=G('mp-info-'+k);
+  if(rows){rows.innerHTML='';rows.style.display='none';}
+  if(add)add.style.display='none';
+  if(inf){inf.style.display='none';inf.textContent='';}
+}
+function mpToggle(k){
+  var c=MP_CFG[k];if(!c)return;
+  var on=!!(G('mp-on-'+k)||{}).checked,sel=G(c.sel),fr=G(c.frais);
+  if(sel&&sel.parentNode)sel.parentNode.classList.toggle('mp-hide',on);
+  if(fr&&fr.parentNode)fr.parentNode.classList.toggle('mp-hide',on);
+  var rows=G('mp-rows-'+k),add=G('mp-add-'+k);
+  if(rows)rows.style.display=on?'':'none';
+  if(add)add.style.display=on?'':'none';
+  if(on){
+    if(rows&&!rows.children.length){
+      var premier=(sel&&sel.value)||mpComptes()[0]||'',autre=mpComptes().filter(function(x){return x!==premier;})[0]||'';
+      mpAjouter(k,premier);mpAjouter(k,autre);
+    }
+  } else if(rows){rows.innerHTML='';}
+  mpInfo(k);
+}
+function mpAjouter(k,cpt,amt){
+  var rows=G('mp-rows-'+k);if(!rows)return;
+  var row=document.createElement('div');row.className='fr';row.style.cssText='margin-top:6px;display:grid;grid-template-columns:1.4fr 1fr .8fr;gap:8px';
+  row.innerHTML='<div class="fg" style="margin:0"><select class="fc mp-cpt">'+mpComptes().map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('')+'</select></div>'+
+    '<div class="fg" style="margin:0"><input class="fc mp-amt" type="number" placeholder="Montant" oninput="mpInfo(\''+k+'\')"></div>'+
+    '<div class="fg" style="margin:0"><input class="fc mp-frais" type="number" placeholder="Frais" oninput="mpInfo(\''+k+'\')"></div>';
+  rows.appendChild(row);
+  if(cpt)row.querySelector('.mp-cpt').value=cpt;
+  if(amt)row.querySelector('.mp-amt').value=amt;
+  mpInfo(k);
+}
+function mpLire(k){
+  var out=[],idx={};
+  document.querySelectorAll('#mp-rows-'+k+' .fr').forEach(function(row){
+    var cpt=row.querySelector('.mp-cpt').value,m=Number(row.querySelector('.mp-amt').value||0),f=Number(row.querySelector('.mp-frais').value||0);
+    if(!cpt||!(m>0))return;
+    if(idx[cpt]!==undefined){out[idx[cpt]].montant+=m;out[idx[cpt]].frais+=f;}
+    else{idx[cpt]=out.length;out.push({compte:cpt,montant:m,frais:f>0?f:0});}
+  });
+  return out;
+}
+function mpInfo(k){
+  var c=MP_CFG[k],el=G('mp-info-'+k);if(!c||!el)return;
+  if(!mpActif(k)){el.style.display='none';return;}
+  var lignes=mpLire(k),total=c.total(),somme=lignes.reduce(function(a,r){return a+r.montant;},0),fr=lignes.reduce(function(a,r){return a+r.frais;},0),reste=total-somme;
+  el.style.display='';
+  el.textContent='Reparti : '+fmt(somme)+' F sur '+fmt(total)+' F'+(Math.abs(reste)<1?' - OK':(reste>0?' - reste '+fmt(reste)+' F':' - depasse de '+fmt(-reste)+' F'))+(fr>0?' · Frais : '+fmt(fr)+' F':'');
+  el.style.color=Math.abs(reste)<1?'var(--green)':'var(--text2)';
+}
+// Validation commune : au moins 2 comptes, somme = total. Retourne la liste ou null (message deja affiche).
+function mpValider(k,total){
+  var l=mpLire(k);
+  if(l.length<2){notif('Ajoutez au moins deux comptes avec un montant',true);return null;}
+  var s=l.reduce(function(a,r){return a+r.montant;},0);
+  if(Math.abs(s-total)>=1){notif('La somme des comptes ('+fmt(s)+' F) doit etre egale au montant total ('+fmt(total)+' F)',true);return null;}
+  return l;
+}
+// Remboursement d'une dette sur plusieurs comptes : on enchaine un remboursement par compte (file _rembPlanQueue),
+// chacun avec ses propres frais. Tous les comptes sont pre-verifies avant le premier decaissement.
+function doRembourserMulti(d,mode,amt){
+  if(mode!=='tresorerie'){notif('Le paiement multi-comptes ne concerne que le mode "Par tresorerie"',true);return;}
+  if(amt>d.montant+0.01){notif('Avec plusieurs comptes, le montant ne peut pas depasser le reste du ('+fmt(d.montant)+' F)',true);return;}
+  var lignes=mpValider('remb',amt);if(!lignes)return;
+  var payeur=(G('remb-frais-payeur')||{}).value||'moi';
+  for(var i=0;i<lignes.length;i++){
+    var chk=verifierDebit(lignes[i].compte,lignes[i].montant+(payeur==='moi'?lignes[i].frais:0),{objet:'Remboursement dette - '+d.creancier});
+    if(!chk.ok&&!chk.needsConfirmFondsTiers)return;
+  }
+  _rembPlanQueue=lignes.slice(1);
+  var sel=G('remb-cpt');if(sel)sel.value=lignes[0].compte;
+  doRembourserInterne('tresorerie',lignes[0].montant,lignes[0].frais,null);
+}
 function ouvrirRembourser(i){
   _detteIdx=i;var d=(D.dettes||[])[i];if(!d)return;
   reinitialiserChampsOv('ov-remb-dette');
+  mpInit();mpReset('remb');_rembPlanQueue=[];
   var rt=G('remb-dette-title');if(rt)rt.textContent='Rembourser - '+d.creancier;
   var ra=G('remb-amt');if(ra)ra.value='';
   var rm=G('remb-mode');if(rm)rm.value='tresorerie';
@@ -8977,6 +9083,7 @@ function toggleRembMode(){
   if(cr)cr.style.display=mode==='tresorerie'?'':'none';
   if(nr)nr.style.display=mode==='nature'?'':'none';
   if(dr)dr.style.display=mode==='depot'?'':'none';
+  var mb=G('mp-box-remb');if(mb){mb.style.display=mode==='tresorerie'?'':'none';if(mode!=='tresorerie')mpReset('remb');}
 }
 function toggleExcedentType(){
   var t=(G('exc-type')||{}).value||'creance';
@@ -8988,6 +9095,7 @@ function doRembourser(){
   var mode=(G('remb-mode')||{}).value||'tresorerie';
   var amt=Number((G('remb-amt')||{}).value||0)||d.montant;
   var frais=Number((G('remb-frais')||{}).value||0);
+  if(mpActif('remb')){doRembourserMulti(d,mode,amt);return;}
   // V1.0.1 : si le remboursement depasse ce qui est reellement du (dette 1500, remb. 2000), l'excedent
   // ne doit jamais etre silencieusement absorbe/perdu - on demande confirmation avant de le transformer
   // en creance (D.prets sans echeance) ou en pret formel (avec echeance), avec lien historique vers la
@@ -9022,7 +9130,7 @@ function suiteRembPlan(){
   if(!_rembPlanQueue||!_rembPlanQueue.length)return;
   var l=_rembPlanQueue.shift();
   var sel=G('remb-cpt');if(sel)sel.value=l.compte;
-  doRembourserInterne('tresorerie',l.montant,0,null);
+  doRembourserInterne('tresorerie',l.montant,l.frais||0,null);
 }
 // annulerExcedent : l'utilisateur choisit de ne PAS creer de creance pour l'excedent - le remboursement
 // est alors plafonne exactement au montant de la dette (le surplus n'est jamais enregistre ni perdu :
@@ -9333,6 +9441,7 @@ function ouvrirRembDepot(i){
   _depotRembIdx=i;
   var d=(D.depots||[])[i];if(!d)return;
   reinitialiserChampsOv('ov-remb-depot');
+  mpInit();mpReset('rdep');
   var rt=G('remb-depot-title'),ra=G('remb-depot-amt'),rc=G('remb-depot-cpt'),rf=G('remb-depot-frais');
   if(rt)rt.textContent='Restitution a '+d.deposant;
   if(ra)ra.value='';
@@ -9416,6 +9525,10 @@ function doRembDepot(){
   // Garde-fou : on ne peut restituer plus que ce qui reste du depot (le reste, deja utilise, est une DETTE a
   // rembourser depuis le module Dettes) - sinon le compte 467 passerait en debit.
   if(amt>d.montant+0.5){notif('Montant superieur au depot restant ('+fmt(d.montant)+' F). Ce qui a deja ete utilise est une dette : remboursez-la depuis le module Dettes',true);return;}
+  if(mpActif('rdep')){
+    var lignesR=mpValider('rdep',amt);if(!lignesR)return;
+    executerRembDepot(d,amt,lignesR,0,(G('remb-depot-frais-payeur')||{}).value||'moi');return;
+  }
   var repFallback=depotRepartitions(d)[0];
   var cpt=(G('remb-depot-cpt')||{}).value||(repFallback?repFallback.compte:'Especes');
   var frais=Number((G('remb-depot-frais')||{}).value||0);
@@ -9439,12 +9552,20 @@ function executerRembDepot(d,amt,plan,frais,payeurFrais){
   depotReduireProportionnellement(d,amt);
   var depotEncoreLa=d.montant>0.01;
   if(!depotEncoreLa){var ix=D.depots.indexOf(d);if(ix>-1)D.depots.splice(ix,1);}
-  var fraisRes=appliquerFraisUniverselle(cpt,frais,payeurFrais,'Restitution depot '+d.deposant,today(),d.tiers||'','467');
-  if(fraisRes.ok&&fraisRes.montantAReduire>0&&depotEncoreLa){
-    depotReduireProportionnellement(d,fraisRes.montantAReduire);
+  // Frais : un par compte si le plan en porte (paiement multi-comptes), sinon le frais unique sur le 1er compte.
+  var fraisList=plan.filter(function(l){return l.frais>0;}).map(function(l){return {compte:l.compte,frais:l.frais};});
+  if(!fraisList.length)fraisList=[{compte:cpt,frais:frais}];
+  var reduireTot=0,fraisTot=0;
+  fraisList.forEach(function(fl){
+    var fr=appliquerFraisUniverselle(fl.compte,fl.frais,payeurFrais,'Restitution depot '+d.deposant,today(),d.tiers||'','467');
+    if(fr.ok&&fr.montantAReduire>0)reduireTot+=fr.montantAReduire;
+    fraisTot+=fl.frais;
+  });
+  if(reduireTot>0&&depotEncoreLa){
+    depotReduireProportionnellement(d,reduireTot);
   }
   save();closeOv('ov-remb-depot');renderDepots();
-  notif('Restitution '+fmt(amt)+' F enregistree'+(plan.length>1?' (repartie sur '+plan.length+' comptes)':'')+(frais>0?' (frais: '+fmt(frais)+' F, a charge de '+(payeurFrais==='moi'?'Baye':d.deposant)+')':''));
+  notif('Restitution '+fmt(amt)+' F enregistree'+(plan.length>1?' (repartie sur '+plan.length+' comptes)':'')+(fraisTot>0?' (frais: '+fmt(fraisTot)+' F, a charge de '+(payeurFrais==='moi'?'Baye':d.deposant)+')':''));
   try{renderAll();}catch(e){}
 }
 function annulerDepot(i){
@@ -16800,7 +16921,8 @@ function comptesPourRepartDep(){return COMPTES_TRES.filter(function(c){return c!
 function ajouterLigneDepRepart(cpt,amt){
   var wrap=G('dep-repart-rows');if(!wrap)return;
   var row=document.createElement('div');row.className='fr';row.style.marginTop='6px';
-  row.innerHTML='<div class="fg"><select class="fc dep-repart-cpt">'+comptesPourRepartDep().map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div><div class="fg"><input class="fc dep-repart-amt" type="number" placeholder="Montant" oninput="majDepRepartInfo()"></div>';
+  row.style.display='grid';row.style.gridTemplateColumns='1.4fr 1fr .8fr';row.style.gap='8px';
+  row.innerHTML='<div class="fg" style="margin:0"><select class="fc dep-repart-cpt">'+comptesPourRepartDep().map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div><div class="fg" style="margin:0"><input class="fc dep-repart-amt" type="number" placeholder="Montant" oninput="majDepRepartInfo()"></div><div class="fg" style="margin:0"><input class="fc dep-repart-frais" type="number" placeholder="Frais" oninput="majDepRepartInfo()"></div>';
   wrap.appendChild(row);
   if(cpt)row.querySelector('.dep-repart-cpt').value=cpt;
   if(amt)row.querySelector('.dep-repart-amt').value=amt;
@@ -16809,10 +16931,10 @@ function ajouterLigneDepRepart(cpt,amt){
 function lireRepartitionsDep(){
   var out=[],idx={};
   document.querySelectorAll('#dep-repart-rows .fr').forEach(function(row){
-    var cpt=row.querySelector('.dep-repart-cpt').value,montant=Number(row.querySelector('.dep-repart-amt').value||0);
+    var cpt=row.querySelector('.dep-repart-cpt').value,montant=Number(row.querySelector('.dep-repart-amt').value||0),fr=Number((row.querySelector('.dep-repart-frais')||{}).value||0);
     if(!cpt||!(montant>0))return;
-    if(idx[cpt]!==undefined){out[idx[cpt]].montant+=montant;}
-    else{idx[cpt]=out.length;out.push({compte:cpt,montant:montant});}
+    if(idx[cpt]!==undefined){out[idx[cpt]].montant+=montant;out[idx[cpt]].frais+=(fr>0?fr:0);}
+    else{idx[cpt]=out.length;out.push({compte:cpt,montant:montant,frais:fr>0?fr:0});}
   });
   return out;
 }
@@ -16829,6 +16951,7 @@ function toggleDepMulti(){
   var on=!!(G('dep-multi')||{}).checked;
   var cptSel=G('dep-cpt'),cptRow=cptSel?cptSel.parentNode:null;
   if(cptRow)cptRow.style.display=(on||!!(G('dep-reliquat-dette')||{}).checked)?'none':'';
+  var dfr=G('dep-frais'),dfp=dfr?dfr.parentNode:null;if(dfp)dfp.classList.toggle('mp-hide',on);
   var rows=G('dep-repart-rows'),add=G('dep-repart-add');
   if(rows)rows.style.display=on?'':'none';
   if(add)add.style.display=on?'':'none';
@@ -16851,9 +16974,11 @@ function saveDepMulti(p){
     if(!ref){notif('Depense annulee - l\'ecriture correspondante a echoue',true);return;}
     reps.forEach(function(r){_appliquerDebitTresorerie(r.compte,r.montant,checks[r.compte],{objet:'Depense - '+p.lib});});
     D.depenses.push({categorie:p.cat,libelle:p.lib,montant:p.amt,date:p.date,tiers:p.tiers,compte:reps.map(function(r){return r.compte;}).join(' + '),repartitions:reps,chargeLinkId:p.chargeLinkId||undefined});
-    if(p.frais>0)appliquerFrais(reps[0].compte,p.frais,p.lib,p.date,p.tiers);
+    var fraisL=reps.filter(function(r){return r.frais>0;}),fraisTot=0;
+    if(fraisL.length){fraisL.forEach(function(r){appliquerFrais(r.compte,r.frais,p.lib,p.date,p.tiers);fraisTot+=r.frais;});}
+    else if(p.frais>0){appliquerFrais(reps[0].compte,p.frais,p.lib,p.date,p.tiers);fraisTot=p.frais;}
     save();closeOv('ov-dep');
-    notif('Depense enregistree - '+reps.map(function(r){return r.compte+' '+fmt(r.montant)+' F';}).join(' + ')+(p.frais>0?' (frais: '+fmt(p.frais)+' F)':''));
+    notif('Depense enregistree - '+reps.map(function(r){return r.compte+' '+fmt(r.montant)+' F';}).join(' + ')+(fraisTot>0?' (frais: '+fmt(fraisTot)+' F)':''));
     clr('dep-lib','dep-amt','dep-frais','dep-paye');
     var dm=G('dep-multi');if(dm)dm.checked=false;toggleDepMulti();
     try{renderAll();}catch(e){}
