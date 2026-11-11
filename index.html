@@ -2824,6 +2824,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-confirm-suppr-excedent')">Annuler</button>
 </div></div>
 
+<div class="ov" id="ov-mq-retrouve"><div class="modal" onclick="event.stopPropagation()">
+  <div class="modal-hd"></div><div class="modal-title">Manquant retrouve</div>
+  <div id="mqr-info" style="font-size:calc(13px*var(--fscale));color:var(--text2);margin-bottom:12px"></div>
+  <div class="fg"><label class="fl">Montant retrouve (FCFA)</label><input class="fc" type="number" id="mqr-montant"></div>
+  <div class="fg"><label class="fl">Compte qui recupere l'argent</label><select class="fc" id="mqr-cpt"></select></div>
+  <div class="fg"><label class="fl">Date</label><input class="fc" type="date" id="mqr-date"></div>
+  <button class="btn-p btn-gold" onclick="confirmerManquantRetrouve()">Confirmer</button>
+  <button class="btn-s" style="margin-top:9px" onclick="closeOv('ov-mq-retrouve')">Annuler</button>
+</div></div>
+
 <div class="ov" id="ov-argent-retrouve"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Argent retrouve</div>
   <div id="ar-info" style="font-size:calc(13px*var(--fscale));color:var(--text2);margin-bottom:12px"></div>
@@ -13231,12 +13241,52 @@ function confirmerSupprManquant(){
   _mqSupprId='';closeOv('ov-confirm-suppr-manquant');
   save();notif('Manquant supprime');renderManquants();
 }
+// Manquant de caisse deja regle de MA POCHE, puis retrouve : l'argent me revient (debit compte / credit 479, ecriture inverse
+// de celle du manquant). Peut etre fait en plusieurs fois, jusqu'a la part de poche payee.
+var _mqRetrouveId='';
+function manqRetrouve(m){return (m.retrouves||[]).reduce(function(a,r){return a+Number(r.montant||0);},0);}
+function mqRetrouveMax(m){return Math.max(0,Number(m.partPoche||0)-manqRetrouve(m));}
+function ouvrirManquantRetrouve(id){
+  var m=(D.manquants||[]).find(function(x){return x.id===id;});if(!m)return;
+  var max=mqRetrouveMax(m);
+  if(max<=0.5){notif('Rien a recuperer : la part de poche est deja retrouvee',true);return;}
+  _mqRetrouveId=id;
+  var sel=G('mqr-cpt');
+  if(sel)sel.innerHTML=COMPTES_TRES.filter(function(c){return c!=='Frais Transfert';}).map(function(c){return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>';}).join('');
+  if(sel&&m.compte)sel.value=m.compte;
+  var info=G('mqr-info');
+  if(info)info.innerHTML=escHtml(m.motif)+'<br>Paye de ma poche : '+fmt(m.partPoche)+' F - encore a recuperer : <b style="color:var(--gold2)">'+fmt(max)+' F</b>';
+  var mo=G('mqr-montant');if(mo)mo.value=max;
+  var d=G('mqr-date');if(d)d.value=today();
+  openOv('ov-mq-retrouve');
+}
+function confirmerManquantRetrouve(){
+  var m=(D.manquants||[]).find(function(x){return x.id===_mqRetrouveId;});if(!m)return;
+  var montant=Math.round(Number((G('mqr-montant')||{}).value||0));
+  var cpt=(G('mqr-cpt')||{}).value||m.compte||'Especes';
+  var date=(G('mqr-date')||{}).value||today();
+  var max=mqRetrouveMax(m);
+  if(!montant||montant<=0){notif('Montant obligatoire',true);return;}
+  if(montant>max+0.5){notif('Ce montant depasse la part de poche a recuperer ('+fmt(max)+' F)',true);return;}
+  var ref=passerEcriture('OD',date,'Manquant de caisse retrouve - '+m.motif,[
+    {compte:cptCode(cpt),lib:cpt,sens:'D',montant:montant,tiers:''},
+    {compte:'479',lib:'Ecarts de regularisation',sens:'C',montant:montant,tiers:''}
+  ],'');
+  if(ref===false){notif('Enregistrement annule - l\'ecriture correspondante a echoue',true);return;}
+  D.comptes[cpt]=(D.comptes[cpt]||0)+montant;
+  if(!m.retrouves)m.retrouves=[];
+  m.retrouves.push({date:date,montant:montant,compte:cpt,ref:ref});
+  auditLog('Manquant retrouve','Caisse',cpt+' : +'+fmt(montant)+' F',m.motif,'');
+  save();closeOv('ov-mq-retrouve');
+  notif('Manquant retrouve : '+fmt(montant)+' F remis dans '+cpt);
+  try{renderAll();}catch(e){}
+}
 function totauxManquants(){
   var t={nb:0,total:0,poche:0,absorbe:0,excedent:0,aRetenir:0,dejaRetenu:0,reste:0,annee:0,nbAnnee:0,mois:0,nbMois:0};
   var now=new Date(),y=now.getFullYear(),mo=now.getMonth();
   (D.manquants||[]).forEach(function(m){
     var mt=Number(m.montant||0);
-    t.nb++;t.total+=mt;t.poche+=Number(m.partPoche||0);t.absorbe+=Number(m.partAbsorbe||0);
+    t.nb++;t.total+=mt;t.poche+=Math.max(0,Number(m.partPoche||0)-manqRetrouve(m));t.absorbe+=Number(m.partAbsorbe||0);
     t.excedent+=Number(m.partExcedent||0)+manqCompense(m);
     t.aRetenir+=Number(m.partRetenue||0)-manqCompense(m);t.dejaRetenu+=manqReteRetenu(m);t.reste+=manqResteRetenir(m);
     var d=new Date(m.date);
@@ -13272,6 +13322,7 @@ function renderManquants(){
     if(m.partAbsorbe>0)lignes.push('Societe : '+fmt(m.partAbsorbe)+' F absorbes');
     if(m.partExcedent>0)lignes.push('Excedent : '+fmt(m.partExcedent)+' F (couvert a la saisie)');
     var cmp=manqCompense(m);if(cmp>0)lignes.push('Ajuste par excedent : '+fmt(cmp)+' F');
+    var rtr=manqRetrouve(m);if(rtr>0)lignes.push('Retrouve : '+fmt(rtr)+' F (remis dans '+escHtml((m.retrouves[m.retrouves.length-1]||{}).compte||'ma poche')+')');
     var detRet='';
     if(aRet>0){
       var pct=Math.min(100,Math.round(ret/Math.max(1,aRet)*100));
@@ -13289,6 +13340,7 @@ function renderManquants(){
         '<button class="btn-s" style="width:100%;color:var(--gold2)" onclick="ajusterManquantAvecExcedent(\''+m.id+'\')">Ajuster avec cet excedent</button></div>';
     }
     var actions=ajuste+'<div style="display:flex;gap:8px;margin-top:8px">'+
+      ((m.partPoche>0&&mqRetrouveMax(m)>0.5)?'<button class="btn-s" style="flex:1;color:var(--gold2)" onclick="ouvrirManquantRetrouve(\''+m.id+'\')">Retrouve</button>':'')+
       ((m.compensations||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerAjustementManquant(\''+m.id+'\')">Annuler l\'ajustement</button>':'')+
       ((m.deductions||[]).length?'<button class="btn-s" style="flex:1" onclick="annulerDerniereRetenueManquant(\''+m.id+'\')">Annuler la derniere retenue</button>':'')+
       (m.ref?'':'<button class="btn-s" style="flex:1;color:var(--red)" onclick="demanderSupprManquant(\''+m.id+'\')">Supprimer</button>')+'</div>';
