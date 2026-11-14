@@ -1436,6 +1436,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
       </div>
         </div>
       </div>
+      <div class="acc" id="acc-confirmOp">
+        <div class="acc-hd" onclick="toggleAcc('confirmOp')">
+          <span class="acc-ico">&#x2705;</span><span class="acc-ttl">Confirmation avant enregistrement</span><span class="acc-chev">&#x25B6;</span>
+        </div>
+        <div class="acc-body">
+      <div class="card">
+        <div class="card-hd">R&#xE9;capitulatif</div>
+        <div id="cf-reglage"></div>
+      </div>
+        </div>
+      </div>
       <div class="acc" id="acc-rapApparence">
         <div class="acc-hd" onclick="toggleAcc('rapApparence')">
           <span class="acc-ico">&#x1F3A8;</span><span class="acc-ttl">Apparence</span><span class="acc-chev">&#x25B6;</span>
@@ -18452,6 +18463,246 @@ if('serviceWorker' in navigator){
 }else{
   window._pwaDiag.sw='API absente sur ce navigateur';
 }
+// ============ RECAPITULATIF DE CONFIRMATION (avant tout enregistrement) ============
+// Principe : l'operation est d'abord executee "a blanc" sur une COPIE des donnees (le DOM est ensuite remis
+// exactement comme avant) ; la difference avant/apres donne le recapitulatif (comptes, soldes, ecritures,
+// alertes). Si l'utilisateur confirme, l'operation reelle est executee, strictement comme avant.
+var CF_KEY='mp_cf_reglages';
+var CF_DEF={mode:'toujours',seuil:1000,ecriture:true,doublon:true,inhabituel:true,soldeFaible:false,seuilSolde:2000};
+var _cfBusy=false,_cfGrace={};
+var CF_OPS={
+  saveDep:'la d\u00e9pense',saveRev:'le revenu',saveTransfert:'le transfert',saveTx:'le mouvement',
+  saveDepot:'le d\u00e9p\u00f4t',saveDepotTransfert:'le transfert du d\u00e9p\u00f4t',saveDette:'la dette',saveProm:'la promesse',
+  saveEmprunt:"l'emprunt",savePret:'le pr\u00eat',savePrelevementDepot:'le pr\u00e9l\u00e8vement',savePretAccordeDepot:'le pr\u00eat',
+  doRembourser:'le remboursement',saveManquant:'le manquant',saveExcedent:"l'exc\u00e9dent",
+  confirmerManquantRetrouve:'le manquant retrouv\u00e9',confirmerArgentRetrouve:"l'argent retrouv\u00e9",
+  saveTon:'la tontine',saveTonTransfert:'le transfert',saveTonCotiser:'la cotisation',saveTonRecevoir:'la r\u00e9ception',
+  saveTonCollecter:'la collecte',saveTonVerser:'le versement',saveTonCloture:'la cl\u00f4ture',savePrelevTontine:'le pr\u00e9l\u00e8vement',
+  saveProj:'le projet',saveProjOp:"l'op\u00e9ration du projet",saveRegularisation:'la r\u00e9gularisation',
+  saveTrajet:'le trajet',validerOp:"l'\u00e9criture"
+};
+function cfCfg(){
+  var c={};try{c=JSON.parse(localStorage.getItem(CF_KEY)||'{}')||{};}catch(e){}
+  var o={};for(var k in CF_DEF)o[k]=(c[k]!==undefined?c[k]:CF_DEF[k]);return o;
+}
+function cfSet(k,v){var c=cfCfg();c[k]=v;try{localStorage.setItem(CF_KEY,JSON.stringify(c));}catch(e){}cfRenderReglage();}
+function cfNom(c){return c==='Especes'?'Esp\u00e8ces':c;}
+
+// ---- Execution a blanc + remise a l'identique du DOM ----
+function cfDry(orig,self,args){
+  var realD=D,clone;
+  try{clone=JSON.parse(JSON.stringify(D));}catch(e){return null;}
+  var els=[].slice.call(document.querySelectorAll('input,select,textarea')).map(function(e){return {e:e,v:e.value,c:e.checked};});
+  var mo=new MutationObserver(function(){});
+  mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeOldValue:true,characterData:true,characterDataOldValue:true});
+  var sv={save:window.save,notif:window.notif,renderAll:window.renderAll,st:window.setTimeout,si:window.setInterval,al:window.alert,cf:window.confirm};
+  var gs={};
+  Object.keys(window).forEach(function(k){
+    if(k.charAt(0)!=='_'||k.indexOf('__')===0)return;
+    var v;try{v=window[k];}catch(e){return;}
+    if(v===null||typeof v!=='object'&&typeof v!=='function')gs[k]=v;
+    else if(Array.isArray(v))gs[k]=v.slice();
+    else if(typeof v==='object'&&Object.getPrototypeOf(v)===Object.prototype)gs[k]=Object.assign({},v);
+  });
+  var err=false,ok=true;
+  window.save=function(){return Promise.resolve();};
+  window.notif=function(m,e){if(e)err=true;};
+  window.renderAll=function(){};
+  window.setTimeout=function(){return 0;};window.setInterval=function(){return 0;};
+  window.alert=function(){};window.confirm=function(){return true;};
+  D=clone;_cfBusy=true;
+  try{orig.apply(self,args);}catch(e){ok=false;}
+  finally{
+    _cfBusy=false;D=realD;
+    window.save=sv.save;window.notif=sv.notif;window.renderAll=sv.renderAll;window.setTimeout=sv.st;window.setInterval=sv.si;window.alert=sv.al;window.confirm=sv.cf;
+    Object.keys(gs).forEach(function(k){try{window[k]=gs[k];}catch(e){}});
+    var recs=mo.takeRecords();mo.disconnect();
+    for(var i=recs.length-1;i>=0;i--){
+      var r=recs[i];
+      try{
+        if(r.type==='attributes'){if(r.oldValue===null)r.target.removeAttribute(r.attributeName);else r.target.setAttribute(r.attributeName,r.oldValue);}
+        else if(r.type==='characterData'){r.target.nodeValue=r.oldValue;}
+        else if(r.type==='childList'){
+          [].forEach.call(r.addedNodes,function(n){if(n.parentNode===r.target)r.target.removeChild(n);});
+          var ref=r.nextSibling&&r.nextSibling.parentNode===r.target?r.nextSibling:null;
+          [].forEach.call(r.removedNodes,function(n){r.target.insertBefore(n,ref);});
+        }
+      }catch(e){}
+    }
+    els.forEach(function(x){try{if(x.e.type==='file')return;if(x.e.value!==x.v)x.e.value=x.v;if(x.e.checked!==x.c)x.e.checked=x.c;}catch(e){}});
+  }
+  if(!ok||err)return {err:true};
+  return {diff:cfDiff(realD,clone)};
+}
+
+// ---- Difference avant / apres ----
+var CF_SUIVI=['dettes','prets','depots','emprunts','manquants','excedents','promesses'];
+function cfLabel(it){return (it&&(it.libelle||it.lib||it.nom||it.creancier||it.debiteur||it.tiers||it.objet))||'';}
+function cfDiff(A,B){
+  var o={ecr:[],item:null,cpts:[],suivis:[],frais:0,debit:0,credit:0,montant:0,alertes:[],sig:false};
+  var cfg=cfCfg();
+  mpComptes().forEach(function(c){
+    var a=Number((A.comptes||{})[c]||0),b=Number((B.comptes||{})[c]||0);
+    if(Math.abs(a-b)>0.5){o.cpts.push({c:c,a:a,b:b,d:b-a});if(b<a)o.debit+=a-b;else o.credit+=b-a;}
+  });
+  o.ecr=(B.ecritures||[]).slice((A.ecritures||[]).length);
+  o.ecr.forEach(function(e){
+    o.montant=Math.max(o.montant,Number(e.totD||0));
+    (e.lignes||[]).forEach(function(l){if(l.sens==='D'&&String(l.compte).indexOf('627')===0)o.frais+=Number(l.montant||0);});
+  });
+  var principal=null,tx=null;
+  Object.keys(B).forEach(function(k){
+    var nb=B[k],na=A[k];
+    if(!Array.isArray(nb)||k==='ecritures')return;
+    var an=Array.isArray(na)?na.length:0;
+    if(nb.length>an){
+      var news=nb.slice(an);
+      if(k==='transactions'){if(!tx)tx=news[0];}
+      else if(!principal)principal={k:k,it:news[0],all:news};
+      news.forEach(function(it){o.montant=Math.max(o.montant,Number(it.montant||0));});
+      // doublon
+      if(cfg.doublon){
+        var anc=Array.isArray(na)?na:[];
+        news.forEach(function(it){
+          var l=cfLabel(it),m=Number(it.montant||0);
+          if(!l||!(m>0)||o.dbl)return;
+          var dup=false;
+          if(k==='transactions'){if(it.type==='transfert')dup=anc.some(function(x){return x.type==='transfert'&&x.compte===it.compte&&x.compteDest===it.compteDest&&Number(x.montant)===m&&x.date===it.date;});}
+          else if(['depenses','revenus','dettes','prets','depots','emprunts'].indexOf(k)>=0)dup=anc.some(function(x){return cfLabel(x)===l&&Number(x.montant||0)===m&&x.date===it.date;});
+          if(dup){o.dbl=true;o.alertes.push({t:'a',h:'Doublon possible.',m:'\u00ab '+l+' \u00bb de '+fmt(m)+' F existe d\u00e9j\u00e0 \u00e0 cette date.'});}
+        });
+      }
+      // montant inhabituel (depenses)
+      if(cfg.inhabituel&&k==='depenses'){
+        news.forEach(function(it){
+          var m=Number(it.montant||0),prev=(A.depenses||[]).filter(function(x){return x.categorie===it.categorie&&Number(x.montant||0)>0;});
+          if(prev.length>=3&&!o.inh){
+            var moy=prev.reduce(function(s,x){return s+Number(x.montant||0);},0)/prev.length;
+            if(m>3*moy&&m-moy>=2000){o.inh=true;o.alertes.push({t:'a',h:'Montant inhabituel.',m:'Vos d\u00e9penses \u00ab '+(it.categorie||'')+' \u00bb sont en moyenne de '+fmt(Math.round(moy))+' F.'});}
+          }
+        });
+      }
+    } else if(CF_SUIVI.indexOf(k)>=0&&Array.isArray(na)){
+      nb.forEach(function(it,i){
+        var x=na[i];if(!x)return;
+        var a=Number(x.montant),b=Number(it.montant);
+        if(isFinite(a)&&isFinite(b)&&Math.abs(a-b)>0.5)o.suivis.push({k:k,l:cfLabel(it)||cfLabel(x),a:a,b:b});
+      });
+    }
+  });
+  o.item=principal?principal.it:tx;o.itemKey=principal?principal.k:(tx?'transactions':'');
+  o.nbItems=principal?principal.all.length:0;
+  o.montant=Math.max(o.montant,o.debit);
+  o.sig=!!(o.ecr.length||o.item||o.cpts.length||o.suivis.length);
+  // soldes
+  o.cpts.forEach(function(c){
+    if(c.d<0&&c.b<0)o.alertes.push({t:'r',h:'Solde n\u00e9gatif.',m:cfNom(c.c)+' passera \u00e0 '+fmt(c.b)+' F.'});
+    else if(c.d<0&&cfg.soldeFaible&&c.b<Number(cfg.seuilSolde||0))o.alertes.push({t:'r',h:'Solde faible.',m:'Il ne vous restera que '+fmt(c.b)+' F sur '+cfNom(c.c)+'.'});
+  });
+  return o;
+}
+
+// ---- Feuille de recapitulatif ----
+var _cfSuite=null;
+function cfEnsureOv(){
+  if(G('ov-cf'))return;
+  var d=document.createElement('div');d.className='ov';d.id='ov-cf';d.style.zIndex='9700';
+  d.onclick=function(){cfAnnuler();};
+  d.innerHTML='<div class="modal" id="cf-modal" onclick="event.stopPropagation()"></div>';
+  document.body.appendChild(d);
+}
+function cfLigne(l,v,st){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:calc(14px*var(--fscale))"><span style="color:var(--text2)">'+l+'</span><span style="text-align:right;'+(st||'')+'">'+v+'</span></div>';}
+function cfOuvrir(titre,df,suite){
+  cfEnsureOv();_cfSuite=suite;
+  var cfg=cfCfg(),it=df.item||{},h='';
+  var lib=cfLabel(it)||((df.ecr[0]||{}).libelle)||'',date=it.date||((df.ecr[0]||{}).date)||'';
+  h+='<div class="modal-hd"></div><div class="card-hd" style="display:flex;justify-content:space-between;align-items:center">Confirmer '+escHtml(titre)+'<span onclick="cfAnnuler()" style="cursor:pointer;color:var(--text2);padding:4px 8px">\u2715</span></div>';
+  h+='<div style="margin:6px 0 10px">';
+  if(lib)h+=cfLigne('Libell\u00e9',escHtml(lib));
+  if(it.categorie)h+=cfLigne('Cat\u00e9gorie',escHtml(it.categorie));
+  if(it.tiers&&typeof it.tiers==='string')h+=cfLigne('Tiers',escHtml(it.tiers));
+  if(date)h+=cfLigne('Date',escHtml(typeof fmtD==='function'?fmtD(date):date));
+  var mt=Number(it.montant||0)||df.montant;
+  if(df.suivis.length)mt=df.suivis.reduce(function(a,x){return a+Math.abs(x.a-x.b);},0);
+  if(mt>0)h+=cfLigne('Montant','<b>'+fmt(mt)+' F</b>');
+  if(df.nbItems>1)h+=cfLigne('Lignes enregistr\u00e9es','<b>'+df.nbItems+'</b>');
+  h+='</div>';
+  df.alertes.forEach(function(a){
+    var c=a.t==='r'?'var(--red)':'var(--gold)';
+    h+='<div style="border:1px solid '+c+';border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:calc(13px*var(--fscale));line-height:1.45"><b style="color:'+c+'">'+a.h+'</b> '+escHtml(a.m)+'</div>';
+  });
+  if(df.cpts.length){
+    h+='<div style="font-size:calc(11px*var(--fscale));letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:10px 0 6px">Impact sur vos comptes</div>';
+    df.cpts.forEach(function(c){
+      h+='<div style="background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:calc(14.5px*var(--fscale))"><b>'+escHtml(cfNom(c.c))+'</b><b style="color:'+(c.d<0?'var(--red)':'var(--green)')+'">'+(c.d<0?'\u2212':'+')+fmt(Math.abs(c.d))+' F</b></div>'+
+        '<div style="text-align:right;font-size:calc(12.5px*var(--fscale));color:var(--text2);margin-top:3px">'+fmt(c.a)+' \u2192 '+fmt(c.b)+'</div></div>';
+    });
+  }
+  if(df.suivis.length){
+    h+='<div style="font-size:calc(11px*var(--fscale));letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin:10px 0 6px">Dettes, pr\u00eats et soldes suivis</div>';
+    df.suivis.forEach(function(s){
+      h+='<div style="background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;font-size:calc(13.5px*var(--fscale))"><span>'+escHtml(s.l)+'</span><span>'+fmt(s.a)+' \u2192 <b'+(s.b<=0.5?' style="color:var(--green)"':'')+'>'+fmt(s.b)+' F'+(s.b<=0.5?' \u00b7 sold\u00e9':'')+'</b></span></div>';
+    });
+  }
+  if(df.debit>0||df.credit>0){
+    h+='<div style="border-top:2px solid var(--border2);margin-top:10px;padding-top:10px">';
+    if(df.debit>0)h+='<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:calc(13px*var(--fscale));color:var(--text2)">Total d\u00e9bit\u00e9'+(df.frais>0?' (dont frais : '+fmt(df.frais)+' F)':'')+'</span><span style="font-size:calc(22px*var(--fscale));font-weight:700;color:var(--gold)">'+fmt(df.debit)+' F</span></div>';
+    if(df.credit>0)h+='<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:calc(13px*var(--fscale));color:var(--text2)">Total cr\u00e9dit\u00e9</span><span style="font-size:calc(18px*var(--fscale));font-weight:700;color:var(--green)">'+fmt(df.credit)+' F</span></div>';
+    h+='</div>';
+  }
+  if(cfg.ecriture&&df.ecr.length){
+    h+='<div onclick="cfToggleEcr()" style="cursor:pointer;color:var(--text2);font-size:calc(13.5px*var(--fscale));padding:12px 0 4px">Voir l\'\u00e9criture comptable <span id="cf-ecr-chev">\u203a</span></div><div id="cf-ecr" style="display:none">';
+    df.ecr.forEach(function(e){
+      h+='<div style="background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;margin-bottom:6px;font-size:calc(12.5px*var(--fscale))"><div style="color:var(--text2);margin-bottom:4px">'+escHtml(e.journal||'')+' \u00b7 '+escHtml(e.libelle||'')+'</div>';
+      (e.lignes||[]).forEach(function(l){
+        h+='<div style="display:flex;justify-content:space-between;gap:8px"><span>'+(l.sens==='C'?'&nbsp;&nbsp;\u2192 ':'')+escHtml(String(l.compte))+' '+escHtml(l.lib||'')+'</span><span>'+(l.sens==='D'?'D ':'C ')+fmt(l.montant)+'</span></div>';
+      });
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  var al=df.alertes.length>0;
+  h+='<button class="btn-p btn-gold" style="margin-top:14px'+(al?';background:transparent;border:1px solid var(--gold);color:var(--gold);box-shadow:none':'')+'" onclick="cfConfirmer()">'+(al?'Confirmer quand m\u00eame':'Confirmer')+'</button>';
+  h+='<button class="btn-s" onclick="cfAnnuler()">Modifier</button>';
+  G('cf-modal').innerHTML=h;
+  G('ov-cf').classList.add('on');
+}
+function cfToggleEcr(){var e=G('cf-ecr'),c=G('cf-ecr-chev');if(!e)return;var on=e.style.display==='none';e.style.display=on?'':'none';if(c)c.textContent=on?'\u2304':'\u203a';}
+function cfFermer(){var o=G('ov-cf');if(o)o.classList.remove('on');}
+function cfAnnuler(){_cfSuite=null;cfFermer();try{renderAll();}catch(e){}}
+function cfConfirmer(){var s=_cfSuite;_cfSuite=null;cfFermer();if(s)s();}
+
+// ---- Installation : enveloppe chaque operation ----
+function cfInstall(){
+  Object.keys(CF_OPS).forEach(function(n){
+    var o=window[n];if(typeof o!=='function'||o._cf)return;
+    var w=function(){
+      var self=this,args=arguments;
+      if(_cfBusy)return o.apply(self,args);
+      var cfg=cfCfg();
+      if(cfg.mode==='jamais')return o.apply(self,args);
+      var r=null;try{r=cfDry(o,self,args);}catch(e){r=null;}
+      if(!r||r.err||!r.diff||!r.diff.sig)return o.apply(self,args);
+      if(cfg.mode==='seuil'&&r.diff.montant<Number(cfg.seuil||0)&&!r.diff.alertes.length)return o.apply(self,args);
+      cfOuvrir(CF_OPS[n],r.diff,function(){o.apply(self,args);});
+    };
+    w._cf=1;window[n]=w;
+  });
+}
+
+// ---- Reglages ----
+function cfRenderReglage(){
+  var el=G('cf-reglage');if(!el)return;
+  var c=cfCfg();
+  function chip(k,v,l){return '<div class="chip'+(c[k]===v?' on':'')+'" onclick="cfSet(\''+k+'\',\''+v+'\')">'+l+'</div>';}
+  function sw(k,l,sub){return '<label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border2);cursor:pointer"><span><span style="font-size:calc(14px*var(--fscale))">'+l+'</span><br><span style="font-size:calc(12px*var(--fscale));color:var(--text2)">'+sub+'</span></span><input type="checkbox" '+(c[k]?'checked ':'')+'onchange="cfSet(\''+k+'\',this.checked)" style="width:22px;height:22px;accent-color:var(--gold)"></label>';}
+  el.innerHTML='<div class="info-box" style="margin-bottom:10px">Un r\u00e9capitulatif s\'affiche avant d\'enregistrer une op\u00e9ration (d\u00e9pense, revenu, transfert, dette, pr\u00eat, tontine, projet\u2026) pour v\u00e9rifier les comptes touch\u00e9s et les soldes avant/apr\u00e8s.</div>'+
+    '<label class="fl">Afficher le r\u00e9capitulatif</label><div class="chips" style="flex-wrap:wrap;overflow-x:visible">'+chip('mode','toujours','Toujours')+chip('mode','seuil','Au-dessus d\'un montant')+chip('mode','jamais','Jamais')+'</div>'+
+    (c.mode==='seuil'?'<div class="fg" style="margin-top:10px"><label class="fl">Montant minimum (F)</label><input class="fc" type="number" value="'+Number(c.seuil||0)+'" onchange="cfSet(\'seuil\',Number(this.value)||0)"></div><div style="font-size:calc(12px*var(--fscale));color:var(--text2);margin-top:4px">Une alerte affiche toujours le r\u00e9capitulatif, m\u00eame sous ce montant.</div>':'')+
+    '<div style="margin-top:10px">'+sw('ecriture','Afficher l\'\u00e9criture comptable','D\u00e9bit / Cr\u00e9dit, repli\u00e9 par d\u00e9faut')+sw('doublon','Alerter en cas de doublon','M\u00eame libell\u00e9, montant et date')+sw('inhabituel','Alerter si le montant est inhabituel','Bien au-dessus de la moyenne de la cat\u00e9gorie')+sw('soldeFaible','Alerter si le solde devient faible','Un solde n\u00e9gatif est toujours signal\u00e9')+'</div>'+
+    (c.soldeFaible?'<div class="fg" style="margin-top:6px"><label class="fl">Solde faible en dessous de (F)</label><input class="fc" type="number" value="'+Number(c.seuilSolde||0)+'" onchange="cfSet(\'seuilSolde\',Number(this.value)||0)"></div>':'');
+}
+try{cfInstall();cfRenderReglage();}catch(e){console.warn('confirmation',e);}
 window.addEventListener('beforeinstallprompt',function(e){
   window._pwaDiag.installable='OUI - le navigateur propose l\'installation';
   try{localStorage.setItem('mp_diag_installable','oui');}catch(e2){}
