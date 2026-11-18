@@ -2733,6 +2733,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
   <button class="btn-s" style="margin-top:12px" onclick="closeOv('ov-charge-detail')">Fermer</button>
 </div></div>
 
+<div class="ov" id="ov-histo-item"><div class="modal" style="max-width:520px;max-height:86vh;overflow-y:auto" onclick="event.stopPropagation()">
+  <div class="card-hd" id="hi-titre">Historique</div>
+  <div id="hi-body"></div>
+  <button class="btn-s" style="margin-top:12px" onclick="closeOv('ov-histo-item')">Fermer</button>
+</div></div>
+
 <div class="ov" id="ov-confirm-regs"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title">Confirmer la regularisation</div>
   <div id="regs-confirm-body" style="font-size:calc(13px*var(--fscale));color:var(--text2);line-height:1.7;margin:12px 0 18px"></div>
@@ -2976,6 +2982,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 <div class="ov" id="ov-real-prom"><div class="modal" onclick="event.stopPropagation()">
   <div class="modal-hd"></div><div class="modal-title" id="real-prom-title">Realiser une promesse</div>
   <div class="fg"><label class="fl">Compte de tresorerie</label><select class="fc" id="real-prom-cpt"><option value="Wave 76">Wave 76</option><option value="Wave 77">Wave 77</option><option value="Orange Money">Orange Money</option><option value="Mix by Yas">Mix by Yas</option><option value="XpressCash">XpressCash</option><option value="Banque Courant">Banque Courant</option><option value="Banque Epargne">Banque Epargne</option><option value="Especes">Especes</option></select></div>
+  <div class="fg"><label class="fl" id="real-prom-cat-lbl">Categorie</label><select class="fc" id="real-prom-cat"></select></div>
   <div class="fg"><label class="fl">Montant (vide = montant total)</label><input class="fc" type="number" id="real-prom-amt"></div>
   <div class="fg"><label class="fl">Frais (optionnel)</label><input class="fc" type="number" id="real-prom-frais" placeholder="ex: 100 (frais de transaction)"></div>
   <button class="btn-p btn-gold" onclick="doRealiserProm()" id="real-prom-btn">Confirmer</button><button class="btn-s" onclick="closeOv('ov-real-prom')">Annuler</button>
@@ -6697,7 +6704,7 @@ function impDataOperations(f){
 }
 
 // ---- Module : JOURNAL (par code journal) ----
-var IMP_NOTE_REGUL='Comptes 476 et 477 : dans cette appli, 476 = depenses ou promesses faites non decaissees et 477 = ventes ou promesses recues a encaisser (usage interne, different du plan SYSCOHADA officiel).';
+var IMP_NOTE_REGUL='Comptes 476 et 477 : dans cette appli, 476 = depenses faites non decaissees et 477 = ventes a encaisser (usage interne, different du plan SYSCOHADA officiel).';
 var IMP_NOTE_CAF='CAF (SYSCOHADA revise) = resultat net + dotations - reprises + valeur comptable des cessions - produits des cessions. Sans compte de dotation, reprise ou cession, elle est egale au resultat net (produits - charges).';
 var IMP_NOTE_BFR='BFR = creances a court terme (41, 465, 471, 477) - dettes d\'exploitation (40 hors 401, 476). Les emprunts, le decouvert et l\'argent d\'autrui sont exclus.';
 function impDataJournal(f){
@@ -9279,6 +9286,105 @@ function doRembourserInterne(mode,amt,frais,excedent){
     finaliserRemboursement();
   }
 }
+// ============ HISTORIQUE DES MOUVEMENTS (dettes, prets, depots) ============
+// Un clic sur une carte ouvre la liste des ecritures qui ont touche ce tiers sur le compte de l'element
+// (creation, remboursements, restitutions...), avec le solde apres chaque mouvement. Pour un element cloture,
+// seuls les mouvements jusqu'a sa cloture sont affiches ; pour un element actif, ceux depuis la derniere
+// cloture du meme tiers.
+var HISTO_CFG={
+  dette:{liste:function(){return D.dettes||[];},nom:function(x){return x.creancier||'';},passif:true,aug:'Dette contract\u00e9e',dim:'Remboursement',cAug:'var(--red)',
+    cpts:function(x){var a=[];if(x.compteOrigine)a.push(x.compteOrigine);var t=String(x.type||'').split('|')[0];if(t)a.push(t);if(!a.length)a.push('401');return a;},titre:'Dette'},
+  pret:{liste:function(){return D.prets||[];},nom:function(x){return x.debiteur||'';},passif:false,aug:'Pr\u00eat accord\u00e9',dim:'Encaissement',cAug:'var(--teal)',
+    cpts:function(x){return [x.compte||'41'];},titre:'Pr\u00eat'},
+  depot:{liste:function(){return D.depots||[];},nom:function(x){return x.deposant||'';},passif:true,aug:'D\u00e9p\u00f4t re\u00e7u',dim:'Restitution',cAug:'var(--purple)',
+    cpts:function(){return ['467'];},titre:'D\u00e9p\u00f4t'}
+};
+function histoTexteContient(txt,nom){
+  var n=normNomTiers(nom);if(!n)return false;
+  return normNomTiers(txt).indexOf(n)>-1;
+}
+function histoMatch(cfg,it,e,l,accts){
+  if(accts.indexOf(String(l.compte))<0)return false;
+  var code=it.tiers||'',nom=cfg.nom(it);
+  if(code){
+    if(estTiersNomLibre(code)&&nom){
+      if(ligneDansCle(l,cleTiers(code,nom)))return true;
+      return l.tiers===code&&!nomLigneTiers(l)&&histoTexteContient((e.libelle||'')+' '+(l.lib||''),nom);
+    }
+    return l.tiers===code;
+  }
+  return !l.tiers&&histoTexteContient((e.libelle||'')+' '+(l.lib||''),nom);
+}
+function histoMouvements(type,idx){
+  var cfg=HISTO_CFG[type],liste=cfg.liste(),it=liste[idx];if(!it)return null;
+  var accts=cfg.cpts(it),nom=cfg.nom(it);
+  var clos=it.statut&&it.statut!=='en_cours'&&it.statut!=='partiel';
+  var fin=clos?(it.dateCloture||''):'',debut='';
+  liste.forEach(function(o,i){
+    if(i===idx||!o.dateCloture)return;
+    var meme=(o.tiers||'')===(it.tiers||'')&&normNomTiers(cfg.nom(o))===normNomTiers(nom);
+    if(!meme)return;
+    if(clos){if(o.dateCloture<fin&&o.dateCloture>debut)debut=o.dateCloture;}
+    else if(o.dateCloture>debut)debut=o.dateCloture;
+  });
+  var tri=(D.ecritures||[]).slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'')||(a.ref||'').localeCompare(b.ref||'');});
+  var out=[],solde=0;
+  tri.forEach(function(e){
+    if(debut&&(e.date||'')<=debut)return;
+    if(fin&&(e.date||'')>fin)return;
+    (e.lignes||[]).forEach(function(l){
+      if(!histoMatch(cfg,it,e,l,accts))return;
+      var m=Number(l.montant||0);
+      var aug=cfg.passif?(l.sens==='C'):(l.sens==='D');
+      solde+=aug?m:-m;
+      var autres=[];
+      (e.lignes||[]).forEach(function(x){if(x!==l&&autres.indexOf(PLAN_COMPTES[x.compte]||x.compte)<0&&accts.indexOf(String(x.compte))<0)autres.push(PLAN_COMPTES[x.compte]||x.compte);});
+      out.push({date:e.date,ref:e.ref,journal:e.journal,libelle:e.libelle,aug:aug,montant:m,solde:solde,autres:autres.join(' \u00b7 ')});
+    });
+  });
+  return {cfg:cfg,it:it,mvts:out,clos:!!clos,nom:nom};
+}
+function ouvrirHistoItem(type,idx){
+  var r=histoMouvements(type,idx);if(!r)return;
+  var cfg=r.cfg,it=r.it;
+  var tt=G('hi-titre');if(tt)tt.textContent=cfg.titre+' - '+(r.nom||'');
+  var h='<div style="font-size:calc(12.5px*var(--fscale));color:var(--text2);margin-bottom:10px">'+(it.tiers?escHtml(it.tiers)+' \u00b7 ':'')+escHtml(it.objet||'')+'</div>';
+  var lignes=[];
+  if(type==='pret'){
+    lignes.push(['Montant pr\u00eat\u00e9',fmt(it.montant)+' F']);
+    lignes.push(['D\u00e9j\u00e0 rembours\u00e9',fmt(it.rembourse||0)+' F']);
+    lignes.push([r.clos?'Reste \u00e0 la cl\u00f4ture':'Reste \u00e0 encaisser',fmt(pretReste(it))+' F']);
+  } else {
+    if(it.montantInitial!=null&&Math.abs(Number(it.montantInitial)-Number(it.montant))>0.5)lignes.push(['Montant initial',fmt(it.montantInitial)+' F']);
+    lignes.push([r.clos?'Montant \u00e0 la cl\u00f4ture':'Montant actuel',fmt(it.montant)+' F']);
+  }
+  if(r.clos&&it.dateCloture)lignes.push(['Cl\u00f4tur\u00e9e le',fmtD(it.dateCloture)]);
+  h+='<div style="border-bottom:1px solid var(--border);margin-bottom:12px;padding-bottom:6px">'+lignes.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:calc(13.5px*var(--fscale))"><span style="color:var(--text2)">'+x[0]+'</span><b>'+x[1]+'</b></div>';}).join('')+'</div>';
+  if(r.mvts.length){
+    h+='<div style="font-size:calc(11px*var(--fscale));color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">'+r.mvts.length+' mouvement(s), le plus r\u00e9cent en premier</div>';
+    r.mvts.slice().reverse().forEach(function(m){
+      var col=m.aug?cfg.cAug:'var(--green)';
+      h+='<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'+
+        '<div style="min-width:0"><div style="font-size:calc(13px*var(--fscale));font-weight:600">'+escHtml(m.libelle||'')+'</div>'+
+        '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">'+(m.aug?cfg.aug:cfg.dim)+' \u00b7 '+fmtD(m.date)+(m.autres?' \u00b7 '+escHtml(m.autres):'')+'</div>'+
+        '<div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:1px">'+escHtml(m.ref||'')+' \u00b7 '+escHtml(m.journal||'')+'</div></div>'+
+        '<div style="text-align:right;white-space:nowrap"><div style="font-weight:700;color:'+col+'">'+(m.aug?'+':'\u2212')+fmt(m.montant)+' F</div>'+
+        '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">solde '+fmt(m.solde)+' F</div></div></div>';
+    });
+  } else {
+    h+='<div style="font-size:calc(12.5px*var(--fscale));color:var(--text2);padding:14px 0;text-align:center">Aucun mouvement comptable retrouv\u00e9 pour cet \u00e9l\u00e9ment.</div>';
+  }
+  var b=G('hi-body');if(b)b.innerHTML=h;
+  openOv('ov-histo-item');
+}
+// Rend une carte cliquable (hors boutons d'action) pour ouvrir l'historique
+function histoRendreCliquable(div,type,idx){
+  div.style.cursor='pointer';
+  div.addEventListener('click',function(ev){
+    if(ev.target.closest&&ev.target.closest('[data-action]'))return;
+    ouvrirHistoItem(type,idx);
+  });
+}
 function renderDettes(){
   var actives=(D.dettes||[]).filter(detteEstActive);
   var cloturees=(D.dettes||[]).filter(function(d){return !detteEstActive(d)&&d.autoType!=='decouvert_bancaire';});
@@ -9307,7 +9413,7 @@ function renderDettes(){
         '<div class="pd-sub">'+escHtml(d.objet||'')+'</div>'+
         '<div class="pd-sub">Contrepartie: '+escHtml(contrep)+'</div>'+
         '<div class="pd-sub">Echeance: '+ech+'</div></div>'+
-        '<div style="text-align:right"><div class="pd-amt" style="color:var(--red)">'+fmt(d.montant)+' F</div></div>'+
+        '<div style="text-align:right"><div class="pd-amt" style="color:var(--red)">'+fmt(d.montant)+' F</div><div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:3px">Historique &#x203A;</div></div>'+
       '</div>'+
       (d.autoType==='decouvert_bancaire'?'':
       '<div class="pd-actions">'+
@@ -9315,6 +9421,7 @@ function renderDettes(){
         (d.contrepartie==='nature'?'<span class="bdg bs" data-action="cat" data-i="'+ri+'">Categorie</span>':'')+
         (lienDette?'':'<span class="bdg bs" data-action="ardoise" data-i="'+ri+'">&#x1F9F9; Effacer l\'ardoise</span>')+
       '</div>');
+    histoRendreCliquable(div,'dette',ri);
     div.querySelectorAll('[data-action]').forEach(function(btn){
       btn.addEventListener('click',function(){
         var ac=this.getAttribute('data-action'),ix=Number(this.getAttribute('data-i'));
@@ -9335,16 +9442,21 @@ function ouvrirRealiserProm(i,action){
   var p=(D.promesses||[])[i];if(!p)return;
   reinitialiserChampsOv('ov-real-prom');
   var ra=G('real-prom-amt');if(ra)ra.value='';
+  var rc=G('real-prom-cat'),src=G(action==='encaisser'?'rev-cat':'dep-cat');
+  if(rc&&src){rc.innerHTML=src.innerHTML;rc.value=action==='encaisser'?'79|Autre revenu':'699|Autres charges';if(!rc.value&&rc.options.length)rc.selectedIndex=0;}
+  var rcl=G('real-prom-cat-lbl');if(rcl)rcl.textContent=action==='encaisser'?'Categorie du produit':'Categorie de la depense';
   var rt=G('real-prom-title'),rb=G('real-prom-btn');
   if(action==='encaisser'){if(rt)rt.textContent='Encaisser la promesse de '+p.personne;if(rb)rb.textContent='Encaisser';}
   else{if(rt)rt.textContent='Decaisser ma promesse a '+p.personne;if(rb)rb.textContent='Decaisser';}
   openOv('ov-real-prom');
 }
 function doRealiserProm(){
+  try{migrerPromessesHorsBilan();}catch(e){}
   var p=(D.promesses||[])[_promIdx];if(!p)return;
   var cpt=(G('real-prom-cpt')||{}).value||'Especes';
   var amt=Number((G('real-prom-amt')||{}).value||0)||p.montant;
   var frais=Number((G('real-prom-frais')||{}).value||0);
+  var catV=(G('real-prom-cat')||{}).value||(_promAction==='encaisser'?'79|Autre revenu':'699|Autres charges'),catP=catV.split('|'),catCode=catP[0],catLib=catP[1]||catP[0];
   function finaliserProm(){
     if(amt>=p.montant){D.promesses.splice(_promIdx,1);}
     else{D.promesses[_promIdx].montant-=amt;}
@@ -9355,10 +9467,10 @@ function doRealiserProm(){
     D.comptes[cpt]=(D.comptes[cpt]||0)+amt;
     var refEncProm=passerEcriture('PR',today(),'Encaissement promesse - '+p.personne,[
       {compte:cptCode(cpt),lib:cpt,sens:'D',montant:amt,tiers:p.tiers||''},
-      {compte:'477',lib:'Produit a recevoir',sens:'C',montant:amt,tiers:p.tiers||''}
+      {compte:catCode,lib:catLib,sens:'C',montant:amt,tiers:p.tiers||''}
     ],'');
     if(!refEncProm){D.comptes[cpt]=(D.comptes[cpt]||0)-amt;notif('Encaissement annule - l\'ecriture correspondante a echoue',true);return;}
-    D.transactions.push({type:'credit',compte:cpt,libelle:'Encaissement promesse - '+p.personne,montant:amt,date:today(),tiers:p.tiers||''});
+    D.transactions.push({type:'credit',compte:cpt,libelle:'Encaissement promesse - '+p.personne,montant:amt,date:today(),tiers:p.tiers||'',categorie:catLib});
     appliquerFrais(cpt,frais,'Promesse '+p.personne,today(),p.tiers||'');
     notif('Encaissement '+fmt(amt)+' F via '+cpt+(frais>0?' (frais: '+fmt(frais)+' F)':''));
     finaliserProm();
@@ -9366,30 +9478,46 @@ function doRealiserProm(){
     var _dlaDecProm=D.dettes.length;
     execDebitAvecConfirmation(cpt,amt,{objet:'Decaissement promesse - '+p.personne},function(){
       var refDecProm=passerEcriture('PR',today(),'Decaissement promesse - '+p.personne,[
-        {compte:'476',lib:'Charge a payer',sens:'D',montant:amt,tiers:p.tiers||''},
+        {compte:catCode,lib:catLib,sens:'D',montant:amt,tiers:p.tiers||''},
         {compte:cptCode(cpt),lib:cpt,sens:'C',montant:amt,tiers:p.tiers||''}
       ],'');
       if(!refDecProm){annulerDebitApresEchecEcriture(cpt,amt,_dlaDecProm);notif('Decaissement annule - l\'ecriture correspondante a echoue',true);return;}
-      D.transactions.push({type:'debit',compte:cpt,libelle:'Decaissement promesse - '+p.personne,montant:amt,date:today(),tiers:p.tiers||''});
+      D.transactions.push({type:'debit',compte:cpt,libelle:'Decaissement promesse - '+p.personne,montant:amt,date:today(),tiers:p.tiers||'',categorie:catLib});
       appliquerFrais(cpt,frais,'Promesse '+p.personne,today(),p.tiers||'');
       notif('Decaissement '+fmt(amt)+' F via '+cpt+(frais>0?' (frais: '+fmt(frais)+' F)':''));
       finaliserProm();
     });
   }
 }
+// Promesses creees avant ce changement : leur ecriture d'origine (477 / 46) est contrepassee une seule fois,
+// pour que l'engagement sorte des creances et du BFR. Idempotent (marque p.memo).
+function migrerPromessesHorsBilan(){
+  var ch=false;
+  (D.promesses||[]).forEach(function(p){
+    if(p.memo)return;
+    var m=Number(p.montant||0);
+    if(m>0){
+      var fa=p.type==='faite';
+      var l=[{compte:fa?'46':'477',lib:'Promesse sortie de la comptabilite - '+p.personne,sens:'D',montant:m,tiers:p.tiers||''},{compte:fa?'477':'46',lib:'Promesse sortie de la comptabilite - '+p.personne,sens:'C',montant:m,tiers:p.tiers||''}];
+      var ref=passerEcriture('PR',today(),'Promesse hors comptabilite - '+p.personne,l,'');
+      if(!ref)return;
+    }
+    p.memo=true;ch=true;
+  });
+  if(ch)save();
+}
 function annulerProm(i){
+  try{migrerPromessesHorsBilan();}catch(e){}
   var p=(D.promesses||[])[i];if(!p)return;
-  var refAnnProm=passerEcriture('PR',today(),'ANNULATION promesse - '+p.personne,[
-    {compte:'479',lib:'Ecart annulation',sens:'D',montant:p.montant,tiers:p.tiers||''},
-    {compte:p.type==='faite'?'476':'477',lib:'Annulation',sens:'C',montant:p.montant,tiers:p.tiers||''}
-  ],'');
-  if(!refAnnProm){notif('Annulation refusee - l\'ecriture correspondante a echoue',true);return;}
+  // Promesse hors comptabilite : rien a contrepasser, on retire simplement l'engagement.
   D.promesses.splice(i,1);save();notif('Promesse annulee');renderPromesses();
+  try{renderAll();}catch(e){}
 }
 function promToDetteDirect(i){
+  try{migrerPromessesHorsBilan();}catch(e){}
   var p=(D.promesses||[])[i];if(!p)return;
   var refPTD=passerEcriture('PR',today(),'Promesse vers Dette - '+p.personne,[
-    {compte:'477',lib:'Promesse',sens:'D',montant:p.montant,tiers:p.tiers||''},
+    {compte:'699',lib:'Autres charges',sens:'D',montant:p.montant,tiers:p.tiers||''},
     {compte:'401',lib:'Dette '+p.personne,sens:'C',montant:p.montant,tiers:p.tiers||''}
   ],'');
   if(!refPTD){notif('Conversion refusee - l\'ecriture correspondante a echoue',true);return;}
@@ -9401,7 +9529,7 @@ function promToDette(){
   var amt=Number((G('prom-amt')||{}).value||0),date=(G('prom-date')||{}).value||'',tiers=(G('prom-tiers')||{}).value||'';
   if(pers&&amt){
     var refPTD2=passerEcriture('PR',today(),'Promesse vers Dette - '+pers,[
-      {compte:'477',lib:'Promesse',sens:'D',montant:amt,tiers:tiers||''},
+      {compte:'699',lib:'Autres charges',sens:'D',montant:amt,tiers:tiers||''},
       {compte:'401',lib:'Dette '+pers,sens:'C',montant:amt,tiers:tiers||''}
     ],'');
     if(!refPTD2){notif('Conversion refusee - l\'ecriture correspondante a echoue',true);return;}
@@ -9410,6 +9538,7 @@ function promToDette(){
   } else notif('Renseignez personne et montant',true);
 }
 function renderPromesses(){
+  try{migrerPromessesHorsBilan();}catch(e){}
   var faites=(D.promesses||[]).filter(function(p){return p.type==='faite';});
   var recues=(D.promesses||[]).filter(function(p){return p.type==='recue';});
   var ef=G('pr-f'),er=G('pr-r');
@@ -9677,7 +9806,7 @@ function renderDepots(){
         '<div class="pd-sub">'+escHtml(d.objet||'')+'</div>'+
         '<div class="pd-sub">Recu '+fmtD(d.date)+' - '+venti+'</div>'+
         '<div class="pd-sub">Restitution: '+(d.restitution?fmtD(d.restitution):'Non definie')+'</div>'+detteTxt+'</div>'+
-        '<div style="text-align:right"><div class="pd-amt" style="color:var(--purple)">'+fmt(d.montant)+' F</div></div>'+
+        '<div style="text-align:right"><div class="pd-amt" style="color:var(--purple)">'+fmt(d.montant)+' F</div><div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:3px">Historique &#x203A;</div></div>'+
       '</div>'+
       '<div class="pd-actions">'+
         '<span class="bdg bp" data-action="rest">Restituer tout</span>'+
@@ -9688,6 +9817,7 @@ function renderDepots(){
         (dtI>-1?'<span class="bdg br" data-action="rembdette">Rembourser la dette</span>':'')+
         '<span class="bdg bs" data-action="supp">Suppr.</span>'+
       '</div>';
+    histoRendreCliquable(div,'depot',i);
     div.querySelectorAll('[data-action]').forEach(function(btn){
       btn.addEventListener('click',function(){
         var ac=this.getAttribute('data-action');
@@ -9734,13 +9864,14 @@ function renderPrets(){
           '<div class="pd-sub">'+escHtml(p.objet||'')+'</div>'+
           '<div class="pd-sub">Echeance: '+ech+'</div></div>'+
           '<div style="text-align:right"><div class="pd-amt" style="color:var(--teal)">'+fmt(p.montant)+' F</div>'+
-          '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">Reste: '+fmt(r)+' F</div></div>'+
+          '<div style="font-size:calc(11px*var(--fscale));color:var(--text2);margin-top:2px">Reste: '+fmt(r)+' F</div><div style="font-size:calc(10.5px*var(--fscale));color:var(--text3);margin-top:3px">Historique &#x203A;</div></div>'+
         '</div>'+
         '<div class="pd-actions">'+
           '<span class="bdg bg" data-action="encaiss" data-i="'+i+'">Encaisser tout</span>'+
           '<span class="bdg bb" data-action="partiel" data-i="'+i+'">Partiel</span>'+
           (lienPret?'':'<span class="bdg bs" data-action="ardoise" data-i="'+i+'">&#x1F9F9; Effacer l\'ardoise</span>')+
         '</div>';
+      histoRendreCliquable(div,'pret',i);
       div.querySelectorAll('[data-action]').forEach(function(btn){
         btn.addEventListener('click',function(){
           var ix=Number(this.getAttribute('data-i'));
@@ -9966,7 +10097,8 @@ function renderHistoriqueCloture(type,liste,elId,nomChamp){
   wrap.innerHTML=sorted.map(function(r){
     var c=coul[r.statut]||'var(--text2)';
     var montantInit=r.montantInitial!=null?r.montantInitial:r.montant;
-    return '<div class="pd pd-'+(type==='dette'?'det':'pt')+'" style="opacity:.88">'+
+    var _ix=(type==='dette'?D.dettes:D.prets).indexOf(r);
+    return '<div class="pd pd-'+(type==='dette'?'det':'pt')+'" style="opacity:.88;cursor:pointer" onclick="ouvrirHistoItem(\''+type+'\','+_ix+')">'+
       '<div class="pd-row"><div><div class="pd-nom">'+(r[nomChamp]||'')+' <span class="bdg" style="background:'+c+';color:#04121f;font-weight:700">'+(STATUTS_LABELS[r.statut]||r.statut)+'</span></div>'+
       '<div class="pd-sub">Montant initial: '+fmt(montantInit||0)+' F'+(r.montantAbandonne?' - Abandonne: '+fmt(r.montantAbandonne)+' F':'')+'</div>'+
       '<div class="pd-sub">Cloturee le '+(r.dateCloture?fmtD(r.dateCloture):'-')+(r.motifCloture?' - Motif: '+motifLabel(r.motifCloture):'')+(r.auteurCloture?' - Par: '+r.auteurCloture:'')+'</div>'+
@@ -14681,6 +14813,7 @@ function updateHdr(){
 
 // ============ RENDER ALL ============
 function renderAll(){
+  try{migrerPromessesHorsBilan();}catch(e){}
   if(window._alerteIntegriteInitiale){
     var _nAlerteInit=window._alerteIntegriteInitiale;window._alerteIntegriteInitiale=null;
     notif(_nAlerteInit+' anomalie(s) detectee(s) dans les donnees restaurees depuis le Cloud - consultez la page Controles pour les examiner (rien n\'a ete corrige automatiquement)',true);
@@ -16555,11 +16688,18 @@ function buildEvolEpargneChart(){
   });
   charts['evolep']=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label:'Epargne nette (compte epargne)',data:net,borderColor:'#F5C842',backgroundColor:'rgba(224,182,85,.12)',fill:true,tension:.35,pointRadius:3}]},options:chartOpts});
 }
+// La legende est en bas du graphique (2 entrees par ligne) : la hauteur du cadre grandit avec le nombre de
+// categories, sinon les dernieres entrees de la legende sont coupees (categorie qui semble "masquee").
+function ajusterHauteurGraphLegende(canvas,n){
+  var box=canvas&&canvas.parentNode;if(!box)return;
+  box.style.height=(170+Math.ceil(Math.max(n,2)/2)*30)+'px';
+}
 function buildTresChart(){
   var ctx=G('ch-tres');if(!ctx)return;kc('tr');
   var vals=[],labs=[];
   COMPTES_TRES.forEach(function(n){var v=D.comptes[n]||0;if(v>0){labs.push(n);vals.push(v);}});
   if(!vals.length)return;
+  ajusterHauteurGraphLegende(ctx,vals.length);
   charts['tr']=new Chart(ctx,{type:'doughnut',data:{labels:labs,datasets:[{data:vals,backgroundColor:C10,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94A3B8',font:{size:11}}}}}});
 }
 function buildRevChart(){
@@ -16573,6 +16713,7 @@ function buildDepChart(){
   var bPc=bornesPeriode(_periodes.dep||'mois',_periodePerso.dep);
   var cats={};(D.depenses||[]).concat(depensesMouvements()).forEach(function(d){if(depenseOfferte(d)||!dansPeriode(d.date,bPc))return;cats[d.categorie]=(cats[d.categorie]||0)+Number(d.montant);});
   if(!Object.keys(cats).length)return;
+  ajusterHauteurGraphLegende(ctx,Object.keys(cats).length);
   charts['dp']=new Chart(ctx,{type:'pie',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:C10,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94A3B8',font:{size:11}}}}}});
 }
 function naviguerVersGrandLivre(code){
@@ -17566,12 +17707,12 @@ function saveProm(){
   var tiers=(G('prom-tiers')||{}).value||'',desc=(G('prom-desc')||{}).value||'';
   var amt=Number((G('prom-amt')||{}).value||0),date=(G('prom-date')||{}).value||'';
   if(!pers||!amt){notif('Personne et montant obligatoires',true);return;}
-  var lignes=type==='faite'?[{compte:'477',lib:'Promesse faite',sens:'D',montant:amt,tiers:tiers||''},{compte:'46',lib:'Engagement envers '+pers,sens:'C',montant:amt,tiers:tiers||''}]:[{compte:'46',lib:'Promesse recue',sens:'D',montant:amt,tiers:tiers||''},{compte:'477',lib:'Produit attendu',sens:'C',montant:amt,tiers:tiers||''}];
-  var refProm=passerEcriture('PR',date||today(),desc||'Promesse '+pers,lignes,'');
-  if(!refProm){notif('Promesse annulee - l\'ecriture correspondante a echoue',true);return;}
+  // Une promesse est un engagement HORS COMPTABILITE : aucune ecriture tant qu'elle n'est pas realisee
+  // (decaissement / encaissement / conversion en dette). Elle n'entre donc ni dans les creances, ni dans les dettes, ni dans le BFR.
+  try{migrerPromessesHorsBilan();}catch(e){}
   var res=fusionnerOuAjouter(D.promesses,function(p){
     return memeTiers(tiers,pers,p.tiers,p.personne)&&p.type===type;
-  },{type:type,personne:pers,tiers:tiers,description:desc,montant:amt,date:date});
+  },{type:type,personne:pers,tiers:tiers,description:desc,montant:amt,date:date,memo:true});
   save();closeOv('ov-prom');
   notif(res.fusionne?'Promesse cumulee - '+pers+' : '+fmt(D.promesses[res.idx].montant)+' F au total':'Promesse enregistree');
   clr('prom-pers','prom-amt');
@@ -18479,7 +18620,7 @@ var CF_OPS={
   saveTon:'la tontine',saveTonTransfert:'le transfert',saveTonCotiser:'la cotisation',saveTonRecevoir:'la r\u00e9ception',
   saveTonCollecter:'la collecte',saveTonVerser:'le versement',saveTonCloture:'la cl\u00f4ture',savePrelevTontine:'le pr\u00e9l\u00e8vement',
   saveProj:'le projet',saveProjOp:"l'op\u00e9ration du projet",saveRegularisation:'la r\u00e9gularisation',
-  saveTrajet:'le trajet',validerOp:"l'\u00e9criture"
+  doRealiserProm:'la promesse',saveTrajet:'le trajet',validerOp:"l'\u00e9criture"
 };
 function cfCfg(){
   var c={};try{c=JSON.parse(localStorage.getItem(CF_KEY)||'{}')||{};}catch(e){}
@@ -18537,7 +18678,7 @@ function cfDry(orig,self,args){
 
 // ---- Difference avant / apres ----
 var CF_SUIVI=['dettes','prets','depots','emprunts','manquants','excedents','promesses'];
-function cfLabel(it){return (it&&(it.libelle||it.lib||it.nom||it.creancier||it.debiteur||it.tiers||it.objet))||'';}
+function cfLabel(it){return (it&&(it.libelle||it.lib||it.nom||it.personne||it.creancier||it.debiteur||it.tiers||it.objet))||'';}
 function cfDiff(A,B){
   var o={ecr:[],item:null,cpts:[],suivis:[],frais:0,debit:0,credit:0,montant:0,alertes:[],sig:false};
   var cfg=cfCfg();
